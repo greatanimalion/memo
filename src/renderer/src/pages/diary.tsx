@@ -4,6 +4,7 @@ import type { CalendarProps } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useDiary } from '../hooks/useDiary';
 import Select from 'antd/es/select';
+import { updateDiary } from '../services/diary';
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -15,13 +16,12 @@ const DiaryPage: React.FC = () => {
     diaryData,
     stats,
     getDateData,
+    setDiaryData,
     handleDateSelect,
     handleMonthChange,
   } = useDiary();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
-
   // 日历单元格渲染
   const dateCellRender: CalendarProps<Dayjs>['cellRender'] = (value) => {
     const dateKey = value.format('YYYY-MM-DD');
@@ -55,6 +55,8 @@ const DiaryPage: React.FC = () => {
       todos: data.todos.map(todo => ({ text: todo.text, completed: todo.completed })),
       note: data.note || '',
     });
+    //@ts-ignore
+    if (window.___NOTPOPEN) return
     setIsModalOpen(true);
   };
 
@@ -80,9 +82,14 @@ const DiaryPage: React.FC = () => {
             <Select
               value={year}
               onChange={(newYear: number) => {
+                //@ts-ignore
+                window.___NOTPOPEN = true;
                 const _Y = value.clone().year(newYear);
                 onChange(_Y);
                 handleMonthChange(_Y);
+                //@ts-ignore
+                window.___NOTPOPEN = false;
+
               }}
               options={yearOptions}
               style={{ width: 100 }}
@@ -91,9 +98,13 @@ const DiaryPage: React.FC = () => {
             <Select
               value={month}
               onChange={(newMonth: number) => {
+                //@ts-ignore
+                window.___NOTPOPEN = true;
                 const _m = value.clone().month(newMonth);
                 onChange(_m);
                 handleMonthChange(_m);
+                //@ts-ignore
+                window.___NOTPOPEN = false; 
               }}
               options={monthOptions}
               style={{ width: 90 }}
@@ -135,13 +146,12 @@ const DiaryPage: React.FC = () => {
             },
           };
         }
-
         const monthKey = dateKey.substring(0, 7);
-        await window.electron.ipcRenderer.invoke('update-diary', {
+        updateDiary({
           id: monthKey,
           monthDiarys: newDiary,
         });
-
+        setDiaryData(newDiary);
         setIsModalOpen(false);
       }
     });

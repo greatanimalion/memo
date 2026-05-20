@@ -4,7 +4,7 @@ import { FileTextOutlined, StarOutlined } from '@ant-design/icons';
 
 import { formatTime, formatDate, formatRelativeTime, formatDateByTimestamp } from '../utils/dateUtils';
 import { getMemorysStarred, getRecentMemorys } from '../services/memeoy';
-import { Memory } from '../types/common';
+import { Memory } from '../../../types';
 import { Empty } from 'antd';
 import RealTimeClock from '../components/clock';
 import AIPart from '../components/AiPart';

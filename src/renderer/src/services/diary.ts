@@ -11,11 +11,6 @@ export async function getDiaryById(id: string): Promise<Diary | null> {
   }
 }
 
-//创建一个月的diary
-export async function createDiary(diary: Diary): Promise<Diary> {
-  const response = await api.post('/api/diarys', diary)
-  return response.data.data
-}
 
 //更新会话
 export async function updateDiary(diary: Diary): Promise<Diary> {

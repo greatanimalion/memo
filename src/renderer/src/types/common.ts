@@ -71,14 +71,6 @@ export interface EditorSettings {
   lineHeight: number
 }
 
-// 从服务端类型导入
-export type { Memory } from '../../../types';
-export type { Session, Message } from '../../../types/session';
-export type { MyAgent } from '../../../types/agents';
-
-// 从服务端类型导入书籍相关类型
-export type { BookUtilsAttribute, BookUtils } from '../../../types/book';
-
 // 章节接口 - 扩展服务端类型
 export interface Chapter {
   id: string;

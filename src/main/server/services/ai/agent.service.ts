@@ -91,7 +91,7 @@ export class AgentToolService {
           return `文件创建完成，并已写入文件: ${args.filename}`;
 
         case 'write_diary':
-          await this.diaryService.setDayDiary(args.date, args.todos, args.note);
+          await this.diaryService.update(args.date, { id: args.date, monthDiarys: { todos: args.todos, note: args.note } });
           return `日记创建成功，日期：${args.date}`;
 
         default:

@@ -1,5 +1,5 @@
 import api from '.'
-import { Session } from '../types/common'
+import { Session } from '../../../types'
 
 //获取所有会话
 export async function getAllSession(): Promise<Session[]> {

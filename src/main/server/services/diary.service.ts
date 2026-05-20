@@ -7,11 +7,6 @@ export class DiaryService {
   constructor() {
     this.diaryRepository = new DiaryRepository();
   }
-
-  getAll(): Diary[] {
-    return this.diaryRepository.getAll();
-  }
-
   getById(id: string): Diary | null {
     return this.diaryRepository.getById(id) || null;
   }
@@ -22,13 +17,5 @@ export class DiaryService {
 
   update(id: string, data: Partial<Diary>): Diary | null {
     return this.diaryRepository.update(id, data);
-  }
-
-  delete(id: string): boolean {
-    return this.diaryRepository.delete(id);
-  }
-
-  setDayDiary(date: string, todos: any[], note: string): void {
-    this.diaryRepository.setDayDiary(date, todos, note);
   }
 }

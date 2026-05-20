@@ -117,7 +117,7 @@ export class MemoryController {
     try {
       const { id } = req.params;
       const { memory, wasStarred } = this.memoryService.toggleStar(id);
-
+      console.info(memory)
       if (!memory) {
         res.status(404).json({ code: 404, error: '未找到指定的记忆' });
         return;

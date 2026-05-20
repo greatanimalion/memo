@@ -81,6 +81,7 @@ const Editor= ({ selectedFile }) => {
     ],
     uploadFile: async (file: File) => {
       const res = await uploadImage(file)
+      
       changeURL.addMap.set(new Date().getTime().toString(), 'http://localhost:32068' + res.url)
       return 'http://localhost:32068' + res.url
     },
@@ -181,7 +182,7 @@ const Editor= ({ selectedFile }) => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-  // 确保 editor 已初始化
+
   if (!editor) {
     return <div className="flex items-center justify-center h-full text-gray-500">加载编辑器...</div>;
   }

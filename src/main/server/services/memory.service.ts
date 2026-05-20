@@ -53,7 +53,7 @@ export class MemoryService {
     if (!memory) {
       return { memory: null, wasStarred:0 };
     }
-    const wasStarred = memory.starred||0;
+    const wasStarred = memory.starred?0:1;
     const updated = this.memoryRepository.update(id, { starred: wasStarred });
     return { memory: updated, wasStarred: wasStarred };
   }

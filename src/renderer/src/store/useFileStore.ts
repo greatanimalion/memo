@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { ViewMode, SortBy } from "../types/common";
 import { Memory } from "../../../types";
 import { getMemoryChildById, starredMemory } from "../services/memeoy";
-import { refreshCurrentFolderItemsArr } from "../hooks/useMemory";
 interface FileStoreState {
   currentFileIdsArr: string[];
   setCurrentFileIdsArr: (id: string[]) => void;
@@ -58,7 +57,7 @@ const useFileStore = create<FileStoreState>((set) => ({
   refreshCurrentFolderItemsArr: async () => {
     const id = useFileStore.getState().currentFileIdsArr.at(-1)!;
     const newChildFile = await getMemoryChildById(id);
-    set({ currentFolderItemsArr: newChildFile });
+    useFileStore.getState().setCurrentFolderItemsArr(newChildFile);
   },
   setSelectedFile: (selectedFile) => set({ selectedFile }),
   clearSelectedFile: () => set({ selectedFile: null }),
@@ -67,7 +66,7 @@ const useFileStore = create<FileStoreState>((set) => ({
   setShowEditor: (showEditor) => set({ showEditor }),
   toggleStar: async (id) => {
     await starredMemory(id);
-    await refreshCurrentFolderItemsArr();
+    useFileStore.getState().refreshCurrentFolderItemsArr();
   },
   reset: () => set(initialState),
 }));

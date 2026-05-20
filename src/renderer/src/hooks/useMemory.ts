@@ -132,9 +132,3 @@ export const useMemory = () => {
     searchFiles,
   };
 };
-
-export async function refreshCurrentFolderItemsArr() {
-  const id = useFileStore.getState().currentFileIdsArr.at(-1)!;
-  const newChildFile = await getMemoryChildById(id);
-  useFileStore((state) => state.setCurrentFolderItemsArr)(newChildFile);
-}

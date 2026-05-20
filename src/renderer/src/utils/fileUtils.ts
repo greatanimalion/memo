@@ -2,7 +2,7 @@
  * 文件工具函数
  */
 
-import { FileItem } from '../types/common';
+import type { Memory } from '../../../types';
 
 /**
  * 根据名称查找文件
@@ -13,9 +13,9 @@ import { FileItem } from '../types/common';
  */
 export const findFileByName = (
   name: string,
-  allFiles: FileItem[],
-  subFolderContents: Record<string, FileItem[]>
-): FileItem | null => {
+  allFiles: Memory[],
+  subFolderContents: Record<string, Memory[]>
+): Memory | null => {
   // 先在根目录中查找
   const foundInAll = allFiles.find(file => file.title === name);
   if (foundInAll) return foundInAll;
@@ -39,9 +39,9 @@ export const findFileByName = (
  * @param fileId 文件ID
  * @returns 更新后的文件列表
  */
-export const toggleFileStar = (files: FileItem[], fileId: string): FileItem[] => {
+export const toggleFileStar = (files: Memory[], fileId: string): Memory[] => {
   return files.map(item =>
-    item.id === fileId ? { ...item, starred: !item.starred } : item
+    item.id === fileId ? { ...item, starred: item.starred ? 0 : 1 } : item
   );
 };
 
@@ -51,7 +51,7 @@ export const toggleFileStar = (files: FileItem[], fileId: string): FileItem[] =>
  * @param fileId 文件ID
  * @returns 找到的文件或 undefined
  */
-export const findFileById = (files: FileItem[], fileId: string): FileItem | undefined => {
+export const findFileById = (files: Memory[], fileId: string): Memory | undefined => {
   return files.find(file => file.id === fileId);
 };
 
@@ -105,7 +105,7 @@ export const getFileIconInfo = (fileName: string) => {
 };
 
 
-export function getReadableByteSize(str) {
+export function getReadableByteSize(str: string) {
   // 1. 获取原始字节数
   const bytes = new Blob([str]).size;
   
@@ -130,13 +130,13 @@ export function getReadableByteSize(str) {
  * @param {string} encoding - 编码格式，默认为 UTF-8
  * @returns {Promise<string>} - 文件内容的字符串
  */
-export function fileToText(file, encoding = 'UTF-8') {
-    return new Promise((resolve, reject) => {
+export function fileToText(file: File, encoding: string = 'UTF-8') {
+    return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
 
         // 读取成功
-        reader.onload = (e:any) => {
-            resolve(e.target.result);
+        reader.onload = (e) => {
+            resolve(e.target?.result as string);
         };
 
         // 读取失败
@@ -151,7 +151,7 @@ export function fileToText(file, encoding = 'UTF-8') {
 /**
  * 获取文件扩展名
 */
-export function getExtension(filename) {
+export function getExtension(filename: string): string {
     // 1. 找到最后一个点的位置
     const lastIndex = filename.lastIndexOf('.');
     

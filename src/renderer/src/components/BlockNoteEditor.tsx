@@ -25,6 +25,7 @@ import { getLocalStore } from '../utils/localStore';
 import { getModels } from '../utils/helper';
 import { ExportOutlined, FileMarkdownOutlined, Html5Outlined, ImportOutlined } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
+import useFileStore from '../store/useFileStore';
 
 function exportFile(editor: any, type: 'md' | 'html' | 'json', name?: string) {
   let endFixed = '.' + type
@@ -49,6 +50,7 @@ function exportFile(editor: any, type: 'md' | 'html' | 'json', name?: string) {
 const Editor= ({ selectedFile }) => {
   const [html, setHTML] = useState<string>("");
   const [messageApi, contextHolder] = message.useMessage();
+  const { clearSelectedFile } = useFileStore();
   const getTransport = useMemo(() => {
     let currentModelName = getLocalStore<any>('documentModel')?.value;
     const model = getModels(currentModelName)
@@ -222,7 +224,7 @@ const Editor= ({ selectedFile }) => {
             changeURL.addMap.forEach((url => {
               deleteFile(url)
             }))
-            close()
+            clearSelectedFile()
           }}>
             <div className='flex gap-1 items-center'> <X size={16} />退出 </div>
           </Button>

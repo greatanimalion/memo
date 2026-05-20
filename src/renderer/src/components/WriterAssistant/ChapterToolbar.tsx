@@ -6,6 +6,7 @@ import {
   FontSizeOutlined,
   ColumnHeightOutlined,
   FontColorsOutlined,
+  BoldOutlined,
 } from '@ant-design/icons'
 
 const fontOptions: { value: FontFamily; label: string }[] = [
@@ -29,6 +30,7 @@ const ChapterToolbar: React.FC = () => {
   const setEditorFont = useWriterStore((s) => s.setEditorFont)
   const setEditorFontSize = useWriterStore((s) => s.setEditorFontSize)
   const setEditorLineHeight = useWriterStore((s) => s.setEditorLineHeight)
+  const setEditorFontWeight = useWriterStore((s) => s.setEditorFontWeight)
 
   return (
     <div className="flex items-center gap-4 px-4 py-2 bg-white border-b border-gray-200">
@@ -68,6 +70,20 @@ const ChapterToolbar: React.FC = () => {
           tooltip={{ formatter: (v) => `${v}` }}
         />
         <span className="text-xs text-gray-500 w-6">{editorSettings.lineHeight}</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <BoldOutlined className="text-gray-400" />
+        <Slider
+          className="w-20"
+          min={100}
+          max={900}
+          step={100}
+          value={editorSettings.fontWeight}
+          onChange={setEditorFontWeight}
+          tooltip={{ formatter: (v) => `${v}` }}
+        />
+        <span className="text-xs text-gray-500 w-8">{editorSettings.fontWeight}</span>
       </div>
     </div>
   )

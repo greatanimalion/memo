@@ -15,13 +15,13 @@ export class MemoryDatabase extends BaseDatabase {
       memory.id,
       memory.isFolder,
       memory.title,
-      memory.content,
+      memory.content??'',
       memory.parentId,
       memory.created,
       memory.updated,
       memory.visitedTime,
       memory.size,
-      memory.starred
+      memory.starred??0
     );
     return memory;
   }

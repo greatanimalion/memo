@@ -1,4 +1,3 @@
-
 // 视图类型
 export type ViewType = 'home' | 'memo' | 'diary' | 'settings' | 'chat'|'person'|'web'
 
@@ -58,12 +57,10 @@ export interface ChapterMetadata {
 }
 
 
-
 export interface BookSettings {
   maxChapterWords: number
   wordCountMode: 'chinese' | 'english'
 }
-
 
 
 export type FontFamily = 'sans' | 'serif' | 'mono' | 'kaiti' | 'songti'
@@ -72,4 +69,58 @@ export interface EditorSettings {
   fontFamily: FontFamily
   fontSize: number
   lineHeight: number
+}
+
+// 从服务端类型导入
+export type { Memory } from '../../../types';
+export type { Session, Message } from '../../../types/session';
+export type { MyAgent } from '../../../types/agents';
+
+// 从服务端类型导入书籍相关类型
+export type { BookUtilsAttribute, BookUtils } from '../../../types/book';
+
+// 章节接口 - 扩展服务端类型
+export interface Chapter {
+  id: string;
+  title: string;
+  content: string;
+  wordCount?: number;
+  order?: number;
+  createdAt?: number;
+  updatedAt?: number;
+  metadata?: ChapterMetadata;
+}
+
+// 书籍接口 - 扩展服务端类型
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  cover: string;
+  chapters: Chapter[];
+  settings?: BookSettings;
+}
+
+// 文件类型
+export type FileType = 'folder' | 'file';
+
+export interface FileItem {
+  id: string;
+  name: string;
+  type: FileType;
+  count?: number;
+  size?: string;
+  date: string;
+  starred: boolean;
+  content?: string;
+  title?: string;
+  isFolder?: boolean;
+  parentId?: string;
+  created?: number;
+  updated?: number;
+}
+
+export interface FolderContent {
+  name: string;
+  items: FileItem[];
 }

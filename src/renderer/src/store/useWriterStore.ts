@@ -1,13 +1,6 @@
 import { create } from 'zustand'
-import { Book, Chapter, FontFamily } from '../types/common'
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
-}
+import { FontFamily, Chapter, Book } from '../types/common'
+import {generateUUID} from '../utils/helper'
 
 function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): number {
   if (mode === 'chinese') {
@@ -44,6 +37,7 @@ function createDefaultBook(): Book {
     id: generateUUID(),
     title: '未命名作品',
     author: '佚名',
+    cover: '',
     chapters: [createChapter('第一章', 1)],
     settings: {
       maxChapterWords: 20000,
@@ -55,7 +49,7 @@ function createDefaultBook(): Book {
 interface WriterState {
   book: Book
   currentChapterId: string | null
-  editorSettings: { fontFamily: FontFamily; fontSize: number; lineHeight: number }
+  editorSettings: { fontFamily: FontFamily; fontSize: number; lineHeight: number; fontWeight: number }
   aiPanelOpen: boolean
 
   setBookTitle: (title: string) => void
@@ -69,6 +63,7 @@ interface WriterState {
   setEditorFont: (font: FontFamily) => void
   setEditorFontSize: (size: number) => void
   setEditorLineHeight: (height: number) => void
+  setEditorFontWeight: (weight: number) => void
   toggleAiPanel: () => void
   setAiPanelOpen: (open: boolean) => void
 }
@@ -80,6 +75,7 @@ export const useWriterStore = create<WriterState>((set) => ({
     fontFamily: 'sans' as FontFamily,
     fontSize: 16,
     lineHeight: 1.8,
+    fontWeight: 400,
   },
   aiPanelOpen: false,
 
@@ -139,7 +135,7 @@ export const useWriterStore = create<WriterState>((set) => ({
             ? {
                 ...c,
                 content,
-                wordCount: countWords(content, state.book.settings.wordCountMode),
+                wordCount: countWords(content, state.book.settings?.wordCountMode || 'chinese'),
                 updatedAt: Date.now(),
               }
             : c
@@ -160,6 +156,11 @@ export const useWriterStore = create<WriterState>((set) => ({
   setEditorLineHeight: (lineHeight) =>
     set((state) => ({
       editorSettings: { ...state.editorSettings, lineHeight },
+    })),
+
+  setEditorFontWeight: (fontWeight) =>
+    set((state) => ({
+      editorSettings: { ...state.editorSettings, fontWeight },
     })),
 
   toggleAiPanel: () =>

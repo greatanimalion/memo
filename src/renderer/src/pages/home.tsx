@@ -4,7 +4,7 @@ import { FileTextOutlined, StarOutlined } from '@ant-design/icons';
 
 import { formatTime, formatDate, formatRelativeTime, formatDateByTimestamp } from '../utils/dateUtils';
 import { getMemorysStarred, getRecentMemorys } from '../services/memeoy';
-import { FileItem } from '../types/common';
+import { Memory } from '../types/common';
 import { Empty } from 'antd';
 import RealTimeClock from '../components/clock';
 import AIPart from '../components/AiPart';
@@ -12,8 +12,8 @@ import AIPart from '../components/AiPart';
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const [recentFiles, setRecentFiles] = useState<FileItem[]>([]);
-  const [starredFiles, setStarredFiles] = useState<FileItem[]>([]);
+  const [recentFiles, setRecentFiles] = useState<Memory[]>([]);
+  const [starredFiles, setStarredFiles] = useState<Memory[]>([]);
   
   async function init() {
     try {
@@ -32,7 +32,7 @@ const HomePage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const openRecentFile = (file: FileItem) => {
+  const openRecentFile = (file: Memory) => {
     navigate('/memo', { state: { file } });
   };
 

@@ -13,6 +13,7 @@ export function getDatabasePath(): string {
   const systemRoot = getSystemRootDir();
   return path.join(systemRoot, '.MemoryData/', 'storage.db');
 }
+
 export class BaseDatabase {
   protected db: Database.Database;
   constructor() {

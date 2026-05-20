@@ -122,7 +122,7 @@ export default function TextEditorPage() {
           <ChapterEditor />
 
           {!aiPanelOpen && (
-            <div className="w-64 flex-shrink-0 p-3 overflow-y-auto border-l border-gray-200 bg-gray-50/50 space-y-3">
+            <div className="w-64  p-3 overflow-y-auto border-l border-gray-200 bg-gray-50/50 space-y-3 max-lg:w-0 transition-all duration-300">
               <WordCounter />
 
               <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -145,19 +145,19 @@ export default function TextEditorPage() {
                       <div className="flex justify-between">
                         <span>创建时间</span>
                         <span className="text-gray-700">
-                          {new Date(currentChapter.createdAt).toLocaleDateString()}
+                          {currentChapter.createdAt ? new Date(currentChapter.createdAt).toLocaleDateString() : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>更新时间</span>
                         <span className="text-gray-700">
-                          {new Date(currentChapter.updatedAt).toLocaleDateString()}
+                          {currentChapter.updatedAt ? new Date(currentChapter.updatedAt).toLocaleDateString() : '-'}
                         </span>
                       </div>
-                      {currentChapter.metadata.summary && (
+                      {currentChapter.metadata?.summary && (
                         <div className="pt-2 border-t border-gray-100">
                           <div className="text-xs text-gray-400 mb-1">AI 摘要</div>
-                          <div className="text-xs text-gray-600">{currentChapter.metadata.summary}
+                          <div className="text-xs text-gray-600">{currentChapter.metadata?.summary}
                           </div>
                         </div>
                       )}

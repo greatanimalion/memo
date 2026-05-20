@@ -59,7 +59,7 @@ const WordCounter: React.FC = () => {
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 ">
       <div className="text-sm font-semibold text-gray-700 mb-3">字数统计</div>
       <div className="grid grid-cols-2 gap-2">
         {items.map((item) => (

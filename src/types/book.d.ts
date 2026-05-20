@@ -2,6 +2,11 @@ export interface Chapter {
   id: string;
   title: string;
   content: string;
+  wordCount?: number;
+  order?: number;
+  createdAt?: number;
+  updatedAt?: number;
+  metadata?: ChapterMetadata;
 }
 
 export interface Book {

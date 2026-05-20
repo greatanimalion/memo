@@ -5,7 +5,7 @@ import { FolderOutlined, AppstoreOutlined, BarsOutlined, PlusOutlined } from '@a
 import CommandPanel from "../components/CommandPanel";
 import BlockNoteEditor from "../components/BlockNoteEditor";
 import { SearchProps } from "antd/es/input";
-import { useMemo } from '../hooks/useMemo';
+import { useMemory } from '../hooks/useMemory';
 import useFileStore from '../store/useFileStore';
 function MemoPage() {
     const {
@@ -17,7 +17,7 @@ function MemoPage() {
         handleBackClick,
         createFileOrFolder,
         searchFiles,
-    } = useMemo();
+    } = useMemory();
     const [fileName, setFileName] = useState('');
     const { Search } = Input;
     const [messageApi, contextHolder] = message.useMessage();
@@ -65,7 +65,6 @@ function MemoPage() {
     const onSearch: SearchProps['onSearch'] = (value) => {
         searchFiles(value || '');
     };
-
     return (<>
         {contextHolder}
         <Modal

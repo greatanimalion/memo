@@ -1,6 +1,8 @@
 import { create } from "zustand";
-import {  ViewMode, SortBy } from "../types/common";
+import { ViewMode, SortBy } from "../types/common";
 import { Memory } from "../../../types";
+import { getMemoryChildById, starredMemory } from "../services/memeoy";
+import { refreshCurrentFolderItemsArr } from "../hooks/useMemory";
 interface FileStoreState {
   currentFileIdsArr: string[];
   setCurrentFileIdsArr: (id: string[]) => void;
@@ -25,6 +27,8 @@ interface FileStoreState {
   toggleStar: (id: string) => void;
   // 重置状态
   reset: () => void;
+  refreshCurrentFolderItemsArr: () => void;
+  clearSelectedFile: () => void;
 }
 
 const initialState = {
@@ -51,20 +55,19 @@ const useFileStore = create<FileStoreState>((set) => ({
     }
     set({ currentFolderItemsArr: items });
   },
+  refreshCurrentFolderItemsArr: async () => {
+    const id = useFileStore.getState().currentFileIdsArr.at(-1)!;
+    const newChildFile = await getMemoryChildById(id);
+    set({ currentFolderItemsArr: newChildFile });
+  },
   setSelectedFile: (selectedFile) => set({ selectedFile }),
+  clearSelectedFile: () => set({ selectedFile: null }),
   setViewMode: (viewMode) => set({ viewMode }),
   setSortBy: (sortBy) => set({ sortBy }),
   setShowEditor: (showEditor) => set({ showEditor }),
-  toggleStar: (id) => {
-    let { currentFolderItemsArr } = useFileStore.getState();
-    set({
-      currentFolderItemsArr: currentFolderItemsArr.map((item) => {
-        if (item.id === id) {
-          return { ...item, starred: item.starred };
-        }
-        return item;
-      }),
-    });
+  toggleStar: async (id) => {
+    await starredMemory(id);
+    await refreshCurrentFolderItemsArr();
   },
   reset: () => set(initialState),
 }));

@@ -1,254 +1,139 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { useWriterStore } from '../store/useWriterStore';
+import { fontFamilyMap } from './WriterAssistant/ChapterToolbar';
 
-interface VirtualTextEditorProps {
+interface TextEditorProps {
   content: string;
   onChange: (content: string) => void;
   fileName?: string;
 }
-const LINE_HEIGHT = 24;
-const VirtualTextEditor: React.FC<VirtualTextEditorProps> = ({ content, onChange, fileName }) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const [lines, setLines] = useState<string[]>(content.split('\n'));
-  const [scrollTop, setScrollTop] = useState(0);
-  const [cursorPosition, setCursorPosition] = useState({ line: 0, column: 0 });
-
-  const totalHeight = lines.length * LINE_HEIGHT;
-  const viewportHeight = 800;
-  const visibleLineCount = Math.ceil(viewportHeight / LINE_HEIGHT);
-  const buffer = 5;
-  const startLine = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - buffer);
-  const endLine = Math.min(lines.length, startLine + visibleLineCount + buffer * 2);
-  const visibleLines = lines.slice(startLine, endLine);
+const TextEditor: React.FC<TextEditorProps> = ({ content, onChange, fileName }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [lineCount, setLineCount] = useState(1);
+  const [column, setColumn] = useState(1);
+  const editorSettings = useWriterStore((s) => s.editorSettings);
 
   useEffect(() => {
-    setLines(content.split('\n'));
-    setCursorPosition({ line: 0, column: 0 });
+    if (textareaRef.current && textareaRef.current.value !== content) {
+      textareaRef.current.value = content;
+      updateLineInfo();
+    }
   }, [content]);
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    setScrollTop(target.scrollTop);
-  }, []);
-
-  const handleLineClick = useCallback((lineIndex: number, e: React.MouseEvent) => {
-    const lineContent = lines[lineIndex];
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const charWidth = 9;
-    const column = Math.min(Math.max(0, Math.floor(x / charWidth)), lineContent.length);
+  const updateLineInfo = () => {
+    if (!textareaRef.current) return;   
+    const text = textareaRef.current.value;
+    const cursorPos = textareaRef.current.selectionStart;
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const lines = textBeforeCursor.split('\n');
     
-    setCursorPosition({ line: lineIndex, column });
-  }, [lines]);
+    setLineCount(lines.length);
+    setColumn(lines[lines.length - 1].length + 1);
+  };
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'ArrowUp') {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e.target.value);
+    updateLineInfo();
+  };
+
+  const handleSelect = () => {
+    updateLineInfo();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
       e.preventDefault();
-      setCursorPosition(prev => ({
-        line: Math.max(0, prev.line - 1),
-        column: Math.min(prev.column, lines[Math.max(0, prev.line - 1)]?.length || 0)
-      }));
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setCursorPosition(prev => ({
-        line: Math.min(lines.length - 1, prev.line + 1),
-        column: Math.min(prev.column, lines[Math.min(lines.length - 1, prev.line + 1)]?.length || 0)
-      }));
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      setCursorPosition(prev => {
-        if (prev.column > 0) {
-          return { ...prev, column: prev.column - 1 };
-        } else if (prev.line > 0) {
-          const prevLineLength = lines[prev.line - 1]?.length || 0;
-          return { line: prev.line - 1, column: prevLineLength };
-        }
-        return prev;
-      });
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      setCursorPosition(prev => {
-        const currentLineLength = lines[prev.line]?.length || 0;
-        if (prev.column < currentLineLength) {
-          return { ...prev, column: prev.column + 1 };
-        } else if (prev.line < lines.length - 1) {
-          return { line: prev.line + 1, column: 0 };
-        }
-        return prev;
-      });
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      const newLines = [...lines];
-      const currentLine = newLines[cursorPosition.line];
-      const beforeCursor = currentLine.substring(0, cursorPosition.column);
-      const afterCursor = currentLine.substring(cursorPosition.column);
-      newLines[cursorPosition.line] = beforeCursor;
-      newLines.splice(cursorPosition.line + 1, 0, afterCursor);
-      setLines(newLines);
-      onChange(newLines.join('\n'));
-      setCursorPosition({ line: cursorPosition.line + 1, column: 0 });
-    } else if (e.key === 'Backspace') {
-      e.preventDefault();
-      if (cursorPosition.column === 0 && cursorPosition.line > 0) {
-        const newLines = [...lines];
-        const prevLine = newLines[cursorPosition.line - 1];
-        const currentLine = newLines[cursorPosition.line];
-        newLines[cursorPosition.line - 1] = prevLine + currentLine;
-        newLines.splice(cursorPosition.line, 1);
-        setLines(newLines);
-        onChange(newLines.join('\n'));
-        setCursorPosition({ line: cursorPosition.line - 1, column: prevLine.length });
-      } else if (cursorPosition.column > 0) {
-        const newLines = [...lines];
-        const currentLine = newLines[cursorPosition.line];
-        newLines[cursorPosition.line] = currentLine.substring(0, cursorPosition.column - 1) + currentLine.substring(cursorPosition.column);
-        setLines(newLines);
-        onChange(newLines.join('\n'));
-        setCursorPosition(prev => ({ ...prev, column: prev.column - 1 }));
-      }
-    } else if (e.key === 'Delete') {
-      e.preventDefault();
-      const currentLineLength = lines[cursorPosition.line]?.length || 0;
-      if (cursorPosition.column === currentLineLength && cursorPosition.line < lines.length - 1) {
-        const newLines = [...lines];
-        const currentLine = newLines[cursorPosition.line];
-        const nextLine = newLines[cursorPosition.line + 1];
-        newLines[cursorPosition.line] = currentLine + nextLine;
-        newLines.splice(cursorPosition.line + 1, 1);
-        setLines(newLines);
-        onChange(newLines.join('\n'));
-      } else if (cursorPosition.column < currentLineLength) {
-        const newLines = [...lines];
-        const currentLine = newLines[cursorPosition.line];
-        newLines[cursorPosition.line] = currentLine.substring(0, cursorPosition.column) + currentLine.substring(cursorPosition.column + 1);
-        setLines(newLines);
-        onChange(newLines.join('\n'));
-      }
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      const tabSpaces = '  ';
+      const newText = text.substring(0, start) + tabSpaces + text.substring(end);
+      onChange(newText);
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + tabSpaces.length;
+        updateLineInfo();
+      }, 0);
+    } else {
+      setTimeout(updateLineInfo, 0);
     }
-  }, [lines, cursorPosition, onChange]);
+  };
 
-  const handleCharInput = useCallback((char: string) => {
-    const newLines = [...lines];
-    const currentLine = newLines[cursorPosition.line] || '';
-    newLines[cursorPosition.line] = currentLine.substring(0, cursorPosition.column) + char + currentLine.substring(cursorPosition.column);
-    setLines(newLines);
-    onChange(newLines.join('\n'));
-    setCursorPosition(prev => ({ ...prev, column: prev.column + 1 }));
-  }, [lines, cursorPosition, onChange]);
+  const lineNumbers = Array.from({ length: Math.max(lineCount, 20) }, (_, i) => i + 1);
 
-  useEffect(() => {
-    const handleInput = (e: KeyboardEvent) => {
-      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-        handleCharInput(e.key);
-      }
-    };
-
-    window.addEventListener('keydown', handleInput);
-    return () => window.removeEventListener('keydown', handleInput);
-  }, [handleCharInput]);
-
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const lineTop = cursorPosition.line * LINE_HEIGHT;
-      const containerTop = container.scrollTop;
-      const containerHeight = container.clientHeight || viewportHeight;
-      const lineBottom = lineTop + LINE_HEIGHT;
-
-      if (lineTop < containerTop) {
-        container.scrollTop = lineTop;
-      } else if (lineBottom > containerTop + containerHeight) {
-        container.scrollTop = lineBottom - containerHeight;
-      }
-    }
-  }, [cursorPosition.line]);
+  const textareaStyle: React.CSSProperties = {
+    fontFamily: fontFamilyMap[editorSettings.fontFamily],
+    fontSize: `${editorSettings.fontSize}px`,
+    lineHeight: editorSettings.lineHeight,
+    fontWeight: editorSettings.fontWeight,
+  };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
-        <div className="text-sm font-medium text-gray-700">
-          {fileName || 'Untitled.txt'}
+    <div className="flex flex-col h-full bg-gray-50 rounded-lg shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <div className="flex items-center gap-3">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <div className="text-sm font-medium">{fileName || 'Untitled.txt'}</div>
         </div>
-        <div className="text-xs text-gray-500">
-          Line {cursorPosition.line + 1}, Column {cursorPosition.column + 1}
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Line {lineCount}, Col {column}</span>
+          </div>
+          <div className="bg-green-500/30 px-2 py-1 rounded-full">
+            <span className="w-2 h-2 bg-green-400 rounded-full inline-block mr-1"></span>
+            Ready
+          </div>
         </div>
       </div>
       
-      <div 
-        ref={scrollContainerRef}
-        className="flex-1 overflow-auto relative"
-        onScroll={handleScroll}
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
-        style={{ outline: 'none' }}
-      >
+      <div className="flex-1 flex overflow-hidden">
         <div 
-          className="relative min-h-full"
-          style={{ height: totalHeight }}
+          className="w-14 bg-gray-100 border-r border-gray-200 flex-shrink-0 overflow-hidden select-none"
+          style={{ fontSize: `${editorSettings.fontSize}px`, lineHeight: editorSettings.lineHeight }}
         >
-          <div 
-            className="absolute left-0 top-0 w-14 bg-gray-100 border-r border-gray-200 overflow-hidden"
-            style={{ height: totalHeight }}
-          >
-            <div 
-              className="relative"
-              style={{ transform: `translateY(${startLine * LINE_HEIGHT}px)` }}
-            >
-              {visibleLines.map((_, index) => {
-                const lineNumber = startLine + index + 1;
-                return (
-                  <div
-                    key={`num-${lineNumber}`}
-                    className="h-6 flex items-center justify-end pr-2 text-xs text-gray-400 font-mono"
-                    style={{ lineHeight: LINE_HEIGHT }}
-                  >
-                    {lineNumber}
-                  </div>
-                );
-              })}
-            </div>
+          <div className="py-3 px-2">
+            {lineNumbers.map((num) => (
+              <div
+                key={num}
+                className="text-xs text-gray-400 font-mono text-right h-full flex items-center justify-end"
+              >
+                {num}
+              </div>
+            ))}
           </div>
-          
-          <div 
-            className="absolute left-14 top-0 right-0 overflow-hidden"
-            style={{ height: totalHeight }}
-          >
-            <div 
-              className="relative"
-              style={{ transform: `translateY(${startLine * LINE_HEIGHT}px)` }}
-            >
-              {visibleLines.map((line, index) => {
-                const absoluteLineIndex = startLine + index;
-                const isCursorLine = absoluteLineIndex === cursorPosition.line;
-                
-                return (
-                  <div
-                    key={`line-${absoluteLineIndex}`}
-                    className={`h-6 flex items-center px-3 font-mono text-sm ${isCursorLine ? 'bg-blue-50' : 'hover:bg-gray-100'} cursor-text select-none`}
-                    style={{ lineHeight: LINE_HEIGHT }}
-                    onClick={(e) => handleLineClick(absoluteLineIndex, e)}
-                  >
-                    <span className="text-gray-800 whitespace-pre-wrap break-all">
-                      {line || '\u00A0'}
-                    </span>
-                    {isCursorLine && (
-                      <span 
-                        className="absolute w-0.5 h-4 bg-blue-500 animate-pulse"
-                        style={{ 
-                          left: 56 + cursorPosition.column * 9,
-                          top: index * LINE_HEIGHT
-                        }}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        </div>
+        
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={handleChange}
+          onSelect={handleSelect}
+          onKeyDown={handleKeyDown}
+          className="flex-1 bg-white border-none outline-none p-3 text-gray-800 resize-none placeholder-gray-300"
+          style={textareaStyle}
+          placeholder="Start writing..."
+          spellCheck={false}
+        />
+      </div>
+      
+      <div className="px-4 py-2 bg-gray-100 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center gap-4">
+          <span>UTF-8</span>
+          <span>LF</span>
+        </div>
+        <div>
+          {content.length} characters | {content.split('\n').length} lines
         </div>
       </div>
     </div>
   );
 };
 
-export default VirtualTextEditor;
+export default TextEditor;

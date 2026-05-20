@@ -10,6 +10,7 @@ import AISender from '../components/common/AISender';
 import { Think } from '@ant-design/x';
 import { getLocalStore } from '../utils/localStore';
 import { useChat } from '../hooks/useChat';
+import { updateSession } from '../services/session';
 
 const ChatPage: React.FC = () => {
   const {
@@ -41,21 +42,16 @@ const ChatPage: React.FC = () => {
     const userContent = inputValue.trim();
     const model = getLocalStore('selectedAI')?.value || '';
     const api_key = (getLocalStore('model')?.value as AIKey[] || []).find(c => c.model === model)?.key || '';
-    
-    setIsThinking(true);
-    
+
     if (!userContent || !currentSession) {
       messageApi.warning('消息不能为空');
-      setTimeout(() => setIsThinking(false), 60);
       return;
     }
-    
     if (!model || !api_key) {
       messageApi.error('请选择模型');
-      setTimeout(() => setIsThinking(false), 60);
       return;
     }
-
+    setIsThinking(true);
     const messId = Date.now();
     const userMessage: Message = {
       role: 'user',
@@ -75,9 +71,8 @@ const ChatPage: React.FC = () => {
       }
       return conv;
     });
-
     const _currentSession = updatedSessions.find(c => c.id === currentSessionId)!;
-    
+    pushSessionToCurrentSession(_currentSession);
     setTypeId(currentSessionId);
     setIsTyping(true);
 
@@ -86,9 +81,7 @@ const ChatPage: React.FC = () => {
       if (prompt) {
         _prompt = `请基于以下文档内容回答问题：\n ${prompt}\n问题：${userContent}`;
       }
-
       const url = openAgent ? 'http://localhost:32068/api/chat-agent' : 'http://localhost:32068/api/chat-stream';
-      
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,22 +92,18 @@ const ChatPage: React.FC = () => {
           history: _currentSession.messages,
         }),
       });
-
       if (!response.body) {
         throw new Error('响应体为空');
       }
-
       const aiMessage: Message = {
         timestamp: Date.now(),
         role: 'system',
         content: '',
       };
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let accumulatedContent = '';
       setTypingDate(Date.now().toString());
-
       try {
         while (true) {
           if (stopReply) {
@@ -131,7 +120,6 @@ const ChatPage: React.FC = () => {
       } finally {
         reader.releaseLock();
       }
-
       _currentSession.messages.push(aiMessage);
     } catch (error) {
       console.error('发送消息时出错:', error);
@@ -149,11 +137,10 @@ const ChatPage: React.FC = () => {
       pushSessionToCurrentSession(_currentSession);
       setIsTyping(false);
       setTypingTarget('');
+      updateSession(_currentSession);
     }
-
     setIsThinking(false);
   }, [currentSession, currentSessionId, sessions, prompt, openAgent, messageApi, pushSessionToCurrentSession, stopReply]);
-
   // 复制消息
   const handleCopyMessage = useCallback((content: string) => {
     navigator.clipboard.writeText(content);
@@ -197,6 +184,7 @@ const ChatPage: React.FC = () => {
       m => m.timestamp !== message.timestamp && m.timestamp !== pre
     );
     pushSessionToCurrentSession({ ...currentSession, messages: newMessages });
+    updateSession({ ...currentSession, messages: newMessages });
   }, [currentSession, messageApi, pushSessionToCurrentSession]);
 
   // 获取消息操作菜单
@@ -229,7 +217,7 @@ const ChatPage: React.FC = () => {
   return (
     <div className="flex flex-1 h-full bg-white w-full">
       {contextHolder}
-      
+
       {/* 左侧对话列表 */}
       <div className="w-60 border-r border-gray-200 overflow-auto flex flex-col max-md:w-0 transition-width duration-300">
         {/* 新建对话按钮 */}
@@ -242,7 +230,7 @@ const ChatPage: React.FC = () => {
             新建对话
           </Button>
         </div>
-        
+
         {/* 对话列表 */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {sessions.length > 0 ? (
@@ -250,9 +238,8 @@ const ChatPage: React.FC = () => {
               <div
                 key={conv.id}
                 onClick={() => handleSelectSession(conv.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  currentSessionId === conv.id ? 'shadow-lg' : 'hover:bg-gray-100 border-transparent'
-                }`}
+                className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${currentSessionId === conv.id ? 'shadow-lg' : 'hover:bg-gray-100 border-transparent'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -281,7 +268,7 @@ const ChatPage: React.FC = () => {
           )}
         </div>
       </div>
-      
+
       {/* 中间聊天区域 */}
       <div className="flex-1 flex flex-col">
         {/* 消息列表 */}
@@ -295,13 +282,12 @@ const ChatPage: React.FC = () => {
                 <div className={`flex items-start gap-3 max-w-[85%] overflow-auto ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   <div className="flex-1">
                     <Dropdown
-                      menu={{ items: getMessageActions(msg as Message ) }}
+                      menu={{ items: getMessageActions(msg as Message) }}
                       trigger={['contextMenu']}
                     >
                       <div
-                        className={`rounded-2xl px-4 py-3 text-gray-800 ${
-                          msg.role === 'user' ? 'bg-[#ebf5ff] rounded-tr-sm' : 'bg-gray-100 rounded-tl-sm'
-                        }`}
+                        className={`rounded-2xl px-4 py-3 text-gray-800 ${msg.role === 'user' ? 'bg-[#ebf5ff] rounded-tr-sm' : 'bg-gray-100 rounded-tl-sm'
+                          }`}
                       >
                         <XMarkdown content={msg.content} />
                         <p className="text-xs mt-2 text-gray-400">
@@ -313,7 +299,7 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {isThinking && currentSessionId === typeId && (
               <div className="flex justify-start">
                 <div className="flex items-start gap-3 max-w-[85%]">
@@ -331,11 +317,11 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
         </div>
-        
+
         {/* 输入区域 */}
         <AISender
           openAgent={openAgent}
@@ -346,7 +332,7 @@ const ChatPage: React.FC = () => {
           agents={agents}
         />
       </div>
-      
+
       {/* 右侧功能面板 */}
       <ChatPanel
         handleCopyMessage={handleCopyMessage}

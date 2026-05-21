@@ -1,5 +1,5 @@
 export interface TodoItem {
-  id: string
+  id: number //时间戳
   text: string
   completed: boolean
 }

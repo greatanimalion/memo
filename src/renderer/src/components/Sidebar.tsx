@@ -1,22 +1,31 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { HomeOutlined, BookOutlined, SettingOutlined, UserOutlined, MessageOutlined, InsertRowAboveOutlined, GlobalOutlined } from '@ant-design/icons';
+import {
+  HomeOutlined,
+  SnippetsOutlined,
+  SettingOutlined,
+  UserOutlined,
+  MessageOutlined,
+  InsertRowAboveOutlined,
+  GlobalOutlined,
+  WalletOutlined
+} from '@ant-design/icons';
 import { ViewType } from '../types/common';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const currentView = location.pathname.slice(1) as ViewType || 'home';
 
   const menuItems = [
     { id: 'home' as ViewType, label: '首页', icon: <HomeOutlined /> },
-    { id: 'memo' as ViewType, label: '备忘录', icon: <BookOutlined /> },
+    { id: 'memo' as ViewType, label: '备忘录', icon: <SnippetsOutlined /> },
     { id: 'diary' as ViewType, label: '日记', icon: <InsertRowAboveOutlined /> },
     { id: 'chat' as ViewType, label: 'AI 聊天', icon: <MessageOutlined /> },
+    { id: 'textEditor' as ViewType, label: '文本编辑器', icon: <WalletOutlined /> },
     { id: 'web' as ViewType, label: 'Web', icon: <GlobalOutlined /> },
     { id: 'settings' as ViewType, label: '设置', icon: <SettingOutlined /> },
-    { id: 'textEditor' as ViewType, label: '文本编辑器', icon: <GlobalOutlined /> },
   ];
 
   const handleNavigate = (view: ViewType) => {

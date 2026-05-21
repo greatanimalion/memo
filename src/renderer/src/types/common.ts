@@ -1,118 +1,53 @@
 // 视图类型
-export type ViewType = 'home' | 'memo' | 'diary' | 'settings' | 'chat'|'person'|'web'
+export type ViewType =
+  | "home"
+  | "memo"
+  | "diary"
+  | "settings"
+  | "chat"
+  | "person"
+  | "web";
 
 // AI 聊天消息类型
-export type MessageType = 'user' | 'system'
+export type MessageType = "user" | "system";
 
-// 日记待办事项
-export interface TodoItem {
-  id: number
-  text: string
-  completed: boolean
-}
+export type {TodoItem} from "../../../types";
+export type { DiaryData } from "../../../types";
+export type { Diary } from "../../../types";
 
-// 日记数据
-export interface DiaryData {
-  [key: string]: {
-    todos: TodoItem[]
-    note?: string
-  }
-}
-//一个月为一个单位获日记
-export interface Diary {
-  id: string
-  monthDiarys: DiaryData
-  // 可以根据需要添加更多用户属性
-  [key: string]: any
-}
 // AI Key
 export interface AIKey {
-  id: number
-  model: string
-  key: string
-  provider?: string
-  masked: boolean
+  id: number;
+  model: string;
+  key: string;
+  provider?: string;
+  masked: boolean;
 }
-
-
+// 智能体接口
+export type {MyAgent} from "../../../types";
 // 视图模式
-export type ViewMode = 'grid' | 'list'
-
+export type ViewMode = "grid" | "list";
 // 排序方式
-export type SortBy = 'date' | 'name'
+export type SortBy = "date" | "name";
 
 // 菜单项
 export interface MenuItem {
-  id: ViewType
-  label: string
-  icon: React.ReactNode
-  count: number | null
+  id: ViewType;
+  label: string;
+  icon: React.ReactNode;
+  count: number | null;
 }
-
-
-export interface ChapterMetadata {
-  aiEnhanced: boolean
-  tags: string[]
-  summary: string
-}
-
-
-export interface BookSettings {
-  maxChapterWords: number
-  wordCountMode: 'chinese' | 'english'
-}
-
-
-export type FontFamily = 'sans' | 'serif' | 'mono' | 'kaiti' | 'songti'
+export type FontFamily = "sans" | "serif" | "mono" | "kaiti" | "songti";
 
 export interface EditorSettings {
-  fontFamily: FontFamily
-  fontSize: number
-  lineHeight: number
+  fontFamily: FontFamily;
+  fontSize: number;
+  lineHeight: number;
 }
-
-// 章节接口 - 扩展服务端类型
-export interface Chapter {
-  id: string;
-  title: string;
-  content: string;
-  wordCount?: number;
-  order?: number;
-  createdAt?: number;
-  updatedAt?: number;
-  metadata?: ChapterMetadata;
-}
-
-// 书籍接口 - 扩展服务端类型
-export interface Book {
-  id: string;
-  title: string;
-  author: string;
-  cover: string;
-  chapters: Chapter[];
-  settings?: BookSettings;
-}
-
+// 分卷接口
+export type {Volume} from "../../../types";
 // 文件类型
-export type FileType = 'folder' | 'file';
-
-export interface FileItem {
-  id: string;
-  name: string;
-  type: FileType;
-  count?: number;
-  size?: string;
-  date: string;
-  starred: boolean;
-  content?: string;
-  title?: string;
-  isFolder?: boolean;
-  parentId?: string;
-  created?: number;
-  updated?: number;
-}
-
-export interface FolderContent {
-  name: string;
-  items: FileItem[];
-}
+export type FileType = "folder" | "file";
+export type {Book} from "../../../types";
+export type {Chapter} from "../../../types";
+export type {BookUtils} from "../../../types";

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { FontFamily, Chapter, Book } from '../types/common'
+import { FontFamily, Chapter, Book, Volume } from '../types/common'
 import {generateUUID} from '../utils/helper'
 
 function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): number {
@@ -14,7 +14,7 @@ function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): numb
   return text.split(/\s+/).filter(Boolean).length
 }
 
-function createChapter(title: string, order: number): Chapter {
+function createChapter(title: string, order: number, volumeId?: string): Chapter {
   const now = Date.now()
   return {
     id: generateUUID(),
@@ -22,6 +22,7 @@ function createChapter(title: string, order: number): Chapter {
     content: '',
     wordCount: 0,
     order,
+    volumeId,
     createdAt: now,
     updatedAt: now,
     metadata: {
@@ -32,6 +33,15 @@ function createChapter(title: string, order: number): Chapter {
   }
 }
 
+function createVolume(title: string, order: number): Volume {
+  return {
+    id: generateUUID(),
+    title,
+    order,
+    createdAt: Date.now(),
+  }
+}
+
 function createDefaultBook(): Book {
   return {
     id: generateUUID(),
@@ -39,6 +49,7 @@ function createDefaultBook(): Book {
     author: '佚名',
     cover: '',
     chapters: [createChapter('第一章', 1)],
+    volumes: [],
     settings: {
       maxChapterWords: 20000,
       wordCountMode: 'chinese',
@@ -55,11 +66,15 @@ interface WriterState {
   setBookTitle: (title: string) => void
   setAuthor: (author: string) => void
   setCurrentChapter: (id: string) => void
-  addChapter: () => void
+  addChapter: (volumeId?: string) => void
   deleteChapter: (id: string) => void
   reorderChapters: (chapters: Chapter[]) => void
   updateChapterTitle: (id: string, title: string) => void
   updateChapterContent: (id: string, content: string) => void
+  addVolume: () => void
+  deleteVolume: (id: string) => void
+  updateVolumeTitle: (id: string, title: string) => void
+  setChapterVolume: (chapterId: string, volumeId: string | undefined) => void
   setEditorFont: (font: FontFamily) => void
   setEditorFontSize: (size: number) => void
   setEditorLineHeight: (height: number) => void
@@ -87,10 +102,10 @@ export const useWriterStore = create<WriterState>((set) => ({
 
   setCurrentChapter: (id) => set({ currentChapterId: id }),
 
-  addChapter: () =>
+  addChapter: (volumeId?: string) =>
     set((state) => {
       const order = state.book.chapters.length + 1
-      const newChapter = createChapter(`第${order}章`, order)
+      const newChapter = createChapter(`第${order}章`, order, volumeId)
       return {
         book: {
           ...state.book,
@@ -103,7 +118,7 @@ export const useWriterStore = create<WriterState>((set) => ({
   deleteChapter: (id) =>
     set((state) => {
       const filtered = state.book.chapters.filter((c) => c.id !== id)
-      const reordered = filtered.map((c, i) => ({ ...c, order: i + 1, title: `第${i + 1}章` }))
+      const reordered = filtered.map((c, i) => ({ ...c, order: i + 1 }))
       const current = state.currentChapterId === id
         ? (reordered[0]?.id || null)
         : state.currentChapterId
@@ -112,6 +127,53 @@ export const useWriterStore = create<WriterState>((set) => ({
         currentChapterId: current,
       }
     }),
+
+  addVolume: () =>
+    set((state) => {
+      const order = state.book.volumes.length + 1
+      const newVolume = createVolume(`第${order}卷`, order)
+      return {
+        book: {
+          ...state.book,
+          volumes: [...state.book.volumes, newVolume],
+        },
+      }
+    }),
+
+  deleteVolume: (id) =>
+    set((state) => {
+      const filtered = state.book.volumes.filter((v) => v.id !== id)
+      const reordered = filtered.map((v, i) => ({ ...v, order: i + 1 }))
+      return {
+        book: {
+          ...state.book,
+          volumes: reordered,
+          chapters: state.book.chapters.map((c) =>
+            c.volumeId === id ? { ...c, volumeId: undefined } : c
+          ),
+        },
+      }
+    }),
+
+  updateVolumeTitle: (id, title) =>
+    set((state) => ({
+      book: {
+        ...state.book,
+        volumes: state.book.volumes.map((v) =>
+          v.id === id ? { ...v, title } : v
+        ),
+      },
+    })),
+
+  setChapterVolume: (chapterId, volumeId) =>
+    set((state) => ({
+      book: {
+        ...state.book,
+        chapters: state.book.chapters.map((c) =>
+          c.id === chapterId ? { ...c, volumeId } : c
+        ),
+      },
+    })),
 
   reorderChapters: (chapters) =>
     set((state) => ({ book: { ...state.book, chapters } })),

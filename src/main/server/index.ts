@@ -47,7 +47,7 @@ export async function startExpressServer(): Promise<void> {
   const expressApp = express();
   const port = 32068;
   expressApp.use(cors());
-  expressApp.use(express.json({ limit: '50mb' }));
+  expressApp.use(express.json({ limit: '100mb' }));
   async function getDateBasedUploadDir(baseDir: string): Promise<string> {
     const date = new Date();
     const year = date.getFullYear().toString();
@@ -106,21 +106,21 @@ export async function startExpressServer(): Promise<void> {
     }
   });
 
-  expressApp.post('/api/storage/restore', async (req, res) => {
-    try {
-      const restoreData = req.body.restoreData;
-      if (!restoreData) {
-        return res.status(400).json({ error: 'No restoreData provided' });
-      }
-      const service = new StorageService();
-      await service.init();
-      await service.writeData(restoreData);
-      res.json({ code: 200, message: '数据还原成功' });
-    } catch (error) {
-      console.error('还原存储数据失败:', error);
-      res.status(500).json({ code: 500, error: '还原存储数据失败' });
-    }
-  });
+  // expressApp.post('/api/storage/restore', async (req, res) => {
+  //   try {
+  //     const restoreData = req.body.restoreData;
+  //     if (!restoreData) {
+  //       return res.status(400).json({ error: 'No restoreData provided' });
+  //     }
+  //     const service = new StorageService();
+  //     await service.init();
+  //     await service.writeData(restoreData);
+  //     res.json({ code: 200, message: '数据还原成功' });
+  //   } catch (error) {
+  //     console.error('还原存储数据失败:', error);
+  //     res.status(500).json({ code: 500, error: '还原存储数据失败' });
+  //   }
+  // });
 
   expressApp.use('/api', notFoundMiddleware);
 
@@ -128,7 +128,6 @@ export async function startExpressServer(): Promise<void> {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-
     const relativePath = path.relative(uploadDir, req.file.path);
     res.json({
       code: 200,
@@ -143,35 +142,32 @@ export async function startExpressServer(): Promise<void> {
 
   expressApp.use('/uploads', express.static(uploadDir));
 
-  expressApp.get('/getAllUploads', async (_req: any, res: any) => {
-    try {
-      const getAllFiles = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
-        const files: Array<{ name: string; path: string }> = [];
-        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  // expressApp.get('/getAllUploads', async (_req: any, res: any) => {
+  //   try {
+  //     const getAllFiles = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
+  //       const files: Array<{ name: string; path: string }> = [];
+  //       const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
-        for (const entry of entries) {
-          const fullPath = path.join(dirPath, entry.name);
-          const relativePath = path.relative(uploadDir, fullPath);
+  //       for (const entry of entries) {
+  //         const fullPath = path.join(dirPath, entry.name);
+  //         const relativePath = path.relative(uploadDir, fullPath);
 
-          if (entry.isDirectory()) {
-            const subFiles = await getAllFiles(fullPath);
-            files.push(...subFiles);
-          } else {
-            files.push({ name: entry.name, path: relativePath.replace(/\\/g, '/') });
-          }
-        }
-
-        return files;
-      };
-
-      const files = await getAllFiles(uploadDir);
-      res.json({ code: 200, message: 'Files retrieved successfully', data: files });
-    } catch (error) {
-      console.error('Error reading upload directory:', error);
-      res.status(500).json({ code: 500, error: 'Failed to retrieve files' });
-    }
-  });
-
+  //         if (entry.isDirectory()) {
+  //           const subFiles = await getAllFiles(fullPath);
+  //           files.push(...subFiles);
+  //         } else {
+  //           files.push({ name: entry.name, path: relativePath.replace(/\\/g, '/') });
+  //         }
+  //       }
+  //       return files;
+  //     };
+  //     const files = await getAllFiles(uploadDir);
+  //     res.json({ code: 200, message: 'Files retrieved successfully', data: files });
+  //   } catch (error) {
+  //     console.error('Error reading upload directory:', error);
+  //     res.status(500).json({ code: 500, error: 'Failed to retrieve files' });
+  //   }
+  // });
   expressApp.delete('/deleteFile', async (req: any, res: any) => {
     try {
       const { filePath } = req.body;

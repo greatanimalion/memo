@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AIKey, MyAgent } from '../../types/common';
 import { getLocalStore, setLocalStore } from '../../utils/localStore';
 import { Bot } from 'lucide-react';
+import { cancelChat } from '../../services/agent';
 
 const Switch = Sender.Switch;
 
@@ -105,7 +106,8 @@ const AISender: React.FC<{
   setPrompt: (prompt: string) => void
   openAgent: boolean,
   setOpenAgent: (open: boolean) => void
-}> = ({ handleSend, isThinking, agents, setPrompt,openAgent, setOpenAgent }) => {
+  requestId: string
+}> = ({ handleSend, isThinking, agents, setPrompt,openAgent, setOpenAgent, requestId }) => { 
   const [loading, setLoading] = useState<boolean>(false);
   const [activeAgentKey, setActiveAgentKey] = useState('ai_writing');
   const [selectedAI, setSelectedAI] = useState(getLocalStore<string>('selectedAI')?.value || '请选择');
@@ -138,7 +140,6 @@ const AISender: React.FC<{
   const agentItemClick: MenuProps['onClick'] = (item) => {
     setActiveAgentKey(item.key);
     try {
-      // deep clone
       setSlotConfig(JSON.parse(JSON.stringify(AgentInfo[item.key])));
     } catch (error) {
       console.error(error);
@@ -247,18 +248,11 @@ const AISender: React.FC<{
         onSubmit={(v, _, _skill) => {
           setLoading(true);
           handleSend(v);
-          // message.info(`Send message: ${skill?.value} | ${v}`);
           senderZhRef.current?.clear?.();
         }}
         onCancel={() => {
           setLoading(false);
-          fetch('http://localhost:32068/chat-stream', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ cancel: true })
-          });
+          cancelChat(requestId);
           message.error('已取消');
         }}
         slotConfig={slotConfig.zh_slotConfig}

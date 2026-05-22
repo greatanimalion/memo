@@ -90,6 +90,7 @@ const ChatPage: React.FC = () => {
           model,
           apiKey: api_key,
           history: _currentSession.messages,
+          requestId:currentSessionId
         }),
       });
       if (!response.body) {
@@ -114,6 +115,7 @@ const ChatPage: React.FC = () => {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           accumulatedContent += chunk;
+          console.log(chunk);
           setTypingTarget(accumulatedContent);
         }
         aiMessage.content = accumulatedContent;
@@ -217,7 +219,6 @@ const ChatPage: React.FC = () => {
   return (
     <div className="flex flex-1 h-full bg-white w-full">
       {contextHolder}
-
       {/* 左侧对话列表 */}
       <div className="w-60 border-r border-gray-200 overflow-auto flex flex-col max-md:w-0 transition-width duration-300">
         {/* 新建对话按钮 */}
@@ -329,6 +330,7 @@ const ChatPage: React.FC = () => {
           setPrompt={setPrompt}
           handleSend={handleSend}
           isThinking={isThinking}
+          requestId={currentSessionId}
           agents={agents}
         />
       </div>

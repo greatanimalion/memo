@@ -3,7 +3,7 @@ import { DiaryDatabase } from './diary';
 import { SessionDatabase } from './session';
 import { AgentDatabase } from './agent';
 import { BookDatabase } from './book';
-import { getDatabasePath } from './base';
+import { getDatabasePath } from '../utils/utils';
 
 export class DatabaseHelper {
   private static instance: DatabaseHelper;

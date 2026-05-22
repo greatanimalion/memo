@@ -34,3 +34,11 @@ export function getSystemRootDir(): string {
     return "/";
   }
 }
+export function getDatabasePath(): string {
+  const env = process.env.NODE_ENV;
+  if (env === 'development') {
+    return path.join(__dirname, '../data/', 'storage.db');
+  }
+  const systemRoot = getSystemRootDir();
+  return path.join(systemRoot, '.MemoryData/', 'storage.db');
+}

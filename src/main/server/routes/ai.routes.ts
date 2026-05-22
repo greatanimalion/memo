@@ -6,5 +6,7 @@ const aiController = new AIController();
 
 router.post('/chat-stream', aiController.chatStream.bind(aiController));
 router.post('/chat-agent', aiController.chatAgent.bind(aiController));
+router.get('/chat-cancel', aiController.cancelChat.bind(aiController));
+
 
 export default router;

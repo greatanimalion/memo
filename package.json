@@ -46,6 +46,7 @@
     "express": "^5.2.1",
     "lucide-react": "^0.563.0",
     "multer": "^2.0.2",
+    "openai": "^6.39.0",
     "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.1.18",
     "vite-plugin-optimizer": "^1.4.3",

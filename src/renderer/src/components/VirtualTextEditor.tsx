@@ -153,7 +153,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
   return (
     <div className="flex h-full w-full bg-gray-50">
       {/* 左侧：章节/卷管理 */}
-      <div className="w-50 overflow-hidden flex-shrink-0 bg-white border-r border-gray-200 flex flex-col max-md:w-0 transition-all duration-300">
+      <div className="w-50 overflow-hidden shrink-0 bg-white border-r border-gray-200 flex flex-col max-md:w-0 transition-all duration-300">
         {/* 左侧标题栏 */}
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -333,7 +333,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
         </div>
       </div>
       {/* 右侧：设置、章节详情显示 */}
-      <div className="w-72 flex-shrink-0 border-l border-gray-200 bg-gray-50/50 overflow-y-auto max-lg:w-0 transition-all duration-300">
+      <div className="w-72 shrink-0 border-l border-gray-200 bg-gray-50/50 overflow-y-auto max-lg:w-0 transition-all duration-300">
         {/* 字体设置 */}
         <div className="p-4 border-b border-gray-200">
           <div className="text-sm font-semibold text-gray-700 mb-3">字体设置</div>

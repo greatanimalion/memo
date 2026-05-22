@@ -136,7 +136,7 @@ function MemoPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="flex overflow-y-auto p-4 height-full flex-shrink-0">
+                    <div className="flex overflow-y-auto p-4 height-full shrink-0">
                         <FileList onFolderClick={handleFolderClick} />
                     </div>
                 </div>

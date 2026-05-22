@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { PlusOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Empty, message } from 'antd';
+import React, { useState, useCallback, useEffect } from 'react';
+import { PlusOutlined, DeleteOutlined, CopyOutlined, AliwangwangOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Empty, message, Modal } from 'antd';
 import { AIKey } from '../types/common';
 import type { Message } from '../../../types/agents';
 import { formatTime } from '../utils/dateUtils';
@@ -8,7 +8,7 @@ import ChatPanel from '../components/ChatPanel';
 import { XMarkdown } from '@ant-design/x-markdown';
 import AISender from '../components/common/AISender';
 import { Think } from '@ant-design/x';
-import { getLocalStore } from '../utils/localStore';
+import { getLocalStore, setLocalStore } from '../utils/localStore';
 import { useChat } from '../hooks/useChat';
 import { updateSession } from '../services/session';
 
@@ -36,8 +36,53 @@ const ChatPage: React.FC = () => {
   const [isThinking, setIsThinking] = useState(false);
   const [openAgent, setOpenAgent] = useState(false);
   const [stopReply, setStopReply] = useState(false);
+  const [pendingResponse, setPendingResponse] = useState<{
+    content: string;
+    timestamp: number;
+  } | null>(null);
+  const [showResumeModal, setShowResumeModal] = useState(false);
 
-  // 发送消息
+  useEffect(() => {
+    if (currentSession && currentSessionId) {
+      const pendingKey = `pending_response_${currentSessionId}`;
+      const saved = getLocalStore<string>(pendingKey)?.value;
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.content && data.content.length > 0) {
+            setPendingResponse(data);
+            setShowResumeModal(true);
+          }
+        } catch (e) {
+          console.error('解析未完成响应失败:', e);
+        }
+      }
+    }
+  }, [currentSession, currentSessionId]);
+
+  const clearPendingResponse = useCallback(() => {
+    if (currentSessionId) {
+      const pendingKey = `pending_response_${currentSessionId}`;
+      setLocalStore(pendingKey, { value: '' });
+      setPendingResponse(null);
+      setShowResumeModal(false);
+    }
+  }, [currentSessionId]);
+
+  const handleResumeResponse = useCallback(() => {
+    if (pendingResponse && currentSession) {
+      setTypingTarget(pendingResponse.content);
+      setTypingDate(pendingResponse.timestamp.toString());
+      setIsTyping(true);
+      setTypeId(currentSessionId!);
+      setShowResumeModal(false);
+      const userMessage = currentSession.messages[currentSession.messages.length - 1];
+      if (userMessage && userMessage.role === 'user') {
+        handleSend(userMessage.content);
+      }
+    }
+  }, [pendingResponse, currentSession, currentSessionId]);
+
   const handleSend = useCallback(async (inputValue: string) => {
     const userContent = inputValue.trim();
     const model = getLocalStore('selectedAI')?.value || '';
@@ -51,6 +96,7 @@ const ChatPage: React.FC = () => {
       messageApi.error('请选择模型');
       return;
     }
+    
     setIsThinking(true);
     const messId = Date.now();
     const userMessage: Message = {
@@ -59,7 +105,6 @@ const ChatPage: React.FC = () => {
       timestamp: messId,
     };
 
-    // 更新对话标题（如果是第一条用户消息）
     const updatedSessions = sessions.map(conv => {
       if (conv.id === currentSessionId) {
         const newMessages = [...conv.messages, userMessage];
@@ -90,7 +135,7 @@ const ChatPage: React.FC = () => {
           model,
           apiKey: api_key,
           history: _currentSession.messages,
-          requestId:currentSessionId
+          requestId: currentSessionId
         }),
       });
       if (!response.body) {
@@ -105,6 +150,19 @@ const ChatPage: React.FC = () => {
       const decoder = new TextDecoder('utf-8');
       let accumulatedContent = '';
       setTypingDate(Date.now().toString());
+      
+      const saveInterval = setInterval(() => {
+        if (accumulatedContent.length > 0 && currentSessionId) {
+          const pendingKey = `pending_response_${currentSessionId}`;
+          setLocalStore(pendingKey, {
+            value: JSON.stringify({
+              content: accumulatedContent,
+              timestamp: Date.now(),
+            })
+          });
+        }
+      }, 1000);
+
       try {
         while (true) {
           if (stopReply) {
@@ -115,12 +173,16 @@ const ChatPage: React.FC = () => {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           accumulatedContent += chunk;
-          console.log(chunk);
           setTypingTarget(accumulatedContent);
         }
         aiMessage.content = accumulatedContent;
       } finally {
+        clearInterval(saveInterval);
         reader.releaseLock();
+        if (currentSessionId) {
+          const pendingKey = `pending_response_${currentSessionId}`;
+          setLocalStore(pendingKey, { value: '' });
+        }
       }
       _currentSession.messages.push(aiMessage);
     } catch (error) {
@@ -143,13 +205,12 @@ const ChatPage: React.FC = () => {
     }
     setIsThinking(false);
   }, [currentSession, currentSessionId, sessions, prompt, openAgent, messageApi, pushSessionToCurrentSession, stopReply]);
-  // 复制消息
+
   const handleCopyMessage = useCallback((content: string) => {
     navigator.clipboard.writeText(content);
     message.success('已复制到剪贴板');
   }, []);
 
-  // 删除消息
   const deleteMessage = useCallback((message: Message) => {
     if (!currentSession) return;
     if (currentSession.messages.length === 1) {
@@ -189,7 +250,6 @@ const ChatPage: React.FC = () => {
     updateSession({ ...currentSession, messages: newMessages });
   }, [currentSession, messageApi, pushSessionToCurrentSession]);
 
-  // 获取消息操作菜单
   const getMessageActions = useCallback((msg: Message) => [
     {
       key: 'copy',
@@ -205,13 +265,14 @@ const ChatPage: React.FC = () => {
     },
   ], [handleCopyMessage, deleteMessage]);
 
-  // 删除会话处理
   const handleDeleteSessionWithEvent = useCallback(async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (sessions.length === 1) {
       message.warning('至少保留一个对话');
       return;
     }
+    const pendingKey = `pending_response_${sessionId}`;
+    setLocalStore(pendingKey, { value: '' });
     await handleDeleteSession(sessionId);
     messageApi.success('删除成功');
   }, [sessions.length, handleDeleteSession, messageApi]);
@@ -219,9 +280,26 @@ const ChatPage: React.FC = () => {
   return (
     <div className="flex flex-1 h-full bg-white w-full">
       {contextHolder}
-      {/* 左侧对话列表 */}
+      <Modal
+        title="恢复未完成的回复"
+        open={showResumeModal}
+        footer={[
+          <Button key="discard" onClick={clearPendingResponse}>
+            放弃
+          </Button>,
+          <Button key="resume" type="primary" onClick={handleResumeResponse}>
+            <AliwangwangOutlined /> 继续回复
+          </Button>,
+        ]}
+      >
+        <p>检测到您上次有未完成的AI回复，是否继续？</p>
+        <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-40 overflow-auto">
+          <p className="text-sm text-gray-600">上次已收到的内容：</p>
+          <XMarkdown content={pendingResponse?.content || ''} />
+        </div>
+      </Modal>
+
       <div className="w-60 border-r border-gray-200 overflow-auto flex flex-col max-md:w-0 transition-width duration-300">
-        {/* 新建对话按钮 */}
         <div className="p-4 border-b border-gray-200">
           <Button
             icon={<PlusOutlined />}
@@ -232,7 +310,6 @@ const ChatPage: React.FC = () => {
           </Button>
         </div>
 
-        {/* 对话列表 */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {sessions.length > 0 ? (
             sessions.map((conv) => (
@@ -270,9 +347,7 @@ const ChatPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 中间聊天区域 */}
       <div className="flex-1 flex flex-col">
-        {/* 消息列表 */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {currentSession?.messages.map((msg) => (
@@ -323,7 +398,6 @@ const ChatPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 输入区域 */}
         <AISender
           openAgent={openAgent}
           setOpenAgent={setOpenAgent}
@@ -335,7 +409,6 @@ const ChatPage: React.FC = () => {
         />
       </div>
 
-      {/* 右侧功能面板 */}
       <ChatPanel
         handleCopyMessage={handleCopyMessage}
         agents={agents}

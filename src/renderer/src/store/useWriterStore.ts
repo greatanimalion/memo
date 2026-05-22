@@ -48,7 +48,7 @@ function createDefaultBook(): Book {
     title: '未命名作品',
     author: '佚名',
     cover: '',
-    chapters: [createChapter('第一章', 1)],
+    chapters: [createChapter('第1章', 1)],
     volumes: [],
     settings: {
       maxChapterWords: 20000,

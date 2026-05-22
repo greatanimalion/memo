@@ -132,10 +132,7 @@ export class BookDatabase extends BaseDatabase {
   }
 
   public updateBookUtils(id: string, updates: any): any | null {
-    const fields = Object.keys(updates)
-      .filter((key) => key !== 'id')
-      .map((key) => `${key} = ?`);
-
+    const fields = Object.keys(updates).filter((key) => key !== 'id').map((key) => `${key} = ?`);
     const values = Object.entries(updates)
       .filter(([key]) => key !== 'id')
       .map(([key, value]) => {
@@ -147,9 +144,7 @@ export class BookDatabase extends BaseDatabase {
 
     if (fields.length === 0) return null;
 
-    const stmt = this.db.prepare(`
-      UPDATE bookUtils SET ${fields.join(', ')} WHERE id = ?
-    `);
+    const stmt = this.db.prepare(`UPDATE bookUtils SET ${fields.join(', ')} WHERE id = ?`);
     stmt.run(...values, id);
 
     const selectStmt = this.db.prepare('SELECT * FROM bookUtils WHERE id = ?');

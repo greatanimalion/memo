@@ -50,7 +50,6 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
   const addVolume = useWriterStore((s) => s.addVolume);
   const deleteVolume = useWriterStore((s) => s.deleteVolume);
   const updateVolumeTitle = useWriterStore((s) => s.updateVolumeTitle);
-
   useEffect(() => {
     if (textareaRef.current && textareaRef.current.value !== content) {
       textareaRef.current.value = content;
@@ -64,7 +63,6 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
     const cursorPos = textareaRef.current.selectionStart;
     const textBeforeCursor = text.substring(0, cursorPos);
     const lines = textBeforeCursor.split('\n');
-    
     setLineCount(lines.length);
     setColumn(lines[lines.length - 1].length + 1);
   };
@@ -98,7 +96,6 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
     }
   };
 
-  const lineNumbers = Array.from({ length: Math.max(lineCount, 20) }, (_, i) => i + 1);
 
   const textareaStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
@@ -165,22 +162,22 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
           </div>
           <Button
             size="small"
+            type="text"
             icon={<PlusOutlined className="w-3 h-3" />}
-            onClick={addVolume}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
+            onClick={()=>handleAddChapter()}
           />
         </div>
         {/* 分卷列表 */}
         <div className="flex-1 overflow-y-auto py-2">
           {/* 未分组章节 */}
           {ungroupedChapters.length > 0 && (
-            <div className="px-3 mb-2">
+            <div className=" mb-2">
               <div className="text-xs text-gray-400 mb-2 px-1">未分组章节</div>
               {ungroupedChapters.map((chapter) => (
                 <div
                   key={chapter.id}
                   onClick={() => setCurrentChapter(chapter.id)}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-center gap-2 px-2 py-1.5 pl-[16px]  cursor-pointer transition-colors ${
                     currentChapterId === chapter.id
                       ? 'bg-blue-50 text-blue-600'
                       : 'hover:bg-gray-50 text-gray-700'
@@ -193,7 +190,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
           )}
           {/* 分卷 */}
           {book.volumes.length > 0 && (
-            <div className="py-2">
+            <div  >
               {book.volumes.map((volume) => {
                 const isExpanded = selectedVolumeId === volume.id;
                 const volumeChapters = getChaptersByVolume(volume.id);
@@ -211,7 +208,6 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                       ) : (
                         <FolderOutlined className="w-4 h-4 text-gray-400" />
                       )}
-                      
                       {editingVolumeId === volume.id ? (
                         <Input
                           size="small"
@@ -234,6 +230,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                         <>
                           <Button
                             size="small"
+                            type="text" 
                             icon={<PlusOutlined className="w-3 h-3" />}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -243,6 +240,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                           />
                           <Button
                             size="small"
+                            type="text"
                             icon={<DeleteOutlined className="w-3 h-3" />}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -260,7 +258,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                           <div
                             key={chapter.id}
                             onClick={() => setCurrentChapter(chapter.id)}
-                          className={`flex items-center gap-2 px-4 pl-8 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                          className={`flex items-center gap-2 px-4  py-1.5  cursor-pointer transition-colors ${
                             currentChapterId === chapter.id
                                 ? 'bg-blue-50 text-blue-600'
                                 : 'hover:bg-gray-50 text-gray-700'
@@ -281,10 +279,10 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
             <Button
               size="small"
               icon={<PlusOutlined className="w-3 h-3" />}
-              onClick={() => handleAddChapter()}
+              onClick={addVolume}
               className="w-full border-dashed hover:bg-gray-50"
             >
-              添加章节
+              新建分卷
             </Button>
           </div>
         </div>
@@ -318,7 +316,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
               onKeyDown={handleKeyDown}
               className="w-full h-full bg-white border-none outline-none p-3 text-gray-800 resize-none placeholder-gray-300"
               style={textareaStyle}
-              placeholder="Start writing..."
+              placeholder="请输入内容..."
               spellCheck={false}
             />
           </div>
@@ -484,3 +482,4 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
 };
 
 export default TextEditor;
+

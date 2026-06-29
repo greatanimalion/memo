@@ -1,6 +1,10 @@
+import Database from 'better-sqlite3';
 import { BaseDatabase } from './base';
 
 export class SessionDatabase extends BaseDatabase {
+  constructor(db: Database.Database) {
+    super(db);
+  }
   public getAllSessions(): any[] {
     const stmt = this.db.prepare('SELECT * FROM sessions');
     const rows = stmt.all() as any[];

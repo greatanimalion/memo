@@ -1,6 +1,7 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { AIService } from "../services/ai/ai.service";
 import { AgentToolService } from "../services/ai/agent.service";
+import { logger } from "../utils/logger";
 
 const switchStreamRes = (res: Response) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -65,25 +66,29 @@ export class AIController {
       abortController,
     );
   }
-  async chatAgent(req: Request, res: Response): Promise<void> {
-    res = switchStreamRes(res);
-    const { prompt, history = [], model, apiKey } = req.body;
-    if (!prompt || !model || !apiKey) {
-      return res
-        .status(400)
-        .json({ error: "Missing prompt, model, or apiKey" });
+  async chatAgent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      res = switchStreamRes(res);
+      const { prompt, history = [], model, apiKey } = req.body;
+      if (!prompt || !model || !apiKey) {
+        return res
+          .status(400)
+          .json({ error: "Missing prompt, model, or apiKey" });
+      }
+      const abortController = new AbortController();
+      const config = getModels(model as any);
+      await this.agentToolService.runAgent(
+        prompt,
+        history,
+        config.model,
+        apiKey,
+        config.url,
+        res,
+        abortController,
+      );
+    } catch (error) {
+      next(error);
     }
-    const abortController = new AbortController();
-    const config = getModels(model as any);
-    await this.agentToolService.runAgent(
-      prompt,
-      history,
-      config.model,
-      apiKey,
-      config.url,
-      res,
-      abortController,
-    );
   }
   cancelChat(req: Request, res: Response) {
     const { requestId } = req.query;
@@ -98,7 +103,7 @@ export class AIController {
     }
   }
   abort(requestId: string): boolean {
-    console.log("取消请求", requestId, abortControllerMap.get(requestId));
+    logger.info("取消请求", requestId, abortControllerMap.get(requestId));
     const controller = abortControllerMap.get(requestId);
     if (controller) {
       controller.abort();

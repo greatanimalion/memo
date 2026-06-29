@@ -6,6 +6,7 @@ import multer from 'multer';
 import cors from 'cors';
 import { getSystemRootDir } from './utils/utils';
 import { StorageService } from './services/storage.service';
+import { logger } from './utils/logger';
 
 import memoryRoutes from './routes/memory.routes';
 import diaryRoutes from './routes/diary.routes';
@@ -13,7 +14,7 @@ import sessionRoutes from './routes/session.routes';
 import agentRoutes from './routes/agent.routes';
 import aiRoutes from './routes/ai.routes';
 
-import { loggerMiddleware, notFoundMiddleware } from './middleware/error.middleware';
+import { loggerMiddleware, notFoundMiddleware, errorMiddleware } from './middleware/error.middleware';
 
 let server: http.Server | null = null;
 let uploadDir: string;
@@ -30,14 +31,14 @@ async function ensureDirExists(dir: string): Promise<void> {
 export const createUploadDirectory = async (env: any): Promise<void> => {
   if (env === 'development') {
     uploadDir = path.join(__dirname, '../data/', 'uploads');
-    console.log(`[开发环境] 上传目录路径: ${uploadDir}`);
+    logger.info(`[开发环境] 上传目录路径: ${uploadDir}`);
   } else {
     uploadDir = path.join(getSystemRootDir(), '.MemoryData/', 'uploads');
-    console.log(`[生产环境] 将创建上传目录于: ${uploadDir}`);
+    logger.info(`[生产环境] 将创建上传目录于: ${uploadDir}`);
   }
 
   await fs.mkdir(uploadDir, { recursive: true }).catch((error: any) => {
-    console.error(`创建上传目录失败: ${(error as Error).message}`);
+    logger.error(`创建上传目录失败: ${(error as Error).message}`);
     throw error;
   });
 };
@@ -101,7 +102,7 @@ export async function startExpressServer(): Promise<void> {
       const cacheSize = await service.getCacheSize();
       res.json({ code: 200, data: cacheSize, message: 'success' });
     } catch (error) {
-      console.error('获取存储数据失败:', error);
+      logger.error('获取存储数据失败:', error);
       res.status(500).json({ code: 500, error: '获取存储数据失败' });
     }
   });
@@ -123,21 +124,26 @@ export async function startExpressServer(): Promise<void> {
   // });
 
   expressApp.use('/api', notFoundMiddleware);
+  expressApp.use(errorMiddleware);
 
-  expressApp.post('/upload', upload.single('file'), (req: any, res: any) => {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+  expressApp.post('/upload', upload.single('file'), (req: any, res: any, next: any) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      const relativePath = path.relative(uploadDir, req.file.path);
+      res.json({
+        code: 200,
+        message: 'File uploaded successfully',
+        data: {
+          url: `/uploads/${relativePath.replace(/\\/g, '/')}`,
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+        },
+      });
+    } catch (error) {
+      next(error);
     }
-    const relativePath = path.relative(uploadDir, req.file.path);
-    res.json({
-      code: 200,
-      message: 'File uploaded successfully',
-      data: {
-        url: `/uploads/${relativePath.replace(/\\/g, '/')}`,
-        filename: req.file.filename,
-        originalname: req.file.originalname,
-      },
-    });
   });
 
   expressApp.use('/uploads', express.static(uploadDir));
@@ -203,13 +209,13 @@ export async function startExpressServer(): Promise<void> {
       const files = await getAllFiles(uploadDir);
       res.json({ code: 200, message: 'File deleted successfully', data: files });
     } catch (error) {
-      console.error('Error deleting file:', error);
+      logger.error('Error deleting file:', error);
       res.status(500).json({ code: 500, error: 'Failed to delete file' });
     }
   });
 
   server = expressApp.listen(port, () => {
-    console.log(`Express server running at http://localhost:${port}`);
+    logger.info(`Express server running at http://localhost:${port}`);
   });
 }
 
@@ -217,7 +223,7 @@ export function stopExpressServer(): void {
   if (server) {
     server.close(() => {
       if (storageService) storageService.close();
-      console.log('Express server stopped');
+      logger.info('Express server stopped');
     });
     server = null;
   }

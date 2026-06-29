@@ -1,6 +1,10 @@
+import Database from 'better-sqlite3';
 import { BaseDatabase } from './base';
 
 export class AgentDatabase extends BaseDatabase {
+  constructor(db: Database.Database) {
+    super(db);
+  }
   public getAllAgents(): any[] {
     const stmt = this.db.prepare('SELECT * FROM agents');
     return stmt.all() as any[];

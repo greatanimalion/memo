@@ -58,7 +58,7 @@ export class AIService {
       if (err.name === "AbortError" || abortController.signal.aborted) {
         res.write("\n\n[请求已取消]");
       } else {
-        res.write(err.message);
+        res.write(`\n\n[错误] ${err.message}`);
       }
     } finally {
       res.end();

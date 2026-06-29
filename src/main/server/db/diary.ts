@@ -1,6 +1,10 @@
+import Database from 'better-sqlite3';
 import { BaseDatabase } from './base';
 
 export class DiaryDatabase extends BaseDatabase {
+  constructor(db: Database.Database) {
+    super(db);
+  }
   public addDiary(diary: any): any {
     const stmt = this.db.prepare(`
       INSERT INTO diarys (id, monthDiarys) VALUES (?, ?)

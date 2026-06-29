@@ -1,6 +1,10 @@
+import Database from 'better-sqlite3';
 import { BaseDatabase } from './base';
 
 export class BookDatabase extends BaseDatabase {
+  constructor(db: Database.Database) {
+    super(db);
+  }
   public getBooks(): any[] {
     const stmt = this.db.prepare('SELECT * FROM books');
     const rows = stmt.all() as any[];

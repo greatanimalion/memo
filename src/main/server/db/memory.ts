@@ -1,7 +1,11 @@
+import Database from 'better-sqlite3';
 import { Memory } from '../../../types';
 import { BaseDatabase } from './base';
 
 export class MemoryDatabase extends BaseDatabase {
+  constructor(db: Database.Database) {
+    super(db);
+  }
   public getAllMemorys(): any[] {
     const stmt = this.db.prepare('SELECT * FROM memorys');
      return stmt.all() as Memory[];

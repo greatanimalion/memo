@@ -68,7 +68,12 @@ export class AgentToolService {
 
   async executeToolCall(toolCall: any): Promise<string> {
     const functionName = toolCall.function.name;
-    const args = JSON.parse(toolCall.function.arguments);
+    let args: any;
+    try {
+      args = JSON.parse(toolCall.function.arguments);
+    } catch {
+      return JSON.stringify({ error: `无法解析工具参数: ${toolCall.function.arguments}` });
+    }
     try {
       switch (functionName) {
         case 'get_time':
@@ -97,8 +102,8 @@ export class AgentToolService {
         default:
           return JSON.stringify({ error: `未知工具: ${functionName}` });
       }
-    } catch (e) {
-      return JSON.stringify(e);
+    } catch (e: any) {
+      return JSON.stringify({ error: `工具执行失败: ${e.message || e}` });
     }
   }
 
@@ -118,22 +123,42 @@ export class AgentToolService {
       stream: false,
     };
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-      signal: abortController.signal,
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+        signal: abortController.signal,
+      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') throw error;
+      throw new Error(`API 网络请求失败: ${error.message}`);
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText: string;
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = '无法读取错误响应';
+      }
       throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
     }
 
-    const data = await response.json();
+    let data: any;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error('API 响应 JSON 解析失败');
+    }
+
+    if (!data.choices?.[0]?.message) {
+      throw new Error('API 响应结构异常: 缺少 choices[0].message');
+    }
     return data.choices[0].message;
   }
 
@@ -164,41 +189,53 @@ export class AgentToolService {
     let currentMessages = [...messages];
     let roundCount = 0;
 
-    while (roundCount < maxRounds) {
+    try {
+      while (roundCount < maxRounds) {
+        if (abortController.signal.aborted) {
+          res.write('🛑 任务取消');
+          res.end();
+          return false;
+        }
+
+        roundCount++;
+        const assistantMessage = await this.callDeepSeek(currentMessages, model, apiKey, url, abortController);
+        currentMessages.push(assistantMessage);
+
+        if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+          res.write(`\n🤔 模型决定调用 ${assistantMessage.tool_calls.length} 个工具:`);
+          assistantMessage.tool_calls.forEach((tc: any, idx: number) => {
+            res.write(`   ${idx + 1}. ${tc.function.name}函数\n`);
+          });
+
+          for (const toolCall of assistantMessage.tool_calls) {
+            const toolResult = await this.executeToolCall(toolCall);
+            res.write('\n' + toolResult + '\n');
+            currentMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(toolResult),
+            });
+          }
+          continue;
+        }
+
+        res.write('\n✅ 模型生成最终回复\n');
+        res.write(assistantMessage.content);
+        res.end();
+        return true;
+      }
+
+      res.write('\n⚠️ 已达到最大对话轮次限制\n');
+      res.end();
+      return false;
+    } catch (error: any) {
       if (abortController.signal.aborted) {
         res.write('🛑 任务取消');
-        res.end();
-        return false;
+      } else {
+        res.write(`\n❌ 发生错误: ${error.message}`);
       }
-
-      roundCount++;
-      const assistantMessage = await this.callDeepSeek(currentMessages, model, apiKey, url, abortController);
-      currentMessages.push(assistantMessage);
-
-      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-        res.write(`\n🤔 模型决定调用 ${assistantMessage.tool_calls.length} 个工具:`);
-        assistantMessage.tool_calls.forEach((tc: any, idx: number) => {
-          res.write(`   ${idx + 1}. ${tc.function.name}函数\n`);
-        });
-
-        for (const toolCall of assistantMessage.tool_calls) {
-          const toolResult = await this.executeToolCall(toolCall);
-          res.write('\n' + toolResult + '\n');
-          currentMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: JSON.stringify(toolResult),
-          });
-        }
-        continue;
-      }
-
-      res.write('\n✅ 模型生成最终回复\n');
-      res.write(assistantMessage.content);
       res.end();
-      return true;
+      return false;
     }
-
-    return false;
   }
 }

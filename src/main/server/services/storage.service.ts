@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { DatabaseHelper } from '../db';
 import { getSystemRootDir } from '../utils/utils';
+import { logger } from '../utils/logger';
 
 export class StorageService {
   private dbHelper: DatabaseHelper;
@@ -25,7 +26,7 @@ export class StorageService {
   }
 
   async init(): Promise<void> {
-    console.log('数据库存储已初始化');
+    logger.info('数据库存储已初始化');
   }
 
   async exportStorage(): Promise<Buffer | null> {

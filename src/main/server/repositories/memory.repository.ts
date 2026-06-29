@@ -1,5 +1,5 @@
-import { DatabaseHelper } from '../db';
-import type { Memory } from '../../../types';
+import { DatabaseHelper } from "../db";
+import type { Memory } from "../../../types";
 
 export class MemoryRepository {
   private dbHelper: DatabaseHelper;

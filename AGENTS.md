@@ -50,7 +50,7 @@ plugins/          Vite 插件（devPlugin 替换 Node 模块引用）
 - **存储**使用 `better-sqlite3`，通过 `StorageService` 封装。
 - **窗口**无边框 (`frame: false`)；拖拽区域用 CSS class `.dragArea` / `.noDragArea`。
 - **主题**：通过 `setTheme()` 更改 CSS 变量实现全局颜色切换，暗色模式通过 `prefers-color-scheme: dark`。
-- **本地存储**：`utils/localStore.ts` 封装 `localStorage`（theme, _border 等）。
+- **本地存储**：`utils/localStore.ts` 封装 `localStorage`（theme, \_border 等）。
 - **路由**：`createBrowserRouter`，所有页面在 `MainLayout` 下。
 
 ## 开发注意事项

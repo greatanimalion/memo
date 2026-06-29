@@ -1,7 +1,11 @@
-import type { Request, Response } from 'express';
-import { AgentService } from '../services/agent.service';
-import { successResponse, createdResponse, errorResponse } from '../utils/response';
-import type { MyAgent } from '../../../types';
+import type { Request, Response } from "express";
+import { AgentService } from "../services/agent.service";
+import {
+  successResponse,
+  createdResponse,
+  errorResponse,
+} from "../utils/response";
+import type { MyAgent } from "../../../types";
 
 export class AgentController {
   private agentService: AgentService;
@@ -15,7 +19,7 @@ export class AgentController {
   create(req: Request, res: Response): void {
     const agentData: MyAgent = req.body;
     const newAgent = this.agentService.create(agentData);
-    createdResponse(res, newAgent, 'agent创建成功');
+    createdResponse(res, newAgent, "agent创建成功");
   }
   update(req: Request, res: Response): void {
     const { id } = req.params;
@@ -23,18 +27,18 @@ export class AgentController {
     const updatedAgent = this.agentService.update(id, updateData);
     if (!updatedAgent) {
       const newAgent = this.agentService.create(updateData as MyAgent);
-      createdResponse(res, newAgent, 'agent创建成功');
+      createdResponse(res, newAgent, "agent创建成功");
       return;
     }
-    successResponse(res, updatedAgent, 'agent更新成功');
+    successResponse(res, updatedAgent, "agent更新成功");
   }
   delete(req: Request, res: Response): void {
     const { id } = req.params;
     const result = this.agentService.delete(id);
     if (!result) {
-      errorResponse(res, 404, '未找到指定的agent');
+      errorResponse(res, 404, "未找到指定的agent");
       return;
     }
-    successResponse(res, null, 'agent删除成功');
+    successResponse(res, null, "agent删除成功");
   }
 }

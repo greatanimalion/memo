@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database from "better-sqlite3";
 export class BaseDatabase {
   protected db: Database.Database;
   constructor(db: Database.Database) {

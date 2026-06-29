@@ -6,12 +6,13 @@ export type ViewType =
   | "settings"
   | "chat"
   | "person"
-  | "web";
+  | "web"
+  | "textEditor";
 
 // AI 聊天消息类型
 export type MessageType = "user" | "system";
 
-export type {TodoItem} from "../../../types";
+export type { TodoItem } from "../../../types";
 export type { DiaryData } from "../../../types";
 export type { Diary } from "../../../types";
 
@@ -24,7 +25,7 @@ export interface AIKey {
   masked: boolean;
 }
 // 智能体接口
-export type {MyAgent} from "../../../types";
+export type { MyAgent } from "../../../types";
 // 视图模式
 export type ViewMode = "grid" | "list";
 // 排序方式
@@ -45,9 +46,9 @@ export interface EditorSettings {
   lineHeight: number;
 }
 // 分卷接口
-export type {Volume} from "../../../types";
+export type { Volume } from "../../../types";
 // 文件类型
 export type FileType = "folder" | "file";
-export type {Book} from "../../../types";
-export type {Chapter} from "../../../types";
-export type {BookUtils} from "../../../types";
+export type { Book } from "../../../types";
+export type { Chapter } from "../../../types";
+export type { BookUtils } from "../../../types";

@@ -49,4 +49,4 @@ export const createTablesSql = `
         list TEXT NOT NULL,
         createTime TEXT NOT NULL
       );
-    `
+    `;

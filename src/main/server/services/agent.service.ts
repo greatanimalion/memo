@@ -1,5 +1,5 @@
-import { AgentRepository } from '../repositories/agent.repository';
-import type { MyAgent } from '../../../types';
+import { AgentRepository } from "../repositories/agent.repository";
+import type { MyAgent } from "../../../types";
 
 export class AgentService {
   private agentRepository: AgentRepository;

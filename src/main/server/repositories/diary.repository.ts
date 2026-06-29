@@ -1,5 +1,5 @@
-import { DatabaseHelper } from '../db';
-import type { Diary } from '../../../types';
+import { DatabaseHelper } from "../db";
+import type { Diary } from "../../../types";
 
 export class DiaryRepository {
   private dbHelper: DatabaseHelper;

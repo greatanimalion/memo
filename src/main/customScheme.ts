@@ -27,7 +27,9 @@ export class CustomScheme {
         pathName = path.join(pathName, "index.html");
         extension = ".html";
       }
-      const normalized = path.normalize(pathName).replace(/^(\.\.(\/|\\|$))+/, "");
+      const normalized = path
+        .normalize(pathName)
+        .replace(/^(\.\.(\/|\\|$))+/, "");
       const tarFile = path.join(__dirname, normalized);
       if (!tarFile.startsWith(__dirname)) {
         callback({ statusCode: 403 });
@@ -40,7 +42,10 @@ export class CustomScheme {
         });
         callback({
           statusCode: 200,
-          headers: { "content-type": this.getMimeType(extension) || "application/octet-stream" },
+          headers: {
+            "content-type":
+              this.getMimeType(extension) || "application/octet-stream",
+          },
           data: stream,
         });
       } catch {

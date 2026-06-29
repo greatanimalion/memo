@@ -52,7 +52,7 @@ export class AIService {
         { signal: abortController.signal },
       );
       for await (const event of stream) {
-        const content = event.choices?.[0]?.delta?.content ?? '';
+        const content = event.choices?.[0]?.delta?.content ?? "";
         if (content) res.write(content);
       }
     } catch (err: any) {

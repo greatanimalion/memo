@@ -1,20 +1,24 @@
-import express from 'express';
-import http from 'http';
-import path from 'path';
-import fs from 'fs/promises';
-import multer from 'multer';
-import cors from 'cors';
-import { getSystemRootDir } from './utils/utils';
-import { StorageService } from './services/storage.service';
-import { logger } from './utils/logger';
+import express from "express";
+import http from "http";
+import path from "path";
+import fs from "fs/promises";
+import multer from "multer";
+import cors from "cors";
+import { getSystemRootDir } from "./utils/utils";
+import { StorageService } from "./services/storage.service";
+import { logger } from "./utils/logger";
 
-import memoryRoutes from './routes/memory.routes';
-import diaryRoutes from './routes/diary.routes';
-import sessionRoutes from './routes/session.routes';
-import agentRoutes from './routes/agent.routes';
-import aiRoutes from './routes/ai.routes';
+import memoryRoutes from "./routes/memory.routes";
+import diaryRoutes from "./routes/diary.routes";
+import sessionRoutes from "./routes/session.routes";
+import agentRoutes from "./routes/agent.routes";
+import aiRoutes from "./routes/ai.routes";
 
-import { loggerMiddleware, notFoundMiddleware, errorMiddleware } from './middleware/error.middleware';
+import {
+  loggerMiddleware,
+  notFoundMiddleware,
+  errorMiddleware,
+} from "./middleware/error.middleware";
 
 let server: http.Server | null = null;
 let uploadDir: string;
@@ -29,11 +33,11 @@ async function ensureDirExists(dir: string): Promise<void> {
 }
 
 export const createUploadDirectory = async (env: any): Promise<void> => {
-  if (env === 'development') {
-    uploadDir = path.join(__dirname, '../data/', 'uploads');
+  if (env === "development") {
+    uploadDir = path.join(__dirname, "../data/", "uploads");
     logger.info(`[开发环境] 上传目录路径: ${uploadDir}`);
   } else {
-    uploadDir = path.join(getSystemRootDir(), '.MemoryData/', 'uploads');
+    uploadDir = path.join(getSystemRootDir(), ".MemoryData/", "uploads");
     logger.info(`[生产环境] 将创建上传目录于: ${uploadDir}`);
   }
 
@@ -48,24 +52,26 @@ export async function startExpressServer(): Promise<void> {
   const expressApp = express();
   const port = 32068;
   expressApp.use(cors());
-  expressApp.use(express.json({ limit: '100mb' }));
+  expressApp.use(express.json({ limit: "100mb" }));
   async function getDateBasedUploadDir(baseDir: string): Promise<string> {
     const date = new Date();
     const year = date.getFullYear().toString();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
     const dateDir = path.join(baseDir, year, month, day);
     await ensureDirExists(dateDir);
     return dateDir;
   }
   const storage = multer.diskStorage({
     destination: (_req, _file, cb) => {
-      getDateBasedUploadDir(uploadDir).then(dateDir => cb(null, dateDir)).catch(err => cb(err, ''));
+      getDateBasedUploadDir(uploadDir)
+        .then((dateDir) => cb(null, dateDir))
+        .catch((err) => cb(err, ""));
     },
     filename: (_req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
       const ext = path.extname(file.originalname);
-      cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+      cb(null, file.fieldname + "-" + uniqueSuffix + ext);
     },
   });
 
@@ -74,33 +80,42 @@ export async function startExpressServer(): Promise<void> {
     limits: { fileSize: 50 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
       const allowedTypes = [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp',
-        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/midi',
-        'video/mp4',
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/svg+xml",
+        "image/webp",
+        "audio/mpeg",
+        "audio/wav",
+        "audio/ogg",
+        "audio/aac",
+        "audio/midi",
+        "video/mp4",
       ];
       if (!allowedTypes.includes(file.mimetype)) {
-        const error = new Error('只允许上传图片、音频或视频格式文件');
+        const error = new Error("只允许上传图片、音频或视频格式文件");
         return cb(error as any, false);
       }
       cb(null, true);
     },
   });
 
-  expressApp.use('/api', loggerMiddleware);
+  expressApp.use("/api", loggerMiddleware);
 
-  expressApp.use('/api', memoryRoutes);
-  expressApp.use('/api', diaryRoutes);
-  expressApp.use('/api', sessionRoutes);
-  expressApp.use('/api', agentRoutes);
-  expressApp.use('/api', aiRoutes);
+  expressApp.use("/api", memoryRoutes);
+  expressApp.use("/api", diaryRoutes);
+  expressApp.use("/api", sessionRoutes);
+  expressApp.use("/api", agentRoutes);
+  expressApp.use("/api", aiRoutes);
 
-  expressApp.get('/api/memorySize', async (_req, res) => {
+  expressApp.get("/api/memorySize", async (_req, res) => {
     try {
       const cacheSize = await storageService!.getCacheSize();
-      res.json({ code: 200, data: cacheSize, message: 'success' });
+      res.json({ code: 200, data: cacheSize, message: "success" });
     } catch (error) {
-      logger.error('获取存储数据失败:', error);
-      res.status(500).json({ code: 500, error: '获取存储数据失败' });
+      logger.error("获取存储数据失败:", error);
+      res.status(500).json({ code: 500, error: "获取存储数据失败" });
     }
   });
 
@@ -120,30 +135,34 @@ export async function startExpressServer(): Promise<void> {
   //   }
   // });
 
-  expressApp.use('/api', notFoundMiddleware);
+  expressApp.use("/api", notFoundMiddleware);
   expressApp.use(errorMiddleware);
 
-  expressApp.post('/upload', upload.single('file'), (req: any, res: any, next: any) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+  expressApp.post(
+    "/upload",
+    upload.single("file"),
+    (req: any, res: any, next: any) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file uploaded" });
+        }
+        const relativePath = path.relative(uploadDir, req.file.path);
+        res.json({
+          code: 200,
+          message: "File uploaded successfully",
+          data: {
+            url: `/uploads/${relativePath.replace(/\\/g, "/")}`,
+            filename: req.file.filename,
+            originalname: req.file.originalname,
+          },
+        });
+      } catch (error) {
+        next(error);
       }
-      const relativePath = path.relative(uploadDir, req.file.path);
-      res.json({
-        code: 200,
-        message: 'File uploaded successfully',
-        data: {
-          url: `/uploads/${relativePath.replace(/\\/g, '/')}`,
-          filename: req.file.filename,
-          originalname: req.file.originalname,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
+    },
+  );
 
-  expressApp.use('/uploads', express.static(uploadDir));
+  expressApp.use("/uploads", express.static(uploadDir));
 
   // expressApp.get('/getAllUploads', async (_req: any, res: any) => {
   //   try {
@@ -171,27 +190,33 @@ export async function startExpressServer(): Promise<void> {
   //     res.status(500).json({ code: 500, error: 'Failed to retrieve files' });
   //   }
   // });
-  expressApp.delete('/deleteFile', async (req: any, res: any) => {
+  expressApp.delete("/deleteFile", async (req: any, res: any) => {
     try {
       const { filePath } = req.body;
       if (!filePath) {
-        return res.status(400).json({ code: 400, error: 'File path is required' });
+        return res
+          .status(400)
+          .json({ code: 400, error: "File path is required" });
       }
-      const safePath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
+      const safePath = path
+        .normalize(filePath)
+        .replace(/^(\.\.(\/|\\|$))+/, "");
       const fullPath = path.join(uploadDir, safePath);
       if (!fullPath.startsWith(path.resolve(uploadDir))) {
-        return res.status(403).json({ code: 403, error: 'Forbidden' });
+        return res.status(403).json({ code: 403, error: "Forbidden" });
       }
 
       try {
         await fs.access(fullPath);
       } catch {
-        return res.status(404).json({ code: 404, error: 'File not found' });
+        return res.status(404).json({ code: 404, error: "File not found" });
       }
 
       await fs.unlink(fullPath);
 
-      const getAllFiles = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
+      const getAllFiles = async (
+        dirPath: string,
+      ): Promise<Array<{ name: string; path: string }>> => {
         const files: Array<{ name: string; path: string }> = [];
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
         for (const entry of entries) {
@@ -201,17 +226,24 @@ export async function startExpressServer(): Promise<void> {
             const subFiles = await getAllFiles(fullPath);
             files.push(...subFiles);
           } else {
-            files.push({ name: entry.name, path: relativePath.replace(/\\/g, '/') });
+            files.push({
+              name: entry.name,
+              path: relativePath.replace(/\\/g, "/"),
+            });
           }
         }
         return files;
       };
 
       const files = await getAllFiles(uploadDir);
-      res.json({ code: 200, message: 'File deleted successfully', data: files });
+      res.json({
+        code: 200,
+        message: "File deleted successfully",
+        data: files,
+      });
     } catch (error) {
-      logger.error('Error deleting file:', error);
-      res.status(500).json({ code: 500, error: 'Failed to delete file' });
+      logger.error("Error deleting file:", error);
+      res.status(500).json({ code: 500, error: "Failed to delete file" });
     }
   });
 
@@ -224,7 +256,7 @@ export function stopExpressServer(): void {
   if (server) {
     server.close(() => {
       if (storageService) storageService.close();
-      logger.info('Express server stopped');
+      logger.info("Express server stopped");
     });
     server = null;
   }

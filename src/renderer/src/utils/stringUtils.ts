@@ -8,8 +8,12 @@
  * @returns 遮罩后的 Key
  */
 export const maskApiKey = (key: string): string => {
-  if (key.length <= 8) return '*'.repeat(key.length);
-  return key.substring(0, 4) + '*'.repeat(key.length - 8) + key.substring(key.length - 4);
+  if (key.length <= 8) return "*".repeat(key.length);
+  return (
+    key.substring(0, 4) +
+    "*".repeat(key.length - 8) +
+    key.substring(key.length - 4)
+  );
 };
 
 /**
@@ -20,7 +24,7 @@ export const maskApiKey = (key: string): string => {
  */
 export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
+  return text.slice(0, maxLength) + "...";
 };
 
 /**
@@ -28,7 +32,7 @@ export const truncateText = (text: string, maxLength: number): string => {
  * @param prefix 前缀
  * @returns 唯一 ID
  */
-export const generateId = (prefix: string = 'id'): string => {
+export const generateId = (prefix: string = "id"): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
@@ -38,11 +42,11 @@ export const generateId = (prefix: string = 'id'): string => {
  * @returns 格式化后的大小（如：1.5 MB）
  */
 export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 /**
@@ -62,7 +66,7 @@ export const deepClone = <T>(obj: T): T => {
  */
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
-  delay: number
+  delay: number,
 ): ((...args: Parameters<T>) => void) => {
   let timeoutId: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
@@ -79,7 +83,7 @@ export const debounce = <T extends (...args: any[]) => any>(
  */
 export const throttle = <T extends (...args: any[]) => any>(
   func: T,
-  delay: number
+  delay: number,
 ): ((...args: Parameters<T>) => void) => {
   let lastCall = 0;
   return (...args: Parameters<T>) => {

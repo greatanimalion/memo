@@ -1,42 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileTextOutlined, StarOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FileTextOutlined, StarOutlined } from "@ant-design/icons";
 
-import { formatTime, formatDate, formatRelativeTime, formatDateByTimestamp } from '../utils/dateUtils';
-import { getMemorysStarred, getRecentMemorys } from '../services/memory';
-import { Memory } from '../../../types';
-import { Empty } from 'antd';
-import RealTimeClock from '../components/clock';
-import AIPart from '../components/AiPart';
+import {
+  formatTime,
+  formatDate,
+  formatRelativeTime,
+  formatDateByTimestamp,
+} from "../utils/dateUtils";
+import { getMemorysStarred, getRecentMemorys } from "../services/memory";
+import { Memory } from "../../../types";
+import { Empty } from "antd";
+import RealTimeClock from "../components/clock";
+import AIPart from "../components/AiPart";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [recentFiles, setRecentFiles] = useState<Memory[]>([]);
   const [starredFiles, setStarredFiles] = useState<Memory[]>([]);
-  
+
   async function init() {
     try {
       const _recentFiles = await getRecentMemorys();
       setRecentFiles(_recentFiles);
       const starreds = await getMemorysStarred();
       setStarredFiles(starreds);
-    } catch (error) { }
+    } catch (error) {}
   }
-  
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-    init()
+    init();
     return () => clearInterval(timer);
   }, []);
 
   const openRecentFile = (file: Memory) => {
-    navigate('/memo', { state: { file } });
+    navigate("/memo", { state: { file } });
   };
 
-   return (
+  return (
     <div className="flex-1 bg-gray-50 overflow-y-auto p-4 text-gray-600">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 板块一：时间和日期 */}
@@ -51,7 +56,9 @@ const HomePage: React.FC = () => {
                 <RealTimeClock />
               </div>
               <div>
-                <h1 className="text-6xl font-bold mb-2">{formatTime(currentTime)}</h1>
+                <h1 className="text-6xl font-bold mb-2">
+                  {formatTime(currentTime)}
+                </h1>
                 <p className="text-2xl opacity-90">{formatDate(currentTime)}</p>
               </div>
             </div>
@@ -68,9 +75,11 @@ const HomePage: React.FC = () => {
           {/* 我的收藏 */}
           <div className="bg-white rounded-2xl p-6 shadow-lg">
             <div className="flex items-center gap-3 mb-6">
-              <StarOutlined className="text-2xl "   />
+              <StarOutlined className="text-2xl " />
               <h2 className="text-2xl font-bold text-gray-800">我的收藏</h2>
-              <span className="ml-auto text-sm text-gray-500">共 {starredFiles.length} 项</span>
+              <span className="ml-auto text-sm text-gray-500">
+                共 {starredFiles.length} 项
+              </span>
             </div>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {starredFiles.map((item) => (
@@ -81,18 +90,23 @@ const HomePage: React.FC = () => {
                 >
                   <div className="flex items-center gap-4">
                     <FileTextOutlined className="text-xl text-blue-500" />
-                    <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">{item.title}</p>
+                    <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                      {item.title}
+                    </p>
                   </div>
-                  <StarOutlined className="text-yellow-500" style={{ color: 'oklch(79.5% 0.184 86.047)' }} />
+                  <StarOutlined
+                    className="text-yellow-500"
+                    style={{ color: "oklch(79.5% 0.184 86.047)" }}
+                  />
                 </div>
               ))}
-              {
-                starredFiles.length === 0 && (
-                  <div className="text-center py-10">
-                    <div className='p-5'><Empty /></div>
+              {starredFiles.length === 0 && (
+                <div className="text-center py-10">
+                  <div className="p-5">
+                    <Empty />
                   </div>
-                )
-              }
+                </div>
+              )}
             </div>
           </div>
           {/* 板块二：近期文件 */}
@@ -100,7 +114,9 @@ const HomePage: React.FC = () => {
             <div className="flex items-center gap-3 mb-6">
               <FileTextOutlined className="text-2xl text-blue-500" />
               <h2 className="text-2xl font-bold text-gray-800">近期文件</h2>
-              <span className="ml-auto text-sm text-gray-500">共 {recentFiles.length} 个文件</span>
+              <span className="ml-auto text-sm text-gray-500">
+                共 {recentFiles.length} 个文件
+              </span>
             </div>
             <div className="space-y-3  max-h-96 overflow-y-auto">
               {recentFiles.map((file) => (
@@ -112,20 +128,26 @@ const HomePage: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <FileTextOutlined className="text-xl text-blue-500" />
                     <div>
-                      <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">{file.title}</p>
-                      <p className="text-sm text-gray-500">创建：{formatDateByTimestamp(file.created || 0)}</p>
+                      <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                        {file.title}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        创建：{formatDateByTimestamp(file.created || 0)}
+                      </p>
                     </div>
                   </div>
-                  <span className="text-sm text-gray-500">更新于：{formatRelativeTime(file.updated || 0)}</span>
+                  <span className="text-sm text-gray-500">
+                    更新于：{formatRelativeTime(file.updated || 0)}
+                  </span>
                 </div>
               ))}
-              {
-                recentFiles.length === 0 && (
-                  <div className="text-center py-10">
-                    <div className='p-5'><Empty /></div>
+              {recentFiles.length === 0 && (
+                <div className="text-center py-10">
+                  <div className="p-5">
+                    <Empty />
                   </div>
-                )
-              }
+                </div>
+              )}
             </div>
           </div>
         </div>

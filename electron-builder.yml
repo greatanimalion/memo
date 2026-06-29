@@ -3,40 +3,40 @@ productName: memo
 
 files:
   # 1. 你的构建产物
-  - 'out/**/*'
-  - 'package.json'
+  - "out/**/*"
+  - "package.json"
   # 2. 包含 node_modules 必要的生产文件
-  - 'node_modules/**/*.js'
-  - 'node_modules/**/*.json'
-  - 'node_modules/**/*.node'        # 原生模块
-  - 'node_modules/**/*.wasm'        # 如果用到 wasm
+  - "node_modules/**/*.js"
+  - "node_modules/**/*.json"
+  - "node_modules/**/*.node" # 原生模块
+  - "node_modules/**/*.wasm" # 如果用到 wasm
   # 3. 排除掉体积巨大的非必要文件
-  - '!node_modules/**/src/'          # 源码
-  - '!node_modules/**/docs/'         # 文档
-  - '!node_modules/**/test/'         # 测试
-  - '!node_modules/**/tests/'
-  - '!node_modules/**/__tests__/'
-  - '!node_modules/**/*.map'         # Source Map
-  - '!node_modules/**/*.ts'          # TypeScript 源文件
-  - '!node_modules/**/*.mts'
-  - '!node_modules/**/*.cts'
-  - '!node_modules/**/*.tsx'
-  - '!node_modules/**/*.jsx'
-  - '!node_modules/**/*.md'          # 文档
-  - '!node_modules/**/readme*'
-  - '!node_modules/**/LICENSE'
-  - '!node_modules/**/license*'
-  - '!node_modules/**/{.editorconfig,.eslintrc,.prettierrc,.babelrc,.nvmrc}'
-  - '!node_modules/**/{tsconfig.json,tsconfig.*.json}'
-  - '!node_modules/**/demo/'
-  - '!node_modules/**/example/'
-  - '!node_modules/**/examples/'
-  - '!node_modules/**/.bin/'
-  - '!node_modules/**/coverage/'
+  - "!node_modules/**/src/" # 源码
+  - "!node_modules/**/docs/" # 文档
+  - "!node_modules/**/test/" # 测试
+  - "!node_modules/**/tests/"
+  - "!node_modules/**/__tests__/"
+  - "!node_modules/**/*.map" # Source Map
+  - "!node_modules/**/*.ts" # TypeScript 源文件
+  - "!node_modules/**/*.mts"
+  - "!node_modules/**/*.cts"
+  - "!node_modules/**/*.tsx"
+  - "!node_modules/**/*.jsx"
+  - "!node_modules/**/*.md" # 文档
+  - "!node_modules/**/readme*"
+  - "!node_modules/**/LICENSE"
+  - "!node_modules/**/license*"
+  - "!node_modules/**/{.editorconfig,.eslintrc,.prettierrc,.babelrc,.nvmrc}"
+  - "!node_modules/**/{tsconfig.json,tsconfig.*.json}"
+  - "!node_modules/**/demo/"
+  - "!node_modules/**/example/"
+  - "!node_modules/**/examples/"
+  - "!node_modules/**/.bin/"
+  - "!node_modules/**/coverage/"
 asarUnpack:
   - resources/**
-  - 'node_modules/@tailwindcss/oxide-win32-x64-msvc/**'
-  - 'node_modules/lightningcss-win32-x64-msvc/**'
+  - "node_modules/@tailwindcss/oxide-win32-x64-msvc/**"
+  - "node_modules/lightningcss-win32-x64-msvc/**"
 win:
   executableName: memo
   icon: build/icon.ico

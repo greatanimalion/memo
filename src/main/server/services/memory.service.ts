@@ -1,5 +1,5 @@
-import { MemoryRepository } from '../repositories/memory.repository';
-import type { Memory } from '../../../types';
+import { MemoryRepository } from "../repositories/memory.repository";
+import type { Memory } from "../../../types";
 
 export class MemoryService {
   private memoryRepository: MemoryRepository;
@@ -48,12 +48,12 @@ export class MemoryService {
     return this.memoryRepository.getStarred();
   }
 
-  toggleStar(id: string): { memory: Memory | null; wasStarred:number } {
+  toggleStar(id: string): { memory: Memory | null; wasStarred: number } {
     const memory = this.memoryRepository.getById(id);
     if (!memory) {
-      return { memory: null, wasStarred:0 };
+      return { memory: null, wasStarred: 0 };
     }
-    const wasStarred = memory.starred?0:1;
+    const wasStarred = memory.starred ? 0 : 1;
     const updated = this.memoryRepository.update(id, { starred: wasStarred });
     return { memory: updated, wasStarred: wasStarred };
   }

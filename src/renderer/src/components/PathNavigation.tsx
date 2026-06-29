@@ -1,11 +1,14 @@
-import React from 'react';
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import useFileStore  from '../store/useFileStore';
+import React from "react";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import useFileStore from "../store/useFileStore";
 interface PathNavigationProps {
   onBackClick: () => void;
   onPathClick?: (index: number) => void;
 }
-const PathNavigation: React.FC<PathNavigationProps> = ({  onBackClick, onPathClick }) => {
+const PathNavigation: React.FC<PathNavigationProps> = ({
+  onBackClick,
+  onPathClick,
+}) => {
   const path = useFileStore((state) => state.currentPathArr);
   return (
     <div className="flex items-center gap-3">

@@ -1,7 +1,11 @@
-import type { Request, Response } from 'express';
-import { DiaryService } from '../services/diary.service';
-import { successResponse, createdResponse, errorResponse } from '../utils/response';
-import type { Diary } from '../../../types';
+import type { Request, Response } from "express";
+import { DiaryService } from "../services/diary.service";
+import {
+  successResponse,
+  createdResponse,
+  errorResponse,
+} from "../utils/response";
+import type { Diary } from "../../../types";
 
 export class DiaryController {
   private diaryService: DiaryService;
@@ -13,7 +17,7 @@ export class DiaryController {
     const { id } = req.params;
     const diary = this.diaryService.getById(id);
     if (!diary) {
-      errorResponse(res, 404, '未找到指定的日记');
+      errorResponse(res, 404, "未找到指定的日记");
       return;
     }
     successResponse(res, diary);
@@ -22,7 +26,7 @@ export class DiaryController {
   create(req: Request, res: Response): void {
     const diaryData: Diary = req.body;
     const newDiary = this.diaryService.create(diaryData);
-    createdResponse(res, newDiary, '日记创建成功');
+    createdResponse(res, newDiary, "日记创建成功");
   }
 
   update(req: Request, res: Response): void {
@@ -30,9 +34,9 @@ export class DiaryController {
     const updateData: Diary = req.body;
     const updatedDiary = this.diaryService.update(id, updateData);
     if (!updatedDiary) {
-      errorResponse(res, 404, '未找到指定的日记');
+      errorResponse(res, 404, "未找到指定的日记");
       return;
     }
-    successResponse(res, updatedDiary, '日记更新成功');
+    successResponse(res, updatedDiary, "日记更新成功");
   }
 }

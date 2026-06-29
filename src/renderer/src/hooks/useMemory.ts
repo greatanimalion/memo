@@ -16,11 +16,17 @@ export const useMemory = () => {
   const sortBy = useFileStore((state) => state.sortBy);
   const viewMode = useFileStore((state) => state.viewMode);
   const setViewMode = useFileStore((state) => state.setViewMode);
-  const setCurrentFolderItemsArr = useFileStore((state) => state.setCurrentFolderItemsArr,);
-  const currentFolderItems = useFileStore( (state) => state.currentFolderItemsArr,);
+  const setCurrentFolderItemsArr = useFileStore(
+    (state) => state.setCurrentFolderItemsArr,
+  );
+  const currentFolderItems = useFileStore(
+    (state) => state.currentFolderItemsArr,
+  );
   const currentFileIds = useFileStore((state) => state.currentFileIdsArr);
   const setCurrentFileIds = useFileStore((state) => state.setCurrentFileIdsArr);
-  const refreshCurrentFolderItemsArr = useFileStore((state) => state.refreshCurrentFolderItemsArr);
+  const refreshCurrentFolderItemsArr = useFileStore(
+    (state) => state.refreshCurrentFolderItemsArr,
+  );
   // 切换排序方式
   const changeSortType = useCallback(
     (type: SortBy) => {
@@ -42,15 +48,18 @@ export const useMemory = () => {
   );
 
   // 点击文件夹
-  const handleFolderClick = useCallback(async (folderName: string, fileId: string) => {
-    const memorys = await getMemoryChildById(fileId);
-    if (memorys) {
-      const store = useFileStore.getState();
-      store.setCurrentPathArr([...store.currentPathArr, folderName]);
-      store.setCurrentFolderItemsArr(memorys);
-      store.setCurrentFileIdsArr([...store.currentFileIdsArr, fileId]);
-    }
-  }, []);
+  const handleFolderClick = useCallback(
+    async (folderName: string, fileId: string) => {
+      const memorys = await getMemoryChildById(fileId);
+      if (memorys) {
+        const store = useFileStore.getState();
+        store.setCurrentPathArr([...store.currentPathArr, folderName]);
+        store.setCurrentFolderItemsArr(memorys);
+        store.setCurrentFileIdsArr([...store.currentFileIdsArr, fileId]);
+      }
+    },
+    [],
+  );
 
   // 返回上一级
   const handleBackClick = useCallback(async () => {
@@ -75,13 +84,18 @@ export const useMemory = () => {
         if (!cancelled) setCurrentFolderItemsArr(memorys);
       })();
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
   // 切换收藏
-  const handleToggleStar = useCallback(async (fileId: string) => {
-    await starredMemory(fileId);
-    setCurrentFolderItemsArr(toggleFileStar(currentFolderItems, fileId));
-  }, [currentFolderItems]);
+  const handleToggleStar = useCallback(
+    async (fileId: string) => {
+      await starredMemory(fileId);
+      setCurrentFolderItemsArr(toggleFileStar(currentFolderItems, fileId));
+    },
+    [currentFolderItems],
+  );
 
   // 创建文件/文件夹
   const createFileOrFolder = useCallback(

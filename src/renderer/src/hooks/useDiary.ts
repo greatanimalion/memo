@@ -68,7 +68,7 @@ export const useDiary = () => {
     async (dateKey: string, todos: TodoItem[], note?: string) => {
       const monthKey = dateKey.substring(0, 7);
       let savedData: DiaryData = {};
-      setDiaryData(prev => {
+      setDiaryData((prev) => {
         savedData = {
           ...prev,
           [dateKey]: { todos, note: note || prev[dateKey]?.note },

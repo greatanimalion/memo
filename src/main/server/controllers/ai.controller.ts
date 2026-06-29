@@ -70,7 +70,11 @@ export class AIController {
       abortControllerMap.delete(requestId);
     }
   }
-  async chatAgent(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async chatAgent(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       res = switchStreamRes(res);
       const { prompt, history = [], model, apiKey } = req.body;

@@ -1,5 +1,5 @@
-import { DiaryRepository } from '../repositories/diary.repository';
-import type { Diary } from '../../../types';
+import { DiaryRepository } from "../repositories/diary.repository";
+import type { Diary } from "../../../types";
 
 export class DiaryService {
   private diaryRepository: DiaryRepository;

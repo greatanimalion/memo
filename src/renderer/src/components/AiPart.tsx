@@ -1,40 +1,61 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 // 功能浮动标签配置 - 分散在AI大脑外围
 const featureTags = [
-  { 
-    text: 'AI 规划', 
-    subtext: '智能规划未来计划',
-    className: 'top-1/2 right-0 translate-y-[-50%] translate-x-full',
-    delay: '0.3s',
+  {
+    text: "AI 规划",
+    subtext: "智能规划未来计划",
+    className: "top-1/2 right-0 translate-y-[-50%] translate-x-full",
+    delay: "0.3s",
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        className="w-4 h-4"
+      >
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
         <path d="M11 8v6" />
         <path d="M8 11h6" />
       </svg>
-    )
+    ),
   },
-  { 
-    text: '内容生成', 
-    subtext: 'AI 辅助编写文档',
-    className: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-full',
-    delay: '0.6s',
+  {
+    text: "内容生成",
+    subtext: "AI 辅助编写文档",
+    className: "bottom-0 left-1/2 -translate-x-1/2 translate-y-full",
+    delay: "0.6s",
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        className="w-4 h-4"
+      >
         <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
         <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z" />
       </svg>
-    )
+    ),
   },
-  { 
-    text: '智能对话', 
-    subtext: 'AI 助力智能对话',
-    className: 'top-1/2 left-0 -translate-y-1/2 -translate-x-full',
-    delay: '0.9s',
+  {
+    text: "智能对话",
+    subtext: "AI 助力智能对话",
+    className: "top-1/2 left-0 -translate-y-1/2 -translate-x-full",
+    delay: "0.9s",
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        className="w-4 h-4"
+      >
         <circle cx="12" cy="12" r="3" />
         <path d="M12 2v4" />
         <path d="M12 18v4" />
@@ -43,7 +64,7 @@ const featureTags = [
         <path d="M2 12h4" />
         <path d="M18 12h4" />
       </svg>
-    )
+    ),
   },
 ];
 
@@ -70,7 +91,8 @@ function App() {
             style={{
               left: p.left,
               top: p.top,
-              background: 'radial-gradient(circle, #22d3ee 0%, transparent 70%)',
+              background:
+                "radial-gradient(circle, #22d3ee 0%, transparent 70%)",
               opacity: 0.5,
               animationDelay: p.delay,
               animationDuration: p.duration,
@@ -83,40 +105,38 @@ function App() {
       </div>
       {/* 主内容区域 */}
       <div className="h-full flex flex-col items-center justify-center px-16 ">
-        
         {/* AI 大脑区域 */}
         <div className="relative w-64 h-64   flex items-center justify-center mb-16">
-          
           {/* 旋转光环 - 使用伪元素避免定位问题 */}
           <div className="absolute inset-0 flex items-center justify-center">
             {/* 外环 */}
-            <div 
+            <div
               className="absolute w-56 h-56  rounded-full"
               style={{
-                border: '2px solid transparent',
-                borderTopColor: '#22d3ee',
-                borderRightColor: '#6366f1',
-                animation: 'spin 10s linear infinite',
+                border: "2px solid transparent",
+                borderTopColor: "#22d3ee",
+                borderRightColor: "#6366f1",
+                animation: "spin 10s linear infinite",
               }}
             />
             {/* 中环 */}
-            <div 
+            <div
               className="absolute w-40 h-40  rounded-full"
               style={{
-                border: '2px solid transparent',
-                borderBottomColor: '#0ea5e9',
-                borderLeftColor: '#22d3ee',
-                animation: 'spin-reverse 7s linear infinite',
+                border: "2px solid transparent",
+                borderBottomColor: "#0ea5e9",
+                borderLeftColor: "#22d3ee",
+                animation: "spin-reverse 7s linear infinite",
               }}
             />
             {/* 内环 */}
-            <div 
+            <div
               className="absolute w-28 h-28  rounded-full"
               style={{
-                border: '2px solid transparent',
-                borderTopColor: '#6366f1',
-                borderRightColor: '#0ea5e9',
-                animation: 'spin 5s linear infinite',
+                border: "2px solid transparent",
+                borderTopColor: "#6366f1",
+                borderRightColor: "#0ea5e9",
+                animation: "spin 5s linear infinite",
               }}
             />
           </div>

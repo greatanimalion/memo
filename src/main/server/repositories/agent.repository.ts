@@ -1,5 +1,5 @@
-import { DatabaseHelper } from '../db';
-import type { MyAgent } from '../../../types';
+import { DatabaseHelper } from "../db";
+import type { MyAgent } from "../../../types";
 
 export class AgentRepository {
   private dbHelper: DatabaseHelper;

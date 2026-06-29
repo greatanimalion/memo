@@ -1,9 +1,12 @@
-import { Component, type ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
+import { Component, type ReactNode } from "react";
+import { Outlet } from "react-router-dom";
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
   state = { hasError: false };
   static getDerivedStateFromError() {
     return { hasError: true };
@@ -28,8 +31,10 @@ const MainLayout = () => {
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden text-black">
       <Header />
       <div className="flex flex-1 overflow-hidden">
-           <Sidebar />
-          <ErrorBoundary><Outlet /></ErrorBoundary>
+        <Sidebar />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </div>
     </div>
   );

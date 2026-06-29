@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import { Calendar, Badge, Modal, Form, Input, Button, Empty, Checkbox, Typography } from 'antd';
-import type { CalendarProps } from 'antd';
-import dayjs, { Dayjs } from 'dayjs';
-import { useDiary } from '../hooks/useDiary';
-import Select from 'antd/es/select';
-import { updateDiary } from '../services/diary';
+import React, { useState } from "react";
+import {
+  Calendar,
+  Badge,
+  Modal,
+  Form,
+  Input,
+  Button,
+  Empty,
+  Checkbox,
+  Typography,
+} from "antd";
+import type { CalendarProps } from "antd";
+import dayjs, { Dayjs } from "dayjs";
+import { useDiary } from "../hooks/useDiary";
+import Select from "antd/es/select";
+import { updateDiary } from "../services/diary";
+import { StatCard, PageHeader } from "../components/common";
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -23,21 +34,21 @@ const DiaryPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   // 日历单元格渲染
-  const dateCellRender: CalendarProps<Dayjs>['cellRender'] = (value) => {
-    const dateKey = value.format('YYYY-MM-DD');
+  const dateCellRender: CalendarProps<Dayjs>["cellRender"] = (value) => {
+    const dateKey = value.format("YYYY-MM-DD");
     const data = getDateData(dateKey);
-    const incompleteTodos = data.todos.filter(todo => !todo.completed).length;
+    const incompleteTodos = data.todos.filter((todo) => !todo.completed).length;
     return (
       <div className="flex gap-1 items-center justify-center">
         {data.todos.length > 0 && (
           <Badge
             count={incompleteTodos}
-            color={'#ef4444'}
+            color={"#ef4444"}
             style={{
-              fontSize: '10px',
-              height: '16px',
-              lineHeight: '16px',
-              minWidth: '16px',
+              fontSize: "10px",
+              height: "16px",
+              lineHeight: "16px",
+              minWidth: "16px",
             }}
           />
         )}
@@ -47,21 +58,29 @@ const DiaryPage: React.FC = () => {
   };
 
   // 点击日期处理
-  const handleDateSelectWithModal: CalendarProps<Dayjs>['onSelect'] = (value) => {
+  const handleDateSelectWithModal: CalendarProps<Dayjs>["onSelect"] = (
+    value,
+  ) => {
     handleDateSelect(value);
-    const dateKey = value.format('YYYY-MM-DD');
+    const dateKey = value.format("YYYY-MM-DD");
     const data = getDateData(dateKey);
     form.setFieldsValue({
-      todos: data.todos.map(todo => ({ text: todo.text, completed: todo.completed })),
-      note: data.note || '',
+      todos: data.todos.map((todo) => ({
+        text: todo.text,
+        completed: todo.completed,
+      })),
+      note: data.note || "",
     });
     //@ts-ignore
-    if (window.___NOTPOPEN) return
+    if (window.___NOTPOPEN) return;
     setIsModalOpen(true);
   };
 
   // 自定义头部
-  const headerRender: CalendarProps<Dayjs>['headerRender'] = ({ value, onChange }) => {
+  const headerRender: CalendarProps<Dayjs>["headerRender"] = ({
+    value,
+    onChange,
+  }) => {
     const year = value.year();
     const month = value.month();
 
@@ -76,7 +95,7 @@ const DiaryPage: React.FC = () => {
     }));
 
     return (
-      <div style={{ padding: '8px 0' }}>
+      <div style={{ padding: "8px 0" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Select
@@ -89,7 +108,6 @@ const DiaryPage: React.FC = () => {
                 handleMonthChange(_Y);
                 //@ts-ignore
                 window.___NOTPOPEN = false;
-
               }}
               options={yearOptions}
               style={{ width: 100 }}
@@ -104,17 +122,14 @@ const DiaryPage: React.FC = () => {
                 onChange(_m);
                 handleMonthChange(_m);
                 //@ts-ignore
-                window.___NOTPOPEN = false; 
+                window.___NOTPOPEN = false;
               }}
               options={monthOptions}
               style={{ width: 90 }}
               size="middle"
             />
           </div>
-          <Button
-            type="primary"
-            onClick={() => onChange(value.clone())}
-          >
+          <Button type="primary" onClick={() => onChange(value.clone())}>
             今天
           </Button>
         </div>
@@ -126,12 +141,14 @@ const DiaryPage: React.FC = () => {
   const handleSave = () => {
     form.validateFields().then(async (values) => {
       if (selectedDate) {
-        const dateKey = selectedDate.format('YYYY-MM-DD');
-        const todos = values.todos.map((todo: any, index: number) => ({
-          id: index + 1,
-          text: todo.text,
-          completed: todo.completed,
-        })).filter(todo => todo.text.trim() !== '');
+        const dateKey = selectedDate.format("YYYY-MM-DD");
+        const todos = values.todos
+          .map((todo: any, index: number) => ({
+            id: index + 1,
+            text: todo.text,
+            completed: todo.completed,
+          }))
+          .filter((todo) => todo.text.trim() !== "");
 
         let newDiary;
         if (!values.note && todos.length === 0) {
@@ -142,7 +159,7 @@ const DiaryPage: React.FC = () => {
             ...diaryData,
             [dateKey]: {
               todos,
-              note: values.note.trim() || '',
+              note: values.note.trim() || "",
             },
           };
         }
@@ -160,30 +177,21 @@ const DiaryPage: React.FC = () => {
   return (
     <div className="flex-1 bg-gray-50 overflow-y-auto p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* 页面标题 */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">日记</h1>
-          <p className="text-gray-500">记录每一天的待办事项和笔记</p>
-        </div>
+        <PageHeader title="日记" subtitle="记录每一天的待办事项和笔记" />
 
-        {/* 统计卡片 */}
         <div className="grid grid-cols-4 max-sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">当天待办</div>
-            <div className="text-3xl font-bold text-blue-600">{stats.todayTodos}</div>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">当月总待办数</div>
-            <div className="text-3xl font-bold text-purple-600">{stats.totalTodos}</div>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">已完成</div>
-            <div className="text-3xl font-bold text-green-600">{stats.completedTodos}</div>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">当月记录天数</div>
-            <div className="text-3xl font-bold text-orange-600">{stats.daysWithTodos}</div>
-          </div>
+          <StatCard label="当天待办" value={stats.todayTodos} color="blue" />
+          <StatCard
+            label="当月总待办数"
+            value={stats.totalTodos}
+            color="purple"
+          />
+          <StatCard label="已完成" value={stats.completedTodos} color="green" />
+          <StatCard
+            label="当月记录天数"
+            value={stats.daysWithTodos}
+            color="orange"
+          />
         </div>
 
         {/* 日历 */}
@@ -215,34 +223,40 @@ const DiaryPage: React.FC = () => {
                 .sort((a, b) => b[0].localeCompare(a[0]))
                 .slice(0, 10)
                 .map(([dateKey, data]) => {
-                  const incompleteTodos = data.todos.filter(t => !t.completed).length;
+                  const incompleteTodos = data.todos.filter(
+                    (t) => !t.completed,
+                  ).length;
                   return (
                     <div
                       key={dateKey}
                       onClick={() => {
                         setSelectedDate(dayjs(dateKey));
                         form.setFieldsValue({
-                          todos: data.todos.map(todo => ({ text: todo.text, completed: todo.completed })),
-                          note: data.note || '',
+                          todos: data.todos.map((todo) => ({
+                            text: todo.text,
+                            completed: todo.completed,
+                          })),
+                          note: data.note || "",
                         });
                         setIsModalOpen(true);
                       }}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="text-sm font-medium text-blue-600">{dateKey}</div>
+                        <div className="text-sm font-medium text-blue-600">
+                          {dateKey}
+                        </div>
                         {incompleteTodos > 0 && (
                           <Badge
                             count={`${incompleteTodos} 待完成`}
-                            style={{ backgroundColor: '#ef4444' }}
+                            style={{ backgroundColor: "#ef4444" }}
                           />
                         )}
-                        {data.note && (
-                          <Badge count="有笔记" color="blue" />
-                        )}
+                        {data.note && <Badge count="有笔记" color="blue" />}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {data.todos.length > 0 && `${data.todos.filter(t => t.completed).length}/${data.todos.length} 已完成`}
+                        {data.todos.length > 0 &&
+                          `${data.todos.filter((t) => t.completed).length}/${data.todos.length} 已完成`}
                       </div>
                     </div>
                   );
@@ -257,7 +271,7 @@ const DiaryPage: React.FC = () => {
         title={
           <div className="flex items-center gap-2">
             <Title level={4} style={{ margin: 0 }}>
-              {selectedDate?.format('YYYY年MM月DD日')}
+              {selectedDate?.format("YYYY年MM月DD日")}
             </Title>
           </div>
         }
@@ -273,7 +287,7 @@ const DiaryPage: React.FC = () => {
           layout="vertical"
           initialValues={{
             todos: [],
-            note: '',
+            note: "",
           }}
         >
           <Form.Item label="待办事项">
@@ -284,7 +298,7 @@ const DiaryPage: React.FC = () => {
                     <div key={key} className="flex items-center gap-2 mb-2">
                       <Form.Item
                         {...restField}
-                        name={[name, 'completed']}
+                        name={[name, "completed"]}
                         valuePropName="checked"
                         style={{ margin: 0 }}
                       >
@@ -292,7 +306,7 @@ const DiaryPage: React.FC = () => {
                       </Form.Item>
                       <Form.Item
                         {...restField}
-                        name={[name, 'text']}
+                        name={[name, "text"]}
                         style={{ flex: 1, margin: 0 }}
                       >
                         <Input placeholder="输入待办事项" />
@@ -302,7 +316,12 @@ const DiaryPage: React.FC = () => {
                       </Button>
                     </div>
                   ))}
-                  <Button type="dashed" onClick={() => add({ text: '', completed: false })} block icon={<span>+</span>}>
+                  <Button
+                    type="dashed"
+                    onClick={() => add({ text: "", completed: false })}
+                    block
+                    icon={<span>+</span>}
+                  >
                     添加待办事项
                   </Button>
                 </>

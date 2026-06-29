@@ -1,5 +1,5 @@
-export { default as ChapterList } from './ChapterList'
-export { default as ChapterEditor } from './ChapterEditor'
-export { default as WordCounter } from './WordCounter'
-export { default as ChapterToolbar } from './ChapterToolbar'
-export { default as AIAssistantPanel } from './AIAssistantPanel'
+export { default as ChapterList } from "./ChapterList";
+export { default as ChapterEditor } from "./ChapterEditor";
+export { default as WordCounter } from "./WordCounter";
+export { default as ChapterToolbar } from "./ChapterToolbar";
+export { default as AIAssistantPanel } from "./AIAssistantPanel";

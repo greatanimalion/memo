@@ -45,6 +45,7 @@ export class DatabaseHelper {
 
   public close(): void {
     this.db.close();
+    DatabaseHelper.instance = null!;
   }
 
   public getDatabaseSize(): number {

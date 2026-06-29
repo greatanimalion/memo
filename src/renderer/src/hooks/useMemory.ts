@@ -4,7 +4,7 @@ import {
   createMemory,
   getMemoryChildById,
   starredMemory,
-} from "../services/memeoy";
+} from "../services/memory";
 import { generateUUID } from "../utils/helper";
 import { toggleFileStar } from "../utils";
 import useFileStore from "../store/useFileStore";
@@ -42,14 +42,15 @@ export const useMemory = () => {
   );
 
   // 点击文件夹
-  const handleFolderClick = async (folderName: string, fileId: string) => {
+  const handleFolderClick = useCallback(async (folderName: string, fileId: string) => {
     const memorys = await getMemoryChildById(fileId);
     if (memorys) {
-      setCurrentPath([...currentPath, folderName]);
-      setCurrentFolderItemsArr(memorys);
-      setCurrentFileIds([...currentFileIds, fileId]);
+      const store = useFileStore.getState();
+      store.setCurrentPathArr([...store.currentPathArr, folderName]);
+      store.setCurrentFolderItemsArr(memorys);
+      store.setCurrentFileIdsArr([...store.currentFileIdsArr, fileId]);
     }
-  };
+  }, []);
 
   // 返回上一级
   const handleBackClick = useCallback(async () => {
@@ -65,21 +66,22 @@ export const useMemory = () => {
   }, [currentPath, currentFileIds]);
 
   useEffect(() => {
+    let cancelled = false;
     if (currentFolderItems.length == 0) {
-      async function initFolderItems() {
+      (async () => {
         const memorys = await getMemoryChildById(
           currentFileIds[currentFileIds.length - 1],
         );
-        setCurrentFolderItemsArr(memorys);
-      }
-      initFolderItems();
+        if (!cancelled) setCurrentFolderItemsArr(memorys);
+      })();
     }
+    return () => { cancelled = true; };
   }, []);
   // 切换收藏
-  const handleToggleStar = useCallback((fileId: string) => {
-    starredMemory(fileId);
+  const handleToggleStar = useCallback(async (fileId: string) => {
+    await starredMemory(fileId);
     setCurrentFolderItemsArr(toggleFileStar(currentFolderItems, fileId));
-  }, []);
+  }, [currentFolderItems]);
 
   // 创建文件/文件夹
   const createFileOrFolder = useCallback(
@@ -109,6 +111,7 @@ export const useMemory = () => {
   const searchFiles = useCallback(
     (value: string) => {
       if (!value) {
+        refreshCurrentFolderItemsArr();
       } else {
         const filtered = currentFolderItems.filter((item) =>
           item.title.includes(value),

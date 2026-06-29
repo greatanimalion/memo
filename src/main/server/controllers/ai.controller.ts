@@ -23,7 +23,7 @@ function getModels(type: "qwen-plus" | "glm-5.1" | "deepseek" | "openRouter") {
     case "deepseek":
       return {
         model: "deepseek-chat",
-        url: "https://api.deepseek.com/v1",
+        url: "https://api.deepseek.com/v1/chat/completions",
       };
     case "openRouter":
       return {
@@ -45,26 +45,30 @@ export class AIController {
     this.aiService = new AIService();
     this.agentToolService = new AgentToolService();
   }
-  chatStream(req: Request, res: Response) {
-    res = switchStreamRes(res);
+  async chatStream(req: Request, res: Response) {
     const { prompt, history = [], model, apiKey, requestId } = req.body;
     if (!prompt || !model || !apiKey || !requestId) {
       return res
         .status(400)
         .json({ error: "Missing prompt, model, or apiKey or requestId" });
     }
+    res = switchStreamRes(res);
     const abortController = new AbortController();
     abortControllerMap.set(requestId, abortController);
     const config = getModels(model as any);
-    this.aiService.chatStream(
-      prompt,
-      history,
-      config.model,
-      config.url,
-      apiKey,
-      res,
-      abortController,
-    );
+    try {
+      await this.aiService.chatStream(
+        prompt,
+        history,
+        config.model,
+        config.url,
+        apiKey,
+        res,
+        abortController,
+      );
+    } finally {
+      abortControllerMap.delete(requestId);
+    }
   }
   async chatAgent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

@@ -52,7 +52,8 @@ export class AIService {
         { signal: abortController.signal },
       );
       for await (const event of stream) {
-        res.write(event.choices[0].delta.content);
+        const content = event.choices?.[0]?.delta?.content ?? '';
+        if (content) res.write(content);
       }
     } catch (err: any) {
       if (err.name === "AbortError" || abortController.signal.aborted) {

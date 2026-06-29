@@ -9,7 +9,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Input, message, Modal } from 'antd';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MyAgent, Session } from '../../../types';
 import TextArea from 'antd/es/input/TextArea';
 import { useAgent } from '../hooks/useAgent';
@@ -32,12 +32,11 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
   const [modal, contextHolder] = Modal.useModal();
   const [editingId, setEditingId] = useState('');
 
-  // 更新外部 agents 状态
-  useState(() => {
+  useEffect(() => {
     if (agents.length > 0) {
       setAgents(agents);
     }
-  });
+  }, [agents, setAgents]);
 
   const handleAddOrUpdateAgent = async () => {
     if (!agentName || !agentDescription || !agentContent) {
@@ -57,8 +56,6 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
       setAgents(prev => prev.map(a =>
         a.id === editingId ? { ...a, name: agentName, description: agentDescription, content: agentContent } : a
       ));
-    } else {
-      setAgents(prev => [...prev, { id: '', name: agentName, description: agentDescription, content: agentContent }]);
     }
 
     resetForm();

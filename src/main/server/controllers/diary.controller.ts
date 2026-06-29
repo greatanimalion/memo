@@ -30,8 +30,7 @@ export class DiaryController {
     const updateData: Diary = req.body;
     const updatedDiary = this.diaryService.update(id, updateData);
     if (!updatedDiary) {
-      const newDiary = this.diaryService.create(updateData);
-      successResponse(res, newDiary, '日记创建成功');
+      errorResponse(res, 404, '未找到指定的日记');
       return;
     }
     successResponse(res, updatedDiary, '日记更新成功');

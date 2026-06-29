@@ -3,35 +3,43 @@ import { app } from 'electron';
 import path from 'path';
 
 // 生成32字节的密钥，适配AES-256-CBC算法
-export const ENCRYPT_KEY = crypto.createHash('sha256').update('your-secret-key').digest();
+export const ENCRYPT_KEY = crypto.createHash('sha256').update('memo-app-encrypt-key-2024').digest();
 
 // 加密（可逆）
 export function encrypt(content: string, key: string | Buffer): string {
-  const algorithm = 'aes-256-cbc';
+  const algorithm = 'aes-256-gcm';
   const keyBuffer = Buffer.isBuffer(key) ? key : Buffer.from(key);
-  const iv = Buffer.alloc(16, 0);
+  const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(algorithm, keyBuffer, iv);
-  return cipher.update(content, 'utf8', 'hex') + cipher.final('hex');
+  const encrypted = cipher.update(content, 'utf8', 'hex') + cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+  return iv.toString('hex') + ':' + authTag + ':' + encrypted;
 }
 
 // 解密
 export function decrypt(encrypted: string, key: string | Buffer): string {
-  const algorithm = 'aes-256-cbc';
+  const algorithm = 'aes-256-gcm';
   const keyBuffer = Buffer.isBuffer(key) ? key : Buffer.from(key);
-  const iv = Buffer.alloc(16, 0);
+  const parts = encrypted.split(':');
+  const iv = Buffer.from(parts[0], 'hex');
+  const authTag = Buffer.from(parts[1], 'hex');
+  const encryptedData = parts[2];
   const decipher = crypto.createDecipheriv(algorithm, keyBuffer, iv);
-  return decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
+  decipher.setAuthTag(authTag);
+  return decipher.update(encryptedData, 'hex', 'utf8') + decipher.final('utf8');
 }
 
 export function getSystemRootDir(): string {
-  if (process.platform === "win32") {
-    // 获取可执行文件路径并提取盘符（如 C:\）
-    const exePath = app.getPath("exe");
-    const rootDir = path.parse(exePath).root;
-    return rootDir;
-  } else {
-    // Unix-like 系统直接返回 /
-    return "/";
+  try {
+    if (process.platform === "win32") {
+      const exePath = app.getPath("exe");
+      const rootDir = path.parse(exePath).root;
+      return rootDir;
+    } else {
+      return "/";
+    }
+  } catch {
+    return process.platform === "win32" ? "C:\\" : "/";
   }
 }
 export function getDatabasePath(): string {

@@ -15,23 +15,26 @@ export const useChat = () => {
 
   // 初始化会话列表
   useEffect(() => {
-    const initSessions = async () => {
+    let cancelled = false;
+    (async () => {
       const sessions = await getAllSession();
+      if (cancelled) return;
       setSessions(sessions);
       const id = sessions[0]?.id || '';
       setCurrentSessionId(id);
       setCurrentSession(sessions[0] || null);
-    };
-    initSessions();
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // 初始化智能体列表
   useEffect(() => {
-    const initAgents = async () => {
+    let cancelled = false;
+    (async () => {
       const _agents = await getAllMyAgent();
-      setAgents(_agents || []);
-    };
-    initAgents();
+      if (!cancelled) setAgents(_agents || []);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // 自动滚动到底部
@@ -94,14 +97,21 @@ export const useChat = () => {
   // 删除会话
   const handleDeleteSession = useCallback(async (sessionId: string) => {
     await deleteSession(sessionId);
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    let nextSession: Session | null = null;
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.id !== sessionId);
+      if (currentSessionId === sessionId) {
+        nextSession = filtered[0] || null;
+      }
+      return filtered;
+    });
     if (currentSessionId === sessionId) {
-      const remaining = sessions.filter(s => s.id !== sessionId);
-      const newSession = remaining[0] || null;
-      setCurrentSession(newSession);
-      setCurrentSessionId(newSession?.id || '');
+      Promise.resolve().then(() => {
+        setCurrentSession(nextSession);
+        setCurrentSessionId(nextSession?.id || '');
+      });
     }
-  }, [currentSessionId, sessions]);
+  }, [currentSessionId]);
 
   // 更新会话标题
   const updateSessionTitle = useCallback(async (sessionId: string, title: string) => {

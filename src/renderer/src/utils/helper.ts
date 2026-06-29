@@ -160,23 +160,34 @@ export function generateUUID(): string {
 export function generateSerialNumber(): string {
   const timestamp = Date.now();
   const randomNum = Math.floor(Math.random() * 1000);
-  const serial = (timestamp % 100000) + randomNum % 100000;
+  const serial = ((timestamp % 100000) + randomNum) % 100000;
   return serial.toString().padStart(5, '0');
 }
 
 
-export  const debounce = <T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void => {
+export interface DebouncedFn<T extends (...args: any[]) => any> {
+  (...args: Parameters<T>): void;
+  cancel: () => void;
+}
+
+export const debounce = <T extends (...args: any[]) => any>(func: T, delay: number): DebouncedFn<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  return (...args: Parameters<T>) => {
+  const debounced = (...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-
     timeoutId = setTimeout(() => {
       func(...args);
     }, delay);
-  }
+  };
+  debounced.cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
+  };
+  return debounced;
 }
 
 export  enum NoteType {
@@ -206,7 +217,7 @@ interface TreeNode {
  export function buildTree(items: TreeNode[], parentId: string | null =  null): TreeNode[] {
   const tree: TreeNode[] = [];
   // 找出所有父节点为指定parentId的节点
-  const children = items.filter(item => item.parentId == parentId); 
+  const children = items.filter(item => item.parentId === parentId); 
   // 递归构建子树
   for (const child of children) {
     const node: TreeNode = {

@@ -27,14 +27,14 @@ export class CommonWindowEvent {
       this.getWin(e)?.maximize()
     })
     // 处理Markdown文件保存请求
-    ipcMain.on('exportFile', async (_event, { filename, content }) => {
+    ipcMain.handle('exportFile', async (_event, { filename, content }) => {
       try {
         const result = await dialog.showOpenDialog({
           title: '选择保存位置',
           properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
           defaultPath: app.getPath('downloads')
         })
-        if(!result.filePaths || result.filePaths.length === 0) return
+        if(!result.filePaths || result.filePaths.length === 0) return { success: false }
         // 获取用户文档目录（安全路径）
         const filePath = result.filePaths[0] + '/' + filename
         console.log("导入地址：",filePath,result);
@@ -83,7 +83,9 @@ export class CommonWindowEvent {
     })
 
     ipcMain.handle('showSaveDialog', async (_e, options) => {
-      const result = await dialog.showSaveDialog(BrowserWindow.getFocusedWindow()!, options)
+      const win = BrowserWindow.getFocusedWindow()
+      if (!win) return { cancelled: true }
+      const result = await dialog.showSaveDialog(win, options)
       return result
     })
 
@@ -98,7 +100,9 @@ export class CommonWindowEvent {
     })
 
     ipcMain.handle('showOpenDialog', async (_e, options) => {
-      const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow()!, options)
+      const win = BrowserWindow.getFocusedWindow()
+      if (!win) return { cancelled: true }
+      const result = await dialog.showOpenDialog(win, options)
       return result
     })
 

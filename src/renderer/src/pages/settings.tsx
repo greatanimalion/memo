@@ -78,7 +78,7 @@ const SettingPage: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 shadow-lg ">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">深色边框</label>
-            <Switch defaultChecked onChange={onChange} value={_border} />
+            <Switch checked={_border} onChange={onChange} />
           </div>
         </div>
         {/* 主题颜色设置 */}

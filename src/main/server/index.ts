@@ -59,9 +59,8 @@ export async function startExpressServer(): Promise<void> {
     return dateDir;
   }
   const storage = multer.diskStorage({
-    destination: async (_req, _file, cb) => {
-      const dateDir = await getDateBasedUploadDir(uploadDir);
-      cb(null, dateDir);
+    destination: (_req, _file, cb) => {
+      getDateBasedUploadDir(uploadDir).then(dateDir => cb(null, dateDir)).catch(err => cb(err, ''));
     },
     filename: (_req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -97,9 +96,7 @@ export async function startExpressServer(): Promise<void> {
 
   expressApp.get('/api/memorySize', async (_req, res) => {
     try {
-      const service = new StorageService();
-      await service.init();
-      const cacheSize = await service.getCacheSize();
+      const cacheSize = await storageService!.getCacheSize();
       res.json({ code: 200, data: cacheSize, message: 'success' });
     } catch (error) {
       logger.error('获取存储数据失败:', error);
@@ -180,7 +177,11 @@ export async function startExpressServer(): Promise<void> {
       if (!filePath) {
         return res.status(400).json({ code: 400, error: 'File path is required' });
       }
-      const fullPath = path.join(uploadDir, ...filePath.split('/'));
+      const safePath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
+      const fullPath = path.join(uploadDir, safePath);
+      if (!fullPath.startsWith(path.resolve(uploadDir))) {
+        return res.status(403).json({ code: 403, error: 'Forbidden' });
+      }
 
       try {
         await fs.access(fullPath);

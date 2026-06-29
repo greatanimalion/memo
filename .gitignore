@@ -5,5 +5,3 @@ build
 .DS_Store
 .eslintcache
 *.log*
-
-.vscode

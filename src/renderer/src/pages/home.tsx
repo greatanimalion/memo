@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileTextOutlined, StarOutlined } from '@ant-design/icons';
 
 import { formatTime, formatDate, formatRelativeTime, formatDateByTimestamp } from '../utils/dateUtils';
-import { getMemorysStarred, getRecentMemorys } from '../services/memeoy';
+import { getMemorysStarred, getRecentMemorys } from '../services/memory';
 import { Memory } from '../../../types';
 import { Empty } from 'antd';
 import RealTimeClock from '../components/clock';

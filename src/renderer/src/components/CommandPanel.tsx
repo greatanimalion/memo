@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ThunderboltOutlined, FolderAddOutlined, FileAddOutlined, SearchOutlined, FileOutlined } from '@ant-design/icons';
-import { getRecentMemorys } from '../services/memeoy';
+import { getRecentMemorys } from '../services/memory';
 import { Memory } from '../../../types';
 import { formatFileSize, formatRelativeTime } from '../utils';
-import { memerySize } from '../services';
+import { memorySize as getMemorySize } from '../services';
 
 const CommandPanel: React.FC = () => {
   const [recentFile, setRecentFile] = useState<Memory[]>([]);
@@ -19,7 +19,7 @@ const CommandPanel: React.FC = () => {
       const _recentFiles = await getRecentMemorys();
       setRecentFile(_recentFiles.slice(0, 5));
     }
-    memerySize().then(e=>{
+    getMemorySize().then(e=>{
       setMemorySize(Number(e.data))
     })
     _()

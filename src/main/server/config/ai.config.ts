@@ -18,7 +18,7 @@ export const aiModels: AIModel[] = [
   {
     name: 'deepseek',
     model: 'deepseek-chat',
-    url: 'https://api.deepseek.com/chat/completions',
+    url: 'https://api.deepseek.com/v1/chat/completions',
   },
   {
     name: 'openRouter',

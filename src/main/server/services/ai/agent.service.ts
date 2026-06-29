@@ -220,7 +220,7 @@ export class AgentToolService {
         }
 
         res.write('\n✅ 模型生成最终回复\n');
-        res.write(assistantMessage.content);
+        res.write(assistantMessage.content ?? '');
         res.end();
         return true;
       }

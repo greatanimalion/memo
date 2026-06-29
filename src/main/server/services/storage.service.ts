@@ -16,7 +16,7 @@ export class StorageService {
   private resolveDbPath(): string {
     const env = process.env.NODE_ENV;
     if (env === 'development') {
-      return path.join(__dirname, '../../data/', 'storage.db');
+      return path.join(__dirname, '../utils/', 'storage.db');
     }
     return path.join(getSystemRootDir(), '.MemoryData/', 'storage.db');
   }
@@ -42,7 +42,7 @@ export class StorageService {
   }
 
   async writeData(dbBuffer: Buffer): Promise<boolean> {
-    if (!dbBuffer) {
+    if (!dbBuffer || dbBuffer.length === 0) {
       return false;
     }
     try {

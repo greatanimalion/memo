@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { ViewMode, SortBy } from "../types/common";
 import { Memory } from "../../../types";
-import { getMemoryChildById, starredMemory } from "../services/memeoy";
+import { getMemoryChildById, starredMemory } from "../services/memory";
 interface FileStoreState {
   currentFileIdsArr: string[];
   setCurrentFileIdsArr: (id: string[]) => void;
@@ -47,15 +47,18 @@ const useFileStore = create<FileStoreState>((set) => ({
   setCurrentPathArr: (currentPath) => set({ currentPathArr: currentPath }),
   setCurrentFolderItemsArr: (items: Memory[]) => {
     const { sortBy } = useFileStore.getState();
+    const sorted = [...items];
     if (sortBy === "date") {
-      items = items.sort((a, b) => b.updated - a.updated);
+      sorted.sort((a, b) => b.updated - a.updated);
     } else {
-      items = items.sort((a, b) => a.title.localeCompare(b.title));
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
     }
-    set({ currentFolderItemsArr: items });
+    set({ currentFolderItemsArr: sorted });
   },
   refreshCurrentFolderItemsArr: async () => {
-    const id = useFileStore.getState().currentFileIdsArr.at(-1)!;
+    const ids = useFileStore.getState().currentFileIdsArr;
+    const id = ids.at(-1);
+    if (!id) return;
     const newChildFile = await getMemoryChildById(id);
     useFileStore.getState().setCurrentFolderItemsArr(newChildFile);
   },

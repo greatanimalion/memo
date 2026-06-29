@@ -8,8 +8,11 @@ export const errorMiddleware = (
   _next: NextFunction
 ): void => {
   logger.error('Error:', error);
+  if (res.headersSent) return;
   const status = error.status || 500;
-  const message = error.message || 'Internal Server Error';
+  const message = process.env.NODE_ENV === 'development'
+    ? error.message || 'Internal Server Error'
+    : 'Internal Server Error';
 
   res.status(status).json({
     code: status,

@@ -18,7 +18,7 @@ import { X, Save, FileBraces } from 'lucide-react';
 import { ClientSideTransport } from "@blocknote/xl-ai";
 import { AIMenuController, AIToolbarButton, getAISlashMenuItems } from "@blocknote/xl-ai";
 import { AIKey } from '../types/common';
-import { deleteFile, getMemoryById, updateMemory, uploadImage } from '../services/memeoy';
+import { deleteFile, getMemoryById, updateMemory, uploadImage } from '../services/memory';
 import { Button, Dropdown, MenuProps, message, Typography } from 'antd';
 import { fileToText, getCurrentTime, getExtension, getReadableByteSize } from '../utils';
 import { getLocalStore } from '../utils/localStore';

@@ -67,21 +67,23 @@ export const useDiary = () => {
   const updateDiaryData = useCallback(
     async (dateKey: string, todos: TodoItem[], note?: string) => {
       const monthKey = dateKey.substring(0, 7);
-      const updatedData = {
-        ...diaryData,
-        [dateKey]: { todos, note: note || diaryData[dateKey]?.note },
-      };
-
-      setDiaryData(updatedData);
+      let savedData: DiaryData = {};
+      setDiaryData(prev => {
+        savedData = {
+          ...prev,
+          [dateKey]: { todos, note: note || prev[dateKey]?.note },
+        };
+        return savedData;
+      });
 
       const res = await updateDiary({
         id: monthKey,
-        monthDiarys: updatedData,
+        monthDiarys: savedData,
       });
 
       return res;
     },
-    [diaryData],
+    [],
   );
 
   // 添加待办事项

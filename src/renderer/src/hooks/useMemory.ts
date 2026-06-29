@@ -112,7 +112,7 @@ export const useMemory = () => {
         size: "0B",
       });
 
-      if (!result.id) {
+      if (!result?.id) {
         return false;
       }
       await refreshCurrentFolderItemsArr();

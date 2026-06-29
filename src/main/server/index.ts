@@ -13,6 +13,7 @@ import diaryRoutes from "./routes/diary.routes";
 import sessionRoutes from "./routes/session.routes";
 import agentRoutes from "./routes/agent.routes";
 import aiRoutes from "./routes/ai.routes";
+import bookRoutes from "./routes/book.routes";
 
 import {
   loggerMiddleware,
@@ -108,6 +109,7 @@ export async function startExpressServer(): Promise<void> {
   expressApp.use("/api", sessionRoutes);
   expressApp.use("/api", agentRoutes);
   expressApp.use("/api", aiRoutes);
+  expressApp.use("/api", bookRoutes);
 
   expressApp.get("/api/memorySize", async (_req, res) => {
     try {

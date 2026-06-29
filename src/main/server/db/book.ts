@@ -5,30 +5,44 @@ export class BookDatabase extends BaseDatabase {
   constructor(db: Database.Database) {
     super(db);
   }
-  public getBooks(): any[] {
-    const stmt = this.db.prepare("SELECT * FROM books");
-    const rows = stmt.all() as any[];
-    return rows.map((row) => ({
+  private parseBook(row: any): any {
+    return {
       ...row,
       chapters: JSON.parse(row.chapters || "[]"),
-    }));
+      volumes: JSON.parse(row.volumes || "[]"),
+      settings: JSON.parse(row.settings || "{}"),
+    };
+  }
+
+  private ensureColumns(): void {
+    const tableInfo = this.db.prepare("PRAGMA table_info(books)").all() as any[];
+    const columns = tableInfo.map((c: any) => c.name);
+    if (!columns.includes("volumes")) {
+      this.db.exec("ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'");
+    }
+    if (!columns.includes("settings")) {
+      this.db.exec("ALTER TABLE books ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'");
+    }
+  }
+
+  public getBooks(): any[] {
+    this.ensureColumns();
+    const stmt = this.db.prepare("SELECT * FROM books");
+    const rows = stmt.all() as any[];
+    return rows.map((row) => this.parseBook(row));
   }
 
   public getBookById(id: string): any | undefined {
+    this.ensureColumns();
     const stmt = this.db.prepare("SELECT * FROM books WHERE id = ?");
     const row = stmt.get(id) as any;
-    if (row) {
-      return {
-        ...row,
-        chapters: JSON.parse(row.chapters || "[]"),
-      };
-    }
-    return undefined;
+    return row ? this.parseBook(row) : undefined;
   }
 
   public addBook(book: any): any {
+    this.ensureColumns();
     const stmt = this.db.prepare(`
-      INSERT INTO books (id, title, author, cover, chapters) VALUES (?, ?, ?, ?, ?)
+      INSERT INTO books (id, title, author, cover, chapters, volumes, settings) VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       book.id,
@@ -36,14 +50,14 @@ export class BookDatabase extends BaseDatabase {
       book.author || "",
       book.cover || "",
       JSON.stringify(book.chapters || []),
+      JSON.stringify(book.volumes || []),
+      JSON.stringify(book.settings || {}),
     );
-    return {
-      ...book,
-      chapters: book.chapters || [],
-    };
+    return this.getBookById(book.id);
   }
 
   public updateBook(id: string, updates: any): any | null {
+    this.ensureColumns();
     const fields = Object.keys(updates)
       .filter((key) => key !== "id")
       .map((key) => `${key} = ?`);
@@ -51,7 +65,10 @@ export class BookDatabase extends BaseDatabase {
     const values = Object.entries(updates)
       .filter(([key]) => key !== "id")
       .map(([key, value]) => {
-        if (key === "chapters") {
+        if (key === "chapters" || key === "volumes") {
+          return JSON.stringify(value);
+        }
+        if (key === "settings") {
           return JSON.stringify(value);
         }
         return value;
@@ -64,15 +81,7 @@ export class BookDatabase extends BaseDatabase {
     `);
     stmt.run(...values, id);
 
-    const selectStmt = this.db.prepare("SELECT * FROM books WHERE id = ?");
-    const row = selectStmt.get(id) as any;
-    if (row) {
-      return {
-        ...row,
-        chapters: JSON.parse(row.chapters || "[]"),
-      };
-    }
-    return null;
+    return this.getBookById(id);
   }
 
   public deleteBook(id: string): boolean {

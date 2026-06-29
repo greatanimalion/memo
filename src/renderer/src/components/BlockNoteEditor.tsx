@@ -163,7 +163,7 @@ const Editor = ({ selectedFile }) => {
       size: getReadableByteSize(html),
       updated: Date.now(),
     });
-    if (res.id) {
+    if (res?.id) {
       messageApi.open({
         type: "success",
         content: "保存成功",

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { FontFamily, Chapter, Book, Volume } from "../types/common";
 import { generateUUID } from "../utils/helper";
+import { getAllBooks, createBook, updateBook } from "../services/book";
 
 function countWords(
   text: string,
@@ -76,6 +77,8 @@ interface WriterState {
     fontWeight: number;
   };
   aiPanelOpen: boolean;
+  _loaded: boolean;
+  _dirty: boolean;
 
   setBookTitle: (title: string) => void;
   setAuthor: (author: string) => void;
@@ -95,9 +98,11 @@ interface WriterState {
   setEditorFontWeight: (weight: number) => void;
   toggleAiPanel: () => void;
   setAiPanelOpen: (open: boolean) => void;
+  loadBook: () => Promise<void>;
+  saveBook: () => Promise<void>;
 }
 
-export const useWriterStore = create<WriterState>((set) => ({
+export const useWriterStore = create<WriterState>((set, get) => ({
   book: createDefaultBook(),
   currentChapterId: null,
   editorSettings: {
@@ -107,10 +112,12 @@ export const useWriterStore = create<WriterState>((set) => ({
     fontWeight: 400,
   },
   aiPanelOpen: false,
+  _loaded: false,
+  _dirty: false,
 
-  setBookTitle: (title) => set((state) => ({ book: { ...state.book, title } })),
+  setBookTitle: (title) => set((state) => ({ book: { ...state.book, title }, _dirty: true })),
 
-  setAuthor: (author) => set((state) => ({ book: { ...state.book, author } })),
+  setAuthor: (author) => set((state) => ({ book: { ...state.book, author }, _dirty: true })),
 
   setCurrentChapter: (id) => set({ currentChapterId: id }),
 
@@ -124,6 +131,7 @@ export const useWriterStore = create<WriterState>((set) => ({
           chapters: [...state.book.chapters, newChapter],
         },
         currentChapterId: newChapter.id,
+        _dirty: true,
       };
     }),
 
@@ -138,6 +146,7 @@ export const useWriterStore = create<WriterState>((set) => ({
       return {
         book: { ...state.book, chapters: reordered },
         currentChapterId: current,
+        _dirty: true,
       };
     }),
 
@@ -150,6 +159,7 @@ export const useWriterStore = create<WriterState>((set) => ({
           ...state.book,
           volumes: [...state.book.volumes, newVolume],
         },
+        _dirty: true,
       };
     }),
 
@@ -165,6 +175,7 @@ export const useWriterStore = create<WriterState>((set) => ({
             c.volumeId === id ? { ...c, volumeId: undefined } : c,
           ),
         },
+        _dirty: true,
       };
     }),
 
@@ -176,6 +187,7 @@ export const useWriterStore = create<WriterState>((set) => ({
           v.id === id ? { ...v, title } : v,
         ),
       },
+      _dirty: true,
     })),
 
   setChapterVolume: (chapterId, volumeId) =>
@@ -186,10 +198,11 @@ export const useWriterStore = create<WriterState>((set) => ({
           c.id === chapterId ? { ...c, volumeId } : c,
         ),
       },
+      _dirty: true,
     })),
 
   reorderChapters: (chapters) =>
-    set((state) => ({ book: { ...state.book, chapters } })),
+    set((state) => ({ book: { ...state.book, chapters }, _dirty: true })),
 
   updateChapterTitle: (id, title) =>
     set((state) => ({
@@ -199,6 +212,7 @@ export const useWriterStore = create<WriterState>((set) => ({
           c.id === id ? { ...c, title, updatedAt: Date.now() } : c,
         ),
       },
+      _dirty: true,
     })),
 
   updateChapterContent: (id, content) =>
@@ -219,6 +233,7 @@ export const useWriterStore = create<WriterState>((set) => ({
             : c,
         ),
       },
+      _dirty: true,
     })),
 
   setEditorFont: (fontFamily) =>
@@ -244,4 +259,45 @@ export const useWriterStore = create<WriterState>((set) => ({
   toggleAiPanel: () => set((state) => ({ aiPanelOpen: !state.aiPanelOpen })),
 
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
+
+  loadBook: async () => {
+    const state = get();
+    if (state._loaded) return;
+    const books = await getAllBooks();
+    if (books.length > 0) {
+      const existing = books[0];
+      set({
+        book: existing,
+        currentChapterId: existing.chapters[0]?.id || null,
+        _loaded: true,
+        _dirty: false,
+      });
+    } else {
+      const defaultBook = createDefaultBook();
+      const created = await createBook(defaultBook);
+      if (created) {
+        set({
+          book: created,
+          currentChapterId: created.chapters[0]?.id || null,
+          _loaded: true,
+          _dirty: false,
+        });
+      } else {
+        set({
+          book: defaultBook,
+          currentChapterId: defaultBook.chapters[0]?.id || null,
+          _loaded: true,
+        });
+      }
+    }
+  },
+
+  saveBook: async () => {
+    const { book, _dirty } = get();
+    if (!_dirty) return;
+    const serverBook = await updateBook(book.id, book);
+    if (serverBook) {
+      set({ book: serverBook, _dirty: false });
+    }
+  },
 }));

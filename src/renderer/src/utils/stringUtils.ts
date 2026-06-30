@@ -1,4 +1,6 @@
-
+export const maskApiKey = (apiKey: string): string => {
+  return apiKey.replace(/.{4,}/g, "****");
+};
 /**
  * 截断文本（超出长度显示省略号）
  * @param text 原文本

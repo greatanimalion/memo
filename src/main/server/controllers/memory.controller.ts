@@ -16,7 +16,7 @@ export class MemoryController {
   }
 
   getById(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const memory = this.memoryService.getById(id);
     if (!memory) {
       errorResponse(res, 404, '未找到指定的记忆');
@@ -26,7 +26,7 @@ export class MemoryController {
   }
 
   getChildren(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const children = this.memoryService.getChildren(id);
     successResponse(res, children);
   }
@@ -48,7 +48,7 @@ export class MemoryController {
   }
 
   update(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const updateData: Partial<Memory> = req.body;
     const updatedMemory = this.memoryService.update(id, updateData);
     if (!updatedMemory) {
@@ -59,7 +59,7 @@ export class MemoryController {
   }
 
   delete(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const result = this.memoryService.delete(id);
     if (!result) {
       errorResponse(res, 404, '未找到指定的记忆');
@@ -69,7 +69,7 @@ export class MemoryController {
   }
 
   toggleStar(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { memory, wasStarred } = this.memoryService.toggleStar(id);
     if (!memory) {
       errorResponse(res, 404, '未找到指定的记忆');

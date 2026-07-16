@@ -18,7 +18,7 @@ export class AgentController {
     createdResponse(res, newAgent, 'agent创建成功');
   }
   update(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const updateData: Partial<MyAgent> = req.body;
     const updatedAgent = this.agentService.update(id, updateData);
     if (!updatedAgent) {
@@ -29,7 +29,7 @@ export class AgentController {
     successResponse(res, updatedAgent, 'agent更新成功');
   }
   delete(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const result = this.agentService.delete(id);
     if (!result) {
       errorResponse(res, 404, '未找到指定的agent');

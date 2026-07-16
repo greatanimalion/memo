@@ -16,7 +16,7 @@ export class SessionController {
   }
 
   getById(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const session = this.sessionService.getById(id);
     if (!session) {
       errorResponse(res, 404, '未找到指定的会话');
@@ -32,7 +32,7 @@ export class SessionController {
   }
 
   update(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const updateData: Partial<Session> = req.body;
     const updatedSession = this.sessionService.update(id, updateData);
     if (!updatedSession) {
@@ -43,7 +43,7 @@ export class SessionController {
   }
 
   delete(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const result = this.sessionService.delete(id);
     if (!result) {
       errorResponse(res, 404, '未找到指定的会话');

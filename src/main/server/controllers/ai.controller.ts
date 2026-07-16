@@ -45,7 +45,7 @@ export class AIController {
     this.aiService = new AIService();
     this.agentToolService = new AgentToolService();
   }
-  chatStream(req: Request, res: Response) {
+  chatStream(req: Request, res: Response): Response | void {
     res = switchStreamRes(res);
     const { prompt, history = [], model, apiKey, requestId } = req.body;
     if (!prompt || !model || !apiKey || !requestId) {
@@ -66,7 +66,7 @@ export class AIController {
       abortController,
     );
   }
-  async chatAgent(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async chatAgent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       res = switchStreamRes(res);
       const { prompt, history = [], model, apiKey } = req.body;
@@ -88,19 +88,19 @@ export class AIController {
       );
     } catch (error) {
       next(error);
+      return;
     }
   }
-  cancelChat(req: Request, res: Response) {
+  cancelChat(req: Request, res: Response): Response | void {
     const { requestId } = req.query;
     if (!requestId) {
       return res.status(400).json({ error: "Missing requestId" });
     }
     const result = this.abort(requestId as string);
     if (result) {
-      res.json({ success: true, message: "请求已取消" });
-    } else {
-      res.status(404).json({ error: "未找到对应的请求" });
+      return res.json({ success: true, message: "请求已取消" });
     }
+    return res.status(404).json({ error: "未找到对应的请求" });
   }
   abort(requestId: string): boolean {
     logger.info("取消请求", requestId, abortControllerMap.get(requestId));

@@ -16,7 +16,7 @@ export class BookController {
   }
 
   getById(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const book = this.BookService.getById(id);
     if (!book) {
       errorResponse(res, 404, '未找到指定的书籍');
@@ -32,7 +32,7 @@ export class BookController {
   }
 
   update(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const updateData: Partial<Book> = req.body;
     const updatedBook = this.BookService.update(id, updateData);
     if (!updatedBook) {
@@ -44,7 +44,7 @@ export class BookController {
   }
 
   delete(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const result = this.BookService.delete(id);
     if (!result) {
       errorResponse(res, 404, '未找到指定的书籍');

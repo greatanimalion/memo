@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { Response as ExpressResponse } from 'express';
 import { DiaryService } from '../diary.service';
 import { MemoryService } from '../memory.service';
 import type { Memory } from '../../../../types';
@@ -123,7 +123,7 @@ export class AgentToolService {
       stream: false,
     };
 
-    let response: Response;
+    let response: globalThis.Response;
     try {
       response = await fetch(url, {
         method: 'POST',
@@ -168,7 +168,7 @@ export class AgentToolService {
     model: string,
     apiKey: string,
     url: string,
-    res: Response,
+    res: ExpressResponse,
     abortController: AbortController,
     maxRounds: number = 5
   ): Promise<boolean> {

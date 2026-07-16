@@ -10,7 +10,7 @@ export class DiaryController {
     this.diaryService = new DiaryService();
   }
   getById(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const diary = this.diaryService.getById(id);
     if (!diary) {
       errorResponse(res, 404, '未找到指定的日记');
@@ -26,7 +26,7 @@ export class DiaryController {
   }
 
   update(req: Request, res: Response): void {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const updateData: Diary = req.body;
     const updatedDiary = this.diaryService.update(id, updateData);
     if (!updatedDiary) {

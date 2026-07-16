@@ -104,26 +104,6 @@ export const getFileIconInfo = (fileName: string) => {
   return iconMap[ext] || { color: 'text-gray-500', icon: 'FILE' };
 };
 
-
-export function getReadableByteSize(str: string) {
-  // 1. 获取原始字节数
-  const bytes = new Blob([str]).size;
-  
-  // 2. 单位换算逻辑
-  if (bytes === 0) return '0B';
-
-  const k = 1024; // 进制
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  
-  // Math.floor 向下取整，确定当前属于哪个单位层级
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  // 3. 计算具体数值并保留2位小数
-  // 如果不需要小数，可以去掉 .toFixed(2)
-  const sizeValue = (bytes / Math.pow(k, i)).toFixed(2);
-  
-  return `${sizeValue}${sizes[i]}`;
-}
 /**
  * 将 File 对象转换为字符串
  * @param {File} file - 文件对象

@@ -34,6 +34,7 @@ export function getSystemRootDir(): string {
     return "/";
   }
 }
+// 获取数据库文件路径
 export function getDatabasePath(): string {
   const env = process.env.NODE_ENV;
   if (env === 'development') {
@@ -41,4 +42,21 @@ export function getDatabasePath(): string {
   }
   const systemRoot = getSystemRootDir();
   return path.join(systemRoot, '.MemoryData/', 'storage.db');
+}
+//获取文件上传路径
+export function getUploadPath(): {
+  filePath: string;
+  imagePath: string;
+} {
+  const env = process.env.NODE_ENV;
+  let baseDir: string;
+  if (env === 'development') {
+    baseDir = path.join(__dirname, '../data/uploads');
+  } else {
+    baseDir = path.join(getSystemRootDir(), '.MemoryData/uploads');
+  } 
+  return {
+    filePath: path.join(baseDir, 'files'),
+    imagePath: path.join(baseDir, 'images'),
+  } 
 }

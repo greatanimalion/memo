@@ -1,7 +1,5 @@
 import type { Response as ExpressResponse } from 'express';
 import { DiaryService } from '../diary.service';
-import { MemoryService } from '../memory.service';
-import type { Memory } from '../../../../types';
 
 export const tools = [
   {
@@ -59,11 +57,9 @@ export const tools = [
 
 export class AgentToolService {
   private diaryService: DiaryService;
-  private memoryService: MemoryService;
 
   constructor() {
     this.diaryService = new DiaryService();
-    this.memoryService = new MemoryService();
   }
 
   async executeToolCall(toolCall: any): Promise<string> {
@@ -79,24 +75,24 @@ export class AgentToolService {
         case 'get_time':
           return Date().toString();
 
-        case 'write_file':
-          const memoryData: Memory = {
-            id: 'ai_' + Date.now(),
-            isFolder: 0,
-            title: args.filename,
-            content: args.content,
-            parentId: 'root',
-            created: Date.now(),
-            updated: Date.now(),
-            visitedTime: Date.now(),
-            size: args.content.length.toString(),
-            starred: 0,
-          };
-          await this.memoryService.create(memoryData);
-          return `文件创建完成，并已写入文件: ${args.filename}`;
+        // case 'write_file':
+        //   const memoryData: Memory = {
+        //     id: 'ai_' + Date.now(),
+        //     isFolder: 0,
+        //     title: args.filename,
+        //     content: args.content,
+        //     parentId: 'root',
+        //     created: Date.now(),
+        //     updated: Date.now(),
+        //     visitedTime: Date.now(),
+        //     size: args.content.length.toString(),
+        //     starred: 0,
+        //   };
+        //    this.memoryService.create(memoryData);
+        //   return `文件创建完成，并已写入文件: ${args.filename}`;
 
         case 'write_diary':
-          await this.diaryService.update(args.date, { id: args.date, monthDiarys: { todos: args.todos, note: args.note } });
+           this.diaryService.update(args.date, { id: args.date, monthDiarys: { todos: args.todos, note: args.note } });
           return `日记创建成功，日期：${args.date}`;
 
         default:

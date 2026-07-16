@@ -8,7 +8,7 @@ export interface Memory {
   updated: number;
   visitedTime?: number;
   count?: number;
-  size?: string;
+  size?: number;
   starred?: number;//0||1
-  content?: string;
+  fileUrl?: string;
 }

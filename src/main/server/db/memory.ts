@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { Memory } from '../../../types';
 import { BaseDatabase } from './base';
-
+type PartialMemory = Partial<Memory> 
 export class MemoryDatabase extends BaseDatabase {
   constructor(db: Database.Database) {
     super(db);
@@ -12,14 +12,14 @@ export class MemoryDatabase extends BaseDatabase {
   }
   public addMemory(memory: Memory): Memory {
     const stmt = this.db.prepare(`
-      INSERT INTO memorys (id, isFolder, title, content, parentId, created, updated, visitedTime, size, starred)
+      INSERT INTO memorys (id, isFolder, title, fileUrl, parentId, created, updated, visitedTime, size, starred)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       memory.id,
       memory.isFolder,
       memory.title,
-      memory.content??'',
+      memory.fileUrl,
       memory.parentId,
       memory.created,
       memory.updated,
@@ -30,7 +30,7 @@ export class MemoryDatabase extends BaseDatabase {
     return memory;
   }
 
-  public updateMemory(id: string, updates: any): Memory | null {
+  public updateMemory(id: string, updates: PartialMemory): PartialMemory | null {
     const fields = Object.keys(updates)
       .filter((key) => key !== 'id')
       .map((key) => {

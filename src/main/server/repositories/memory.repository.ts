@@ -26,7 +26,7 @@ export class MemoryRepository {
     return this.dbHelper.memory.addMemory(memory);
   }
 
-  update(id: string, updates: Partial<Memory>): Memory | null {
+  update(id: string, updates: Partial<Memory>): Partial<Memory> | null {
     return this.dbHelper.memory.updateMemory(id, updates);
   }
 

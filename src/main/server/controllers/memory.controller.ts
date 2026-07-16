@@ -49,8 +49,9 @@ export class MemoryController {
 
   update(req: Request, res: Response): void {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const updateData: Partial<Memory> = req.body;
-    const updatedMemory = this.memoryService.update(id, updateData);
+    const {title,fileUrl,parentId,content} = req.body;
+    const updateTime=new Date().getTime();
+    const updatedMemory = this.memoryService.update(id, {title,fileUrl,parentId,updated: updateTime,visitedTime: updateTime}, content);
     if (!updatedMemory) {
       errorResponse(res, 404, '未找到指定的记忆');
       return;

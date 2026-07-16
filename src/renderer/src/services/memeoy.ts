@@ -61,13 +61,13 @@ export const createMemory = async (data: Memory): Promise<Memory> => {
   }
 }
 
-export const updateMemory = async (id: string, data: Memory): Promise<Memory> => {
+export const updateMemory = async (id: string, data: Memory): Promise<{ code: number; data: Memory }> => {
   try {
     const response = await api.put('/api/memorys/' + id, data)
-    return response.data.data
+    return response.data
   } catch (error) {
     console.log(error)
-    return {} as Memory
+    return {} as { code: number; data: Memory }
   }
 }
 

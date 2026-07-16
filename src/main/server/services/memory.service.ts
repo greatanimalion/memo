@@ -1,11 +1,52 @@
-import { MemoryRepository } from '../repositories/memory.repository';
-import type { Memory } from '../../../types';
+import { MemoryRepository } from "../repositories/memory.repository";
+import type { Memory } from "../../../types";
+import path from "path";
+import fs from "fs";
+import { getUploadPath } from "../utils/utils";
 
 export class MemoryService {
   private memoryRepository: MemoryRepository;
 
   constructor() {
     this.memoryRepository = new MemoryRepository();
+  }
+
+  private createMemoFile(content: string): string {
+    const uploadDir = getUploadPath().filePath;
+    const date = new Date();
+    const year = date.getFullYear().toString();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const dateDir = path.join(uploadDir, year, month, day);
+    fs.mkdirSync(dateDir, { recursive: true });
+    const uniqueSuffix = Date.now();
+    const filename = `memo-${uniqueSuffix}.html`;
+    const filePath = path.join(dateDir, filename);
+    fs.writeFileSync(filePath, content, "utf-8");
+    const relativePath = path.relative(uploadDir, filePath);
+    return `/uploads/files/${relativePath.replace(/\\/g, "/")}`;
+  }
+  private deleteMemoFile(fileUrl: string): void {
+    const uploadDir = getUploadPath().filePath;
+    const filePath = path.join(
+      uploadDir,
+      fileUrl.replace("/uploads/files/", ""),
+    );
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
+  private updateMemoFile(fileUrl: string, newContent: string): number {
+    const uploadDir = getUploadPath().filePath;
+    const filePath = path.join(
+      uploadDir,
+      fileUrl.replace("/uploads/files/", ""),
+    );
+    if (fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, newContent, "utf-8");
+    }
+    //返回文件大小
+    return fs.existsSync(filePath) ? fs.statSync(filePath).size : 0;
   }
 
   getAll(): Memory[] {
@@ -25,14 +66,23 @@ export class MemoryService {
   }
 
   create(data: Memory): Memory {
+    data.fileUrl = this.createMemoFile("");
     return this.memoryRepository.create(data);
   }
 
-  update(id: string, data: Partial<Memory>): Memory | null {
+  update(id: string, data: Partial<Memory>,content: string): Partial<Memory> | null {
+    if (data.fileUrl) {
+      const size=this.updateMemoFile(data.fileUrl, content || '');
+      data.size = size;
+    }
     return this.memoryRepository.update(id, data);
   }
 
   delete(id: string): boolean {
+    const memory = this.memoryRepository.getById(id);
+    if (memory && memory.fileUrl) {
+      this.deleteMemoFile(memory.fileUrl);
+    }
     return this.memoryRepository.delete(id);
   }
 
@@ -48,12 +98,12 @@ export class MemoryService {
     return this.memoryRepository.getStarred();
   }
 
-  toggleStar(id: string): { memory: Memory | null; wasStarred:number } {
+  toggleStar(id: string): { memory: Partial<Memory> | null; wasStarred: number } {
     const memory = this.memoryRepository.getById(id);
     if (!memory) {
-      return { memory: null, wasStarred:0 };
+      return { memory: null, wasStarred: 0 };
     }
-    const wasStarred = memory.starred?0:1;
+    const wasStarred = memory.starred ? 0 : 1;
     const updated = this.memoryRepository.update(id, { starred: wasStarred });
     return { memory: updated, wasStarred: wasStarred };
   }

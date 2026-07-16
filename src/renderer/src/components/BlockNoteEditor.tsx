@@ -9,8 +9,6 @@ import {
   getFormattingToolbarItems,
 } from "@blocknote/react";
 import { BlockNoteEditor, filterSuggestionItems } from "@blocknote/core";
-//@ts-expect-error
-import { BlockNoteAIExtension } from "@blocknote/xl-ai";
 import { AIExtension } from "@blocknote/xl-ai";
 import "@blocknote/xl-ai/style.css";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -20,16 +18,17 @@ import { AIMenuController, AIToolbarButton, getAISlashMenuItems } from "@blockno
 import { AIKey } from '../types/common';
 import { deleteFile, getMemoryById, updateMemory, uploadImage } from '../services/memeoy';
 import { Button, Dropdown, MenuProps, message, Typography } from 'antd';
-import { fileToText, getCurrentTime, getExtension, getReadableByteSize } from '../utils';
+import { fileToText, getCurrentTime, getExtension } from '../utils';
 import { getLocalStore } from '../utils/localStore';
 import { getModels } from '../utils/helper';
 import { ExportOutlined, FileMarkdownOutlined, Html5Outlined, ImportOutlined } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import useFileStore from '../store/useFileStore';
+import axios from 'axios';
 
 function exportFile(editor: any, type: 'md' | 'html' | 'json', name?: string) {
   let endFixed = '.' + type
-  let markdownFromBlocks
+  let markdownFromBlocks:any
   if (type == 'md') markdownFromBlocks = editor.blocksToMarkdownLossy(editor.document);
   else if (type == 'html') markdownFromBlocks = editor.blocksToFullHTML(editor.document);
   else if (type == 'json') markdownFromBlocks = JSON.stringify(editor.document)
@@ -81,7 +80,6 @@ const Editor= ({ selectedFile }) => {
     ],
     uploadFile: async (file: File) => {
       const res = await uploadImage(file)
-      
       changeURL.addMap.set(new Date().getTime().toString(), 'http://localhost:32068' + res.url)
       return 'http://localhost:32068' + res.url
     },
@@ -120,7 +118,7 @@ const Editor= ({ selectedFile }) => {
     }
   });
   const onInputChange = async () => {
-    const _html = await editor.blocksToFullHTML(editor.document);
+    const _html =  editor.blocksToFullHTML(editor.document);
     setHTML(_html);
   };
   const handleSave = async () => {
@@ -128,8 +126,8 @@ const Editor= ({ selectedFile }) => {
       deleteFile(url)
     }))
     changeURL.addMap.clear()
-    const res = await updateMemory(selectedFile.id, { ...selectedFile, content: html, size: getReadableByteSize(html), updated: Date.now() })
-    if (res.id) {
+    const res = await updateMemory(selectedFile.id, { ...selectedFile, content: html, updated: Date.now() })
+    if (res.code === 200) {
       messageApi.open({
         type: 'success',
         content: '保存成功',
@@ -173,8 +171,15 @@ const Editor= ({ selectedFile }) => {
     document.addEventListener('keydown', handleKeyDown);
     async function loadInitialHTML() {
       const file = await getMemoryById(selectedFile.id)
-      if (!file) return
-      const blocks = await editor.tryParseHTMLToBlocks(file.content || "");
+      if(!file) return
+      const content = await axios.get('http://localhost:32068' + file.fileUrl).then(res => res.data).catch(err => {
+        messageApi.open({
+          type: 'error',
+          content: '获取文件内容失败:' + err,
+        });
+        return '';
+      });
+      const blocks =  editor.tryParseHTMLToBlocks(content);
       editor.replaceBlocks(editor.document, blocks);
     }
     loadInitialHTML();
@@ -217,7 +222,7 @@ const Editor= ({ selectedFile }) => {
           </Typography.Text>
         </div>
         <div className="flex items-center gap-2">
-          <Button color="primary" variant="outlined" id='____Btn' onClick={handleSave}>
+          <Button color="primary" variant="outlined"  onClick={handleSave}>
             <div className='flex gap-1 items-center'>
               <Save size={16} /> 保存</div>
           </Button>

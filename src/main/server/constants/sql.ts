@@ -3,12 +3,12 @@ export const createTablesSql = `
         id TEXT PRIMARY KEY,
         isFolder INTEGER NOT NULL,
         title TEXT NOT NULL,
-        content TEXT,
+        fileUrl TEXT,
         parentId TEXT,
-        created TEXT NOT NULL,
-        updated TEXT NOT NULL,
-        visitedTime TEXT NOT NULL,
-        size TEXT NOT NULL,
+        created INTEGER NOT NULL,
+        updated INTEGER NOT NULL,
+        visitedTime INTEGER ,
+        size INTEGER,
         starred INTEGER NOT NULL
       );
 

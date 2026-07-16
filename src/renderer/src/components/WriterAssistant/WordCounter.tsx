@@ -1,5 +1,5 @@
-import React from 'react'
-import { useWriterStore } from '../../store/useWriterStore'
+﻿import React from 'react'
+import { useWriterStore } from '@renderer/store/useWriterStore'
 
 function countChineseChars(text: string): number {
   return (text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length

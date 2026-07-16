@@ -1,5 +1,5 @@
-import Database from 'better-sqlite3';
-import { BaseDatabase } from './base';
+﻿import Database from 'better-sqlite3';
+import { BaseDatabase } from '@main/server/db/base';
 
 export class BookDatabase extends BaseDatabase {
   constructor(db: Database.Database) {

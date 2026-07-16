@@ -1,4 +1,4 @@
-import {
+﻿import {
   AntDesignOutlined,
   CodeOutlined,
   EditOutlined,
@@ -10,10 +10,10 @@ import { Sender, SenderProps } from '@ant-design/x';
 
 import { Dropdown, Flex, GetRef, MenuProps, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { AIKey, MyAgent } from '../../types/common';
-import { getLocalStore, setLocalStore } from '../../utils/localStore';
+import { AIKey, MyAgent } from '@type/common';
+import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';
 import { Bot } from 'lucide-react';
-import { cancelChat } from '../../services/agent';
+import { cancelChat } from '@renderer/services/agent';
 
 const Switch = Sender.Switch;
 

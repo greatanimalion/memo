@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import dayjs, { Dayjs } from "dayjs";
-import { DiaryData, TodoItem } from "../types/common";
-import { getDiaryById, updateDiary } from "../services/diary";
+import { DiaryData, TodoItem } from '@type/diary'    ;
+import { getDiaryById, updateDiary } from '@renderer/services/diary';
 
 export const useDiary = () => {
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);

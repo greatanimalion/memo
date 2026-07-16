@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { PathNavigation, FileList } from "../components/common";
+﻿import { useState } from 'react';
+import { PathNavigation, FileList } from '@renderer/components/common';
 import { Button, Input, message, Modal, Select } from "antd";
 import { FolderOutlined, AppstoreOutlined, BarsOutlined, PlusOutlined } from '@ant-design/icons';
-import CommandPanel from "../components/CommandPanel";
-import BlockNoteEditor from "../components/BlockNoteEditor";
+import CommandPanel from '@renderer/components/CommandPanel';
+import BlockNoteEditor from '@renderer/components/BlockNoteEditor';
 import { SearchProps } from "antd/es/input";
-import { useMemory } from '../hooks/useMemory';
-import useFileStore from '../store/useFileStore';
+import { useMemory } from '@renderer/hooks/useMemory';
+import useFileStore from '@renderer/store/useFileStore';
 function MemoPage() {
     const {
         viewMode,

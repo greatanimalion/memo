@@ -1,8 +1,8 @@
-/**
+﻿/**
  * 文件工具函数
  */
 
-import type { Memory } from '../../../types';
+import type { Memory } from '@type/memory';
 
 /**
  * 根据名称查找文件

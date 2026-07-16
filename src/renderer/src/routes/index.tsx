@@ -1,13 +1,13 @@
-import { createBrowserRouter, RouteObject } from 'react-router-dom';
-import MainLayout from '../layouts/MainLayout';
-import ChatPage from '../pages/chat';
-import HomePage from '../pages/home';
-import SettingPage from '../pages/settings';
-import MemoPage from '../pages/memo';
-import DiaryPage from '../pages/diary';
-import PersonPage from '../pages/personPage';
-import WebPage from '../pages/web';
-import TextEditorPage from '../pages/textEditor';
+﻿import { createBrowserRouter, RouteObject } from 'react-router-dom';
+import MainLayout from '@renderer/layouts/MainLayout';
+import ChatPage from '@renderer/pages/chat';
+import HomePage from '@renderer/pages/home';
+import SettingPage from '@renderer/pages/settings';
+import MemoPage from '@renderer/pages/memo';
+import DiaryPage from '@renderer/pages/diary';
+import PersonPage from '@renderer/pages/personPage';
+import WebPage from '@renderer/pages/web';
+import TextEditorPage from '@renderer/pages/textEditor';
 
 export const routes: RouteObject[] = [
   {

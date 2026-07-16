@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { ViewMode, SortBy } from "../types/common";
-import { Memory } from "../../../types";
-import { getMemoryChildById, starredMemory } from "../services/memeoy";
+﻿import { create } from "zustand";
+import { ViewMode, SortBy } from '@renderer/types/common';
+import { Memory } from '@type/memory';
+import { getMemoryChildById, starredMemory } from '@renderer/services/memeoy';
 interface FileStoreState {
   currentFileIdsArr: string[];
   setCurrentFileIdsArr: (id: string[]) => void;

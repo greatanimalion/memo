@@ -1,6 +1,6 @@
-import express from 'express';
-import { AgentController } from '../controllers/agent.controller';
-import { asyncHandler } from '../utils/asyncHandler';
+﻿import express from 'express';
+import { AgentController } from '@main/server/controllers/agent.controller';
+import { asyncHandler } from '@main/server/utils/asyncHandler';
 
 const router = express.Router();
 const agentController = new AgentController();

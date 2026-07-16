@@ -1,8 +1,8 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
-import { DatabaseHelper } from '../db';
-import { getSystemRootDir } from '../utils/utils';
-import { logger } from '../utils/logger';
+import { DatabaseHelper } from '@main/server/db';
+import { getSystemRootDir } from '@main/server/utils/utils';
+import { logger } from '@main/server/utils/logger';
 
 export class StorageService {
   private dbHelper: DatabaseHelper;

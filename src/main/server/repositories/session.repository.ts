@@ -1,5 +1,5 @@
-import { DatabaseHelper } from '../db';
-import type { Session } from '../../../types';
+﻿import { DatabaseHelper } from '@main/server/db';
+import type { Session } from '@type';
 
 export class SessionRepository {
   private dbHelper: DatabaseHelper;

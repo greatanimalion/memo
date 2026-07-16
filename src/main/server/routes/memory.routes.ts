@@ -1,6 +1,6 @@
-import express from 'express';
-import { MemoryController } from '../controllers/memory.controller';
-import { asyncHandler } from '../utils/asyncHandler';
+﻿import express from 'express';
+import { MemoryController } from '@main/server/controllers/memory.controller';
+import { asyncHandler } from '@main/server/utils/asyncHandler';
 
 const router = express.Router();
 const memoryController = new MemoryController();

@@ -7,6 +7,13 @@ import { getReplacer } from './plugins/devPlugin'
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: {
+        'main': resolve('src/main'),
+        '@main': resolve('src/main'),
+        '@type': resolve('src/types')
+      }
+    },
     build: {
       externalizeDeps: {
         include: ['big-library', 'better-sqlite3']
@@ -22,7 +29,8 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        '@type': resolve('src/types')
       }
     },
     build:{

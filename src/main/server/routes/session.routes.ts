@@ -1,6 +1,6 @@
-import express from 'express';
-import { SessionController } from '../controllers/session.controller';
-import { asyncHandler } from '../utils/asyncHandler';
+﻿import express from 'express';
+import { SessionController } from '@main/server/controllers/session.controller';
+import { asyncHandler } from '@main/server/utils/asyncHandler';
 
 const router = express.Router();
 const sessionController = new SessionController();

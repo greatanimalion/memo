@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { BgColorsOutlined } from '@ant-design/icons';
 import {  message, Switch } from 'antd';
 
-import { setTheme } from '../hooks/theme';
-import { getLocalStore, setLocalStore } from '../utils/localStore';
+import { setTheme } from '@renderer/hooks/theme';
+import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';
 const colors = [{
   value: 0,
   name: "经典黑白",

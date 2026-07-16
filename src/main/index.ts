@@ -1,11 +1,11 @@
-import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
+﻿import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { CommonWindowEvent } from './commonWindowEvent'
+import { CommonWindowEvent } from '@main/commonWindowEvent'
 
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true'
-import { startExpressServer, stopExpressServer, createUploadDirectory } from './server'
+import { startExpressServer, stopExpressServer, createUploadDirectory } from '@main/server'
 import path from 'path'
 
 //暂时解决同源策略，有跨域攻击隐患

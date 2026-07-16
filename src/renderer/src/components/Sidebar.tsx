@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   HomeOutlined,
@@ -10,7 +10,7 @@ import {
   GlobalOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { ViewType } from '../types/common';
+import { ViewType } from '@type/common';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();

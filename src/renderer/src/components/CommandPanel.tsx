@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { ThunderboltOutlined, FolderAddOutlined, FileAddOutlined, SearchOutlined, FileOutlined } from '@ant-design/icons';
-import { getRecentMemorys } from '../services/memeoy';
-import { Memory } from '../../../types';
-import { formatFileSize, formatRelativeTime } from '../utils';
-import { memerySize } from '../services';
+import { getRecentMemorys } from '@renderer/services/memeoy';
+import { Memory } from '@type';
+import { formatFileSize, formatRelativeTime } from '@renderer/utils';
+import { memerySize } from '@renderer/services';
 
 const CommandPanel: React.FC = () => {
   const [recentFile, setRecentFile] = useState<Memory[]>([]);

@@ -1,6 +1,6 @@
-import Database from 'better-sqlite3';
-import { Memory } from '../../../types';
-import { BaseDatabase } from './base';
+﻿import Database from 'better-sqlite3';
+import { Memory } from '@type/memory';
+import { BaseDatabase } from '@main/server/db/base';
 type PartialMemory = Partial<Memory> 
 export class MemoryDatabase extends BaseDatabase {
   constructor(db: Database.Database) {

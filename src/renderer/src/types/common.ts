@@ -1,4 +1,4 @@
-// 视图类型
+﻿// 视图类型
 export type ViewType =
   | "home"
   | "memo"
@@ -11,9 +11,9 @@ export type ViewType =
 // AI 聊天消息类型
 export type MessageType = "user" | "system";
 
-export type {TodoItem} from "../../../types";
-export type { DiaryData } from "../../../types";
-export type { Diary } from "../../../types";
+export type {TodoItem} from '@type/diary';
+export type { DiaryData } from '@type/diary';
+export type { Diary } from '@type/diary';
 
 // AI Key
 export interface AIKey {
@@ -24,7 +24,7 @@ export interface AIKey {
   masked: boolean;
 }
 // 智能体接口
-export type {MyAgent} from "../../../types";
+export type {MyAgent} from '@type/agents';
 // 视图模式
 export type ViewMode = "grid" | "list";
 // 排序方式
@@ -45,9 +45,9 @@ export interface EditorSettings {
   lineHeight: number;
 }
 // 分卷接口
-export type {Volume} from "../../../types";
+export type {Volume} from '@type/book';
 // 文件类型
 export type FileType = "folder" | "file";
-export type {Book} from "../../../types";
-export type {Chapter} from "../../../types";
-export type {BookUtils} from "../../../types";
+export type {Book} from '@type/book';
+export type {Chapter} from '@type/book';
+export type {BookUtils} from '@type/book';

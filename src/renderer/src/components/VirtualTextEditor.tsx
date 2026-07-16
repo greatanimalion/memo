@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { useWriterStore } from '../store/useWriterStore';
+﻿import React, { useRef, useEffect, useState } from 'react';
+import { useWriterStore } from '@renderer/store/useWriterStore';
 import { fontFamilyMap } from './WriterAssistant/ChapterToolbar';
 import { Select, Slider, Button, Input } from 'antd';
 import {
@@ -14,7 +14,7 @@ import {
   FolderOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { FontFamily } from '../types/common';
+import { FontFamily } from '@type/common';
 
 interface TextEditorProps {
   content: string;

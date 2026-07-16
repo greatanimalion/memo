@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import {  Session, MyAgent } from '../../../types';
-import type { Message } from '../../../types/agents';
-import { createSession, deleteSession, getAllSession, updateSession } from '../services/session';
-import { generateUUID } from '../utils/helper';
-import { getAllMyAgent } from '../services/agent';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import {  Session, MyAgent } from '@type';
+import type { Message } from '@type/agents';
+import { createSession, deleteSession, getAllSession, updateSession } from '@renderer/services/session';
+import { generateUUID } from '@renderer/utils/helper';
+import { getAllMyAgent } from '@renderer/services/agent';
 
 export const useChat = () => {
   const [sessions, setSessions] = useState<Session[]>([]);

@@ -1,6 +1,6 @@
-import React from 'react'
-import { useWriterStore } from '../../store/useWriterStore'
-import VirtualTextEditor from '../VirtualTextEditor'
+﻿import React from 'react'
+import { useWriterStore } from '@renderer/store/useWriterStore'
+import VirtualTextEditor from '@renderer/components/VirtualTextEditor'
 import { fontFamilyMap } from './ChapterToolbar'
 
 const ChapterEditor: React.FC = () => {

@@ -1,7 +1,7 @@
-import type { Request, Response } from 'express';
-import { BookService } from '../services/book.service';
-import { successResponse, createdResponse, errorResponse } from '../utils/response';
-import type { Book } from '../../../types/book';
+﻿import type { Request, Response } from 'express';
+import { BookService } from '@main/server/services/book.service';
+import { successResponse, createdResponse, errorResponse } from '@main/server/utils/response';
+import type { Book } from '@type/book';
 
 export class BookController {
   private BookService: BookService;

@@ -1,12 +1,12 @@
-
+﻿
 
 import React, {  useState } from 'react';
 import { FolderOutlined, FileOutlined, StarOutlined, StarFilled, UndoOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Memory } from '../../../../types';
+import { Memory } from '@type';
 import {   Dropdown, Empty, Input, Modal } from 'antd';
-import { deleteMemory, getMemoryChildById, updateMemory } from '../../services/memeoy';
-import {  formatDateByTimestamp, formatRelativeTime } from '../../utils';
-import useFileStore from '../../store/useFileStore';
+import { deleteMemory, getMemoryChildById, updateMemory } from '@renderer/services/memeoy';
+import {  formatDateByTimestamp, formatRelativeTime } from '@renderer/utils';
+import useFileStore from '@renderer/store/useFileStore';
 interface FileListProps {
   onFolderClick: (folderName: string, fileId: string) => void
 }

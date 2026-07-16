@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Button, Modal, Form, Input, message, Empty, Dropdown, Radio } from 'antd';
 import {
     PlusOutlined,
@@ -6,8 +6,8 @@ import {
     DeleteOutlined,
     GlobalOutlined,
 } from '@ant-design/icons';
-import { getLocalStore, setLocalStore } from "../utils/localStore";
-import { webListcontent } from "../constants";
+import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';
+import { webListcontent } from '@renderer/constants';
 
 export default function WebPage() {
     const [url, setUrl] = useState("")

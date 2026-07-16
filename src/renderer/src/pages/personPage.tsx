@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { KeyOutlined,  EyeOutlined, EyeInvisibleOutlined, PlusOutlined, DeleteOutlined, EyeTwoTone } from '@ant-design/icons';
 import { Button, Input, message, Popconfirm, Select } from 'antd';
-import { AIKey } from '../types/common';
+import { AIKey } from '@type/common';
 
-import { maskApiKey } from '../utils/stringUtils';
-import { getLocalStore, setLocalStore } from '../utils/localStore';
+import { maskApiKey } from '@renderer/utils/stringUtils';
+import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';
 const PersonPage: React.FC = () => {
   const [aiKeys, setAiKeys] = useState<AIKey[]>([]);
   const [documentModel, setDocumentModel] = useState('请选择模型');

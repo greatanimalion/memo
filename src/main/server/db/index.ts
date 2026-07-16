@@ -1,14 +1,14 @@
-import Database from 'better-sqlite3';
+﻿import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { MemoryDatabase } from './memory';
-import { DiaryDatabase } from './diary';
-import { SessionDatabase } from './session';
-import { AgentDatabase } from './agent';
-import { BookDatabase } from './book';
-import { getDatabasePath } from '../utils/utils';
-import { createTablesSql } from '../constants/sql';
-import { databaseConfig } from '../config/database.config';
+import { MemoryDatabase } from '@main/server/db/memory';
+import { DiaryDatabase } from '@main/server/db/diary';
+import { SessionDatabase } from '@main/server/db/session';
+import { AgentDatabase } from '@main/server/db/agent';
+import { BookDatabase } from '@main/server/db/book';
+import { getDatabasePath } from '@main/server/utils/utils';
+import { createTablesSql } from '@main/server/constants/sql';
+import { databaseConfig } from '@main/server/config/database.config';
 
 export class DatabaseHelper {
   private static instance: DatabaseHelper;
@@ -58,9 +58,9 @@ export class DatabaseHelper {
   }
 }
 
-export { MemoryDatabase } from './memory';
-export { DiaryDatabase } from './diary';
-export { SessionDatabase } from './session';
-export { AgentDatabase } from './agent';
-export { BookDatabase } from './book';
-export { BaseDatabase } from './base';
+export { MemoryDatabase } from '@main/server/db/memory';
+export { DiaryDatabase } from '@main/server/db/diary';
+export { SessionDatabase } from '@main/server/db/session';
+export { AgentDatabase } from '@main/server/db/agent';
+export { BookDatabase } from '@main/server/db/book';
+export { BaseDatabase } from '@main/server/db/base';

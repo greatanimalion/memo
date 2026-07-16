@@ -1,6 +1,6 @@
-import { create } from 'zustand'
-import { FontFamily, Chapter, Book, Volume } from '../types/common'
-import {generateUUID} from '../utils/helper'
+﻿import { create } from 'zustand'
+import { FontFamily, Chapter, Book, Volume } from '@type/common'
+import {generateUUID} from '@renderer/utils/helper'
 
 function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): number {
   if (mode === 'chinese') {

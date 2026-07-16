@@ -1,6 +1,6 @@
-import { useWriterStore } from '../store/useWriterStore'
-import VirtualTextEditor from '../components/VirtualTextEditor'
-import { AIAssistantPanel } from '../components/WriterAssistant'
+﻿import { useWriterStore } from '@renderer/store/useWriterStore'
+import VirtualTextEditor from '@renderer/components/VirtualTextEditor'
+import { AIAssistantPanel } from '@renderer/components/WriterAssistant'
 
 export default function TextEditorPage() {
   const currentChapterId = useWriterStore((s) => s.currentChapterId)

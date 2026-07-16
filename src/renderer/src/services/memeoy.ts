@@ -1,5 +1,5 @@
-import api from '.'
-import type { Memory } from '../../../types'
+﻿import api from '.'
+import type { Memory } from '@type/memory'
 
 export const getMemorys =async ():Promise<Memory[]> => {
   try {

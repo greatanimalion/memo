@@ -1,16 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import { PlusOutlined, DeleteOutlined, CopyOutlined, AliwangwangOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Empty, message, Modal } from 'antd';
-import { AIKey } from '../types/common';
-import type { Message } from '../../../types/agents';
-import { formatTime } from '../utils/dateUtils';
-import ChatPanel from '../components/ChatPanel';
+import { AIKey } from '@type/common';
+import type { Message } from '@type/agents';
+import { formatTime } from '@renderer/utils/dateUtils';
+import ChatPanel from '@renderer/components/ChatPanel';
 import { XMarkdown } from '@ant-design/x-markdown';
-import AISender from '../components/common/AISender';
+import AISender from '@renderer/components/common/AISender';
 import { Think } from '@ant-design/x';
-import { getLocalStore, setLocalStore } from '../utils/localStore';
-import { useChat } from '../hooks/useChat';
-import { updateSession } from '../services/session';
+import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';
+import { useChat } from '@renderer/hooks/useChat';
+import { updateSession } from '@renderer/services/session';
 
 const ChatPage: React.FC = () => {
   const {

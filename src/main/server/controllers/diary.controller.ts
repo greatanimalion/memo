@@ -1,7 +1,7 @@
-import type { Request, Response } from 'express';
-import { DiaryService } from '../services/diary.service';
-import { successResponse, createdResponse, errorResponse } from '../utils/response';
-import type { Diary } from '../../../types';
+﻿import type { Request, Response } from 'express';
+import { DiaryService } from '@main/server/services/diary.service';
+import { successResponse, createdResponse, errorResponse } from '@main/server/utils/response';
+import type { Diary } from '@type';
 
 export class DiaryController {
   private diaryService: DiaryService;

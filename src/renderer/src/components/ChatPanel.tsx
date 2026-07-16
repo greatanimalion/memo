@@ -1,5 +1,5 @@
-import { Bot } from 'lucide-react';
-import { AI_PROMPTS } from '../constants';
+﻿import { Bot } from 'lucide-react';
+import { AI_PROMPTS } from '@renderer/constants';
 import {
   RobotOutlined,
   BulbOutlined,
@@ -10,9 +10,10 @@ import {
 } from '@ant-design/icons';
 import { Button, Dropdown, Input, message, Modal } from 'antd';
 import { useState } from 'react';
-import { MyAgent, Session } from '../../../types';
+import { MyAgent } from '@renderer/types/common';
+import { Session } from '@type/session';
 import TextArea from 'antd/es/input/TextArea';
-import { useAgent } from '../hooks/useAgent';
+import { useAgent } from '@renderer/hooks/useAgent';
 
 interface ChatPanelProps {
   sessions: Session[];

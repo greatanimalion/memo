@@ -1,5 +1,5 @@
-import type { Response as ExpressResponse } from 'express';
-import { DiaryService } from '../diary.service';
+﻿import type { Response as ExpressResponse } from 'express';
+import { DiaryService } from '@main/server/services/diary.service';
 
 export const tools = [
   {

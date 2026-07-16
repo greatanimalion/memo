@@ -1,6 +1,6 @@
-import express from 'express';
-import { BookController } from '../controllers/book.controller';
-import { asyncHandler } from '../utils/asyncHandler';
+﻿import express from 'express';
+import { BookController } from '@main/server/controllers/book.controller';
+import { asyncHandler } from '@main/server/utils/asyncHandler';
 
 const router = express.Router();
 const bookController = new BookController();

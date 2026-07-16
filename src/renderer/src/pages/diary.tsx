@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Calendar, Badge, Modal, Form, Input, Button, Empty, Checkbox, Typography } from 'antd';
 import type { CalendarProps } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
-import { useDiary } from '../hooks/useDiary';
+import { useDiary } from '@renderer/hooks/useDiary';
 import Select from 'antd/es/select';
-import { updateDiary } from '../services/diary';
+import { updateDiary } from '@renderer/services/diary';
 
 const { TextArea } = Input;
 const { Title } = Typography;

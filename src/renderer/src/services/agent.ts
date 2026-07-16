@@ -1,5 +1,5 @@
-import api from '.'
-import { MyAgent } from '../types/common'
+﻿import api from '.'
+import { MyAgent } from '@type/common'
 
 //获取所有atgnet
 export async function getAllMyAgent(): Promise<MyAgent[]> {

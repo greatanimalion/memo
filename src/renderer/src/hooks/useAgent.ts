@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { MyAgent } from '../types/common';
-import { createMyAgent, deleteMyAgent, getAllMyAgent, updateMyAgent } from '../services/agent';
-import { generateUUID } from '../utils/helper';
+﻿import { useState, useEffect, useCallback } from 'react';
+import { MyAgent } from '@type/common';
+import { createMyAgent, deleteMyAgent, getAllMyAgent, updateMyAgent } from '@renderer/services/agent';
+import { generateUUID } from '@renderer/utils/helper';
 
 export const useAgent = () => {
   const [agents, setAgents] = useState<MyAgent[]>([]);

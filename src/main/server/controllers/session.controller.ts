@@ -1,7 +1,7 @@
-import type { Request, Response } from 'express';
-import { SessionService } from '../services/session.service';
-import { successResponse, createdResponse, errorResponse } from '../utils/response';
-import type { Session } from '../../../types';
+﻿import type { Request, Response } from 'express';
+import { SessionService } from '@main/server/services/session.service';
+import { successResponse, createdResponse, errorResponse } from '@main/server/utils/response';
+import type { Session } from '@type';
 
 export class SessionController {
   private sessionService: SessionService;

@@ -1,20 +1,20 @@
-import express from 'express';
+﻿import express from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs/promises';
 import multer from 'multer';
 import cors from 'cors';
-import { getSystemRootDir } from './utils/utils';
-import { StorageService } from './services/storage.service';
-import { logger } from './utils/logger';
+import { getSystemRootDir } from '@main/server/utils/utils';
+import { StorageService } from '@main/server/services/storage.service';
+import { logger } from '@main/server/utils/logger';
 
-import memoryRoutes from './routes/memory.routes';
-import diaryRoutes from './routes/diary.routes';
-import sessionRoutes from './routes/session.routes';
-import agentRoutes from './routes/agent.routes';
-import aiRoutes from './routes/ai.routes';
+import memoryRoutes from '@main/server/routes/memory.routes';
+import diaryRoutes from '@main/server/routes/diary.routes';
+import sessionRoutes from '@main/server/routes/session.routes';
+import agentRoutes from '@main/server/routes/agent.routes';
+import aiRoutes from '@main/server/routes/ai.routes';
 
-import { loggerMiddleware, notFoundMiddleware, errorMiddleware } from './middleware/error.middleware';
+import { loggerMiddleware, notFoundMiddleware, errorMiddleware } from '@main/server/middleware/error.middleware';
 
 let server: http.Server | null = null;
 let uploadDir: string;

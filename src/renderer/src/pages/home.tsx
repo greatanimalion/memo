@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileTextOutlined, StarOutlined } from '@ant-design/icons';
 
-import { formatTime, formatDate, formatRelativeTime, formatDateByTimestamp } from '../utils/dateUtils';
-import { getMemorysStarred, getRecentMemorys } from '../services/memeoy';
-import { Memory } from '../../../types';
+import { formatTime, formatDate, formatRelativeTime, formatDateByTimestamp } from '@renderer/utils/dateUtils';
+import { getMemorysStarred, getRecentMemorys } from '@renderer/services/memeoy';
+import { Memory } from '@type';
 import { Empty } from 'antd';
-import RealTimeClock from '../components/clock';
-import AIPart from '../components/AiPart';
+import RealTimeClock from '@renderer/components/clock';
+import AIPart from '@renderer/components/AiPart';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();

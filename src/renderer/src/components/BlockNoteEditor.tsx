@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import '@blocknote/core/fonts/inter.css';
@@ -15,15 +15,15 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { X, Save, FileBraces } from 'lucide-react';
 import { ClientSideTransport } from "@blocknote/xl-ai";
 import { AIMenuController, AIToolbarButton, getAISlashMenuItems } from "@blocknote/xl-ai";
-import { AIKey } from '../types/common';
-import { deleteFile, getMemoryById, updateMemory, uploadImage } from '../services/memeoy';
+import { AIKey } from '@renderer/types/common';
+import { deleteFile, getMemoryById, updateMemory, uploadImage } from '@renderer/services/memeoy';
 import { Button, Dropdown, MenuProps, message, Typography } from 'antd';
-import { fileToText, getCurrentTime, getExtension } from '../utils';
-import { getLocalStore } from '../utils/localStore';
-import { getModels } from '../utils/helper';
+import { fileToText, getCurrentTime, getExtension } from '@renderer/utils';
+import { getLocalStore } from '@renderer/utils/localStore';
+import { getModels } from '@renderer/utils/helper';
 import { ExportOutlined, FileMarkdownOutlined, Html5Outlined, ImportOutlined } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
-import useFileStore from '../store/useFileStore';
+import useFileStore from '@renderer/store/useFileStore';
 import axios from 'axios';
 
 function exportFile(editor: any, type: 'md' | 'html' | 'json', name?: string) {

@@ -1,9 +1,9 @@
-/**
+﻿/**
  * 应用常量定义
  * 统一管理应用中使用的常量
  */
 
-import { Memory } from '../../../types'
+import { Memory } from '@type'
 
 
 

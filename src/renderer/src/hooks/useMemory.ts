@@ -1,13 +1,13 @@
-import { useEffect, useCallback } from "react";
-import { SortBy } from "../types/common";
+﻿import { useEffect, useCallback } from "react";
+import { SortBy } from '@renderer/types/common';
 import {
   createMemory,
   getMemoryChildById,
   starredMemory,
-} from "../services/memeoy";
-import { generateUUID } from "../utils/helper";
-import { toggleFileStar } from "../utils";
-import useFileStore from "../store/useFileStore";
+} from '@renderer/services/memeoy';
+import { generateUUID } from '@renderer/utils/helper';
+import { toggleFileStar } from '@renderer/utils';
+import useFileStore from '@renderer/store/useFileStore';
 
 export const useMemory = () => {
   const currentPath = useFileStore((state) => state.currentPathArr);
@@ -93,7 +93,7 @@ export const useMemory = () => {
         updated: date,
         visitedTime: date,
         id: generateUUID(),
-        size: "0B",
+        size: 0,
       });
 
       if (!result.id) {

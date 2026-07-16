@@ -1,7 +1,7 @@
-import type { Request, Response } from 'express';
-import { AgentService } from '../services/agent.service';
-import { successResponse, createdResponse, errorResponse } from '../utils/response';
-import type { MyAgent } from '../../../types';
+﻿import type { Request, Response } from 'express';
+import { AgentService } from '@main/server/services/agent.service';
+import { successResponse, createdResponse, errorResponse } from '@main/server/utils/response';
+import type { MyAgent } from '@type/agents';
 
 export class AgentController {
   private agentService: AgentService;

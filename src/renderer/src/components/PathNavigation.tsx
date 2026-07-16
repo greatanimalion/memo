@@ -1,6 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import useFileStore  from '../store/useFileStore';
+import useFileStore  from '@renderer/store/useFileStore';
 interface PathNavigationProps {
   onBackClick: () => void;
   onPathClick?: (index: number) => void;

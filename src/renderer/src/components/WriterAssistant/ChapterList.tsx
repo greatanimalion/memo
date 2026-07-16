@@ -1,5 +1,5 @@
-import React from 'react'
-import { useWriterStore } from '../../store/useWriterStore'
+﻿import React from 'react'
+import { useWriterStore } from '@renderer/store/useWriterStore'
 import { 
   PlusOutlined, 
   DeleteOutlined, 

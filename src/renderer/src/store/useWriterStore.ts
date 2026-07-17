@@ -1,6 +1,7 @@
 ﻿import { create } from 'zustand'
-import { FontFamily, Chapter, Book, Volume } from '@type/common'
+import { FontFamily, Chapter, Book, Volume } from '@renderer/types/common'
 import {generateUUID} from '@renderer/utils/helper'
+import { getBookById, updateBook, createBook } from '@renderer/services/book'
 
 function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): number {
   if (mode === 'chinese') {
@@ -59,10 +60,13 @@ function createDefaultBook(): Book {
 
 interface WriterState {
   book: Book
+  bookId: string | null
   currentChapterId: string | null
   editorSettings: { fontFamily: FontFamily; fontSize: number; lineHeight: number; fontWeight: number }
   aiPanelOpen: boolean
 
+  loadBookById: (id: string) => Promise<void>
+  saveBook: () => Promise<void>
   setBookTitle: (title: string) => void
   setAuthor: (author: string) => void
   setCurrentChapter: (id: string) => void
@@ -83,8 +87,9 @@ interface WriterState {
   setAiPanelOpen: (open: boolean) => void
 }
 
-export const useWriterStore = create<WriterState>((set) => ({
+export const useWriterStore = create<WriterState>((set, get) => ({
   book: createDefaultBook(),
+  bookId: null,
   currentChapterId: null,
   editorSettings: {
     fontFamily: 'sans' as FontFamily,
@@ -93,6 +98,33 @@ export const useWriterStore = create<WriterState>((set) => ({
     fontWeight: 400,
   },
   aiPanelOpen: false,
+
+  loadBookById: async (id: string) => {
+    try {
+      const book = await getBookById(id)
+      set({
+        book,
+        bookId: id,
+        currentChapterId: book.chapters[0]?.id || null,
+      })
+    } catch {
+      console.error('加载作品失败')
+    }
+  },
+
+  saveBook: async () => {
+    const { book, bookId } = get()
+    try {
+      if (bookId) {
+        await updateBook(bookId, book)
+      } else {
+        const created = await createBook(book)
+        set({ bookId: created.id })
+      }
+    } catch {
+      console.error('保存作品失败')
+    }
+  },
 
   setBookTitle: (title) =>
     set((state) => ({ book: { ...state.book, title } })),

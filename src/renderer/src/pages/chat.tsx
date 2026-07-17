@@ -1,7 +1,7 @@
 ﻿import React, { useState, useCallback, useEffect } from 'react';
 import { PlusOutlined, DeleteOutlined, CopyOutlined, AliwangwangOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Empty, message, Modal } from 'antd';
-import { AIKey } from '@type/common';
+import { AIKey } from '@renderer/types/common';
 import type { Message } from '@type/agents';
 import { formatTime } from '@renderer/utils/dateUtils';
 import ChatPanel from '@renderer/components/ChatPanel';

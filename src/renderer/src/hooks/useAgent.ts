@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { MyAgent } from '@type/common';
+import { MyAgent } from '@renderer/types/common';
 import { createMyAgent, deleteMyAgent, getAllMyAgent, updateMyAgent } from '@renderer/services/agent';
 import { generateUUID } from '@renderer/utils/helper';
 

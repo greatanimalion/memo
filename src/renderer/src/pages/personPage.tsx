@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { KeyOutlined,  EyeOutlined, EyeInvisibleOutlined, PlusOutlined, DeleteOutlined, EyeTwoTone } from '@ant-design/icons';
 import { Button, Input, message, Popconfirm, Select } from 'antd';
-import { AIKey } from '@type/common';
+import { AIKey } from '@renderer/types/common';
 
 import { maskApiKey } from '@renderer/utils/stringUtils';
 import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';

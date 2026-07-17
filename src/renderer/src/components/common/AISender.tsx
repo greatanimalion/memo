@@ -10,7 +10,7 @@ import { Sender, SenderProps } from '@ant-design/x';
 
 import { Dropdown, Flex, GetRef, MenuProps, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { AIKey, MyAgent } from '@type/common';
+import { AIKey, MyAgent } from '@renderer/types/common';
 import { getLocalStore, setLocalStore } from '@renderer/utils/localStore';
 import { Bot } from 'lucide-react';
 import { cancelChat } from '@renderer/services/agent';

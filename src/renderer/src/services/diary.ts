@@ -1,5 +1,5 @@
 ﻿import api from '.'
-import { Diary } from '@type/common'
+import { Diary } from '@renderer/types/common'
 
 //根据id获取一个月的diary
 export async function getDiaryById(id: string): Promise<Diary | null> {

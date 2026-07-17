@@ -14,7 +14,7 @@ import {
   FolderOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { FontFamily } from '@type/common';
+import { FontFamily } from '../types/common';
 
 interface TextEditorProps {
   content: string;

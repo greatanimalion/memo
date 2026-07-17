@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import multer from 'multer';
 import cors from 'cors';
-import { getSystemRootDir } from '@main/server/utils/utils';
+import { getSystemRootDir, getUploadPath } from '@main/server/utils/utils';
 import { StorageService } from '@main/server/services/storage.service';
 import { logger } from '@main/server/utils/logger';
 
@@ -13,6 +13,7 @@ import diaryRoutes from '@main/server/routes/diary.routes';
 import sessionRoutes from '@main/server/routes/session.routes';
 import agentRoutes from '@main/server/routes/agent.routes';
 import aiRoutes from '@main/server/routes/ai.routes';
+import bookRoutes from '@main/server/routes/book.routes';
 
 import { loggerMiddleware, notFoundMiddleware, errorMiddleware } from '@main/server/middleware/error.middleware';
 
@@ -60,7 +61,7 @@ export async function startExpressServer(): Promise<void> {
   }
   const storage = multer.diskStorage({
     destination: async (_req, _file, cb) => {
-      const dateDir = await getDateBasedUploadDir(uploadDir);
+      const dateDir = await getDateBasedUploadDir(getUploadPath().imagePath);
       cb(null, dateDir);
     },
     filename: (_req, file, cb) => {
@@ -94,6 +95,7 @@ export async function startExpressServer(): Promise<void> {
   expressApp.use('/api', sessionRoutes);
   expressApp.use('/api', agentRoutes);
   expressApp.use('/api', aiRoutes);
+  expressApp.use('/api', bookRoutes);
 
   expressApp.get('/api/memorySize', async (_req, res) => {
     try {

@@ -10,7 +10,7 @@ import {
   GlobalOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { ViewType } from '@type/common';
+import { ViewType } from '@renderer/types/common';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();

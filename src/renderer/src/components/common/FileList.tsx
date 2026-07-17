@@ -2,11 +2,12 @@
 
 import React, {  useState } from 'react';
 import { FolderOutlined, FileOutlined, StarOutlined, StarFilled, UndoOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Memory } from '@type';
+import { Memory } from '@type/memory';
 import {   Dropdown, Empty, Input, Modal } from 'antd';
 import { deleteMemory, getMemoryChildById, updateMemory } from '@renderer/services/memeoy';
 import {  formatDateByTimestamp, formatRelativeTime } from '@renderer/utils';
 import useFileStore from '@renderer/store/useFileStore';
+import { regularNumberSize } from '@renderer/utils/number';
 interface FileListProps {
   onFolderClick: (folderName: string, fileId: string) => void
 }
@@ -91,7 +92,7 @@ const FileList: React.FC<FileListProps> = ({
                   </div>
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-600">
-                  {file.isFolder ? null : file.size}
+                  {file.isFolder ? null : regularNumberSize(file.size||0)}
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-600">{formatRelativeTime(+file.updated)}</td>
                 <td className="py-3 px-4 text-right">

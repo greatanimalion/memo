@@ -10,10 +10,11 @@
   "compilerOptions": {
     "composite": true,
     "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
-    "ignoreDeprecations":"6.0",
     "paths": {
       "@renderer/*": ["src/renderer/src/*"],
+      "@type": ["src/types"],
       "@type/*": ["src/types/*"]
     }
   },

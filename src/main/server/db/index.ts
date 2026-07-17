@@ -9,6 +9,7 @@ import { BookDatabase } from '@main/server/db/book';
 import { getDatabasePath } from '@main/server/utils/utils';
 import { createTablesSql } from '@main/server/constants/sql';
 import { databaseConfig } from '@main/server/config/database.config';
+import { logger } from '@main/server/utils/logger';
 
 export class DatabaseHelper {
   private static instance: DatabaseHelper;
@@ -28,12 +29,28 @@ export class DatabaseHelper {
     this.db = new Database(dbPath);
     this.db.pragma(databaseConfig.journalMode);
     this.db.exec(createTablesSql);
+    this.runMigrations();
 
     this.memory = new MemoryDatabase(this.db);
     this.diary = new DiaryDatabase(this.db);
     this.session = new SessionDatabase(this.db);
     this.agent = new AgentDatabase(this.db);
     this.book = new BookDatabase(this.db);
+  }
+
+  private runMigrations(): void {
+    const migrations = [
+      "ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'",
+      "ALTER TABLE books ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'",
+    ]
+    for (const sql of migrations) {
+      try {
+        this.db.exec(sql)
+        logger.info(`迁移成功: ${sql}`)
+      } catch {
+        // 列已存在，忽略
+      }
+    }
   }
 
   public static getInstance(): DatabaseHelper {

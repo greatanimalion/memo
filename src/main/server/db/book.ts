@@ -5,42 +5,54 @@ export class BookDatabase extends BaseDatabase {
   constructor(db: Database.Database) {
     super(db);
   }
+  private parseRow(row: any): any {
+    if (!row) return row;
+    return {
+      ...row,
+      chapters: JSON.parse(row.chapters || '[]'),
+      volumes: JSON.parse(row.volumes || '[]'),
+      settings: JSON.parse(row.settings || '{}')
+    };
+  }
+
+  private serializeValue(key: string, value: any): any {
+    if (key === 'chapters' || key === 'volumes' || key === 'settings') {
+      return JSON.stringify(value);
+    }
+    return value;
+  }
+
   public getBooks(): any[] {
     const stmt = this.db.prepare('SELECT * FROM books');
     const rows = stmt.all() as any[];
-    return rows.map((row) => ({
-      ...row,
-      chapters: JSON.parse(row.chapters || '[]')
-    }));
+    return rows.map((row) => this.parseRow(row));
   }
 
   public getBookById(id: string): any | undefined {
     const stmt = this.db.prepare('SELECT * FROM books WHERE id = ?');
     const row = stmt.get(id) as any;
-    if (row) {
-      return {
-        ...row,
-        chapters: JSON.parse(row.chapters || '[]')
-      };
-    }
-    return undefined;
+    return this.parseRow(row);
   }
 
   public addBook(book: any): any {
     const stmt = this.db.prepare(`
-      INSERT INTO books (id, title, author, cover, chapters) VALUES (?, ?, ?, ?, ?)
+      INSERT INTO books (id, title, author, cover, chapters, volumes, settings) VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       book.id,
       book.title,
       book.author || '',
       book.cover || '',
-      JSON.stringify(book.chapters || [])
+      JSON.stringify(book.chapters || []),
+      JSON.stringify(book.volumes || []),
+      JSON.stringify(book.settings || {})
     );
-    return {
+    return this.parseRow({
       ...book,
-      chapters: book.chapters || []
-    };
+      chapters: book.chapters || [],
+      volumes: book.volumes || [],
+      settings: book.settings || {}
+    });
   }
 
   public updateBook(id: string, updates: any): any | null {
@@ -50,12 +62,7 @@ export class BookDatabase extends BaseDatabase {
 
     const values = Object.entries(updates)
       .filter(([key]) => key !== 'id')
-      .map(([key, value]) => {
-        if (key === 'chapters') {
-          return JSON.stringify(value);
-        }
-        return value;
-      });
+      .map(([key, value]) => this.serializeValue(key, value));
 
     if (fields.length === 0) return null;
 
@@ -66,13 +73,7 @@ export class BookDatabase extends BaseDatabase {
 
     const selectStmt = this.db.prepare('SELECT * FROM books WHERE id = ?');
     const row = selectStmt.get(id) as any;
-    if (row) {
-      return {
-        ...row,
-        chapters: JSON.parse(row.chapters || '[]')
-      };
-    }
-    return null;
+    return this.parseRow(row);
   }
 
   public deleteBook(id: string): boolean {

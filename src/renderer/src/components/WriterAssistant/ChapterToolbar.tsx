@@ -1,6 +1,6 @@
 ﻿import React from 'react'
 import { useWriterStore } from '@renderer/store/useWriterStore'
-import { FontFamily } from '@type/common'
+import { FontFamily } from '@renderer/types/common'
 import { Select, Slider } from 'antd'
 import {
   FontSizeOutlined,

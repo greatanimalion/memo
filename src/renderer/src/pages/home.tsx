@@ -42,7 +42,7 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 overflow-y-auto p-4 text-gray-600">
+    <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 板块一：时间和日期 */}
         <div className="bg-linear-to-r  rounded-2xl p-8 shadow-lg">
@@ -73,11 +73,11 @@ const HomePage: React.FC = () => {
         {/*我的收藏和近期文件 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ">
           {/* 我的收藏 */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
             <div className="flex items-center gap-3 mb-6">
               <StarOutlined className="text-2xl " />
-              <h2 className="text-2xl font-bold text-gray-800">我的收藏</h2>
-              <span className="ml-auto text-sm text-gray-500">
+              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>我的收藏</h2>
+              <span className="ml-auto text-sm" style={{ color: "var(--text-tertiary)" }}>
                 共 {starredFiles.length} 项
               </span>
             </div>
@@ -86,11 +86,14 @@ const HomePage: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => openRecentFile(item)}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group"
+                  className="flex items-center justify-between p-4 rounded-xl transition-colors cursor-pointer group"
+                  style={{ backgroundColor: "var(--bg-tertiary)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-tertiary)")}
                 >
                   <div className="flex items-center gap-4">
                     <FileTextOutlined className="text-xl text-blue-500" />
-                    <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                    <p className="font-medium group-hover:text-blue-600 transition-colors" style={{ color: "var(--text-primary)" }}>
                       {item.title}
                     </p>
                   </div>
@@ -110,11 +113,11 @@ const HomePage: React.FC = () => {
             </div>
           </div>
           {/* 板块二：近期文件 */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
             <div className="flex items-center gap-3 mb-6">
               <FileTextOutlined className="text-2xl text-blue-500" />
-              <h2 className="text-2xl font-bold text-gray-800">近期文件</h2>
-              <span className="ml-auto text-sm text-gray-500">
+              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>近期文件</h2>
+              <span className="ml-auto text-sm" style={{ color: "var(--text-tertiary)" }}>
                 共 {recentFiles.length} 个文件
               </span>
             </div>
@@ -122,21 +125,24 @@ const HomePage: React.FC = () => {
               {recentFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group"
+                  className="flex items-center justify-between p-4 rounded-xl transition-colors cursor-pointer group"
+                  style={{ backgroundColor: "var(--bg-tertiary)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-tertiary)")}
                   onClick={() => openRecentFile(file)}
                 >
                   <div className="flex items-center gap-4">
                     <FileTextOutlined className="text-xl text-blue-500" />
                     <div>
-                      <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                      <p className="font-medium group-hover:text-blue-600 transition-colors" style={{ color: "var(--text-primary)" }}>
                         {file.title}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
                         创建：{formatDateByTimestamp(file.created || 0)}
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
                     更新于：{formatRelativeTime(file.updated || 0)}
                   </span>
                 </div>

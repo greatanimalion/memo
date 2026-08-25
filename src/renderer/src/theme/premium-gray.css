@@ -1,10 +1,42 @@
 .theme-premium-gray {
+  /* 基础颜色 */
   --bg-color: #2C3E50;
   --text-color: #ECF0F1;
+  
+  /* 语义颜色 */
   --primary-color: #3498DB;
   --secondary-color: #1ABC9C;
+  --accent-color: #3498DB;
+  
+  /* 边框颜色 */
   --border-color: #34495E;
-  --hover-bg: #34495E;
-  --active-bg: #3D566E;
-  --disabled-color: #7F8C8D;
+  --border-light: #3D566E;
+  
+  /* 背景变体 */
+  --bg-primary: #2C3E50;
+  --bg-secondary: #34495E;
+  --bg-tertiary: #3D566E;
+  --bg-hover: #34495E;
+  --bg-active: #3D566E;
+  
+  /* 文本变体 */
+  --text-primary: #ECF0F1;
+  --text-secondary: #BDC3C7;
+  --text-tertiary: #95A5A6;
+  --text-muted: #7F8C8D;
+  
+  /* 功能颜色 */
+  --success-color: #1ABC9C;
+  --warning-color: #F39C12;
+  --error-color: #E74C3C;
+  --info-color: #3498DB;
+  
+  /* 滚动条 */
+  --scrollbar-track: #34495E;
+  --scrollbar-thumb: #3D566E;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }

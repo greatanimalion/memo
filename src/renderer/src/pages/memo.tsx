@@ -90,9 +90,9 @@ function MemoPage() {
       </Modal>
       {!selectedFile ? (
         <>
-          <div className="flex-1 bg-gray-50 flex flex-row">
+          <div className="flex-1 flex flex-row" style={{ backgroundColor: "var(--bg-secondary)" }}>
             {/* 顶部操作栏 */}
-            <div className="bg-white border-b border-gray-200 p-4 w-full overflow-auto">
+            <div className="p-4 w-full overflow-auto" style={{ backgroundColor: "var(--bg-primary)", borderBottom: "1px solid var(--border-color)" }}>
               {/* 搜索框和新建按钮 */}
               <div className="flex items-center justify-between mb-4">
                 <div className="relative flex-1 max-w-2xl">
@@ -131,18 +131,28 @@ function MemoPage() {
                       { label: "按名称排序", value: "name" },
                     ]}
                   />
-                  <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                  <div className="flex items-center rounded-lg p-1" style={{ backgroundColor: "var(--bg-tertiary)" }}>
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`p-1.5 rounded transition-colors ${viewMode === "grid" ? "bg-white shadow-sm" : "hover:bg-[#e5e7eb]"}`}
+                      className="p-1.5 rounded transition-colors"
+                      style={{
+                        backgroundColor: viewMode === "grid" ? "var(--bg-primary)" : "transparent",
+                        color: "var(--text-secondary)",
+                        boxShadow: viewMode === "grid" ? "var(--shadow-sm)" : "none",
+                      }}
                     >
-                      <AppstoreOutlined className="text-gray-600" />
+                      <AppstoreOutlined />
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-white shadow-sm" : "hover:bg-[#e5e7eb]"}`}
+                      className="p-1.5 rounded transition-colors"
+                      style={{
+                        backgroundColor: viewMode === "list" ? "var(--bg-primary)" : "transparent",
+                        color: "var(--text-secondary)",
+                        boxShadow: viewMode === "list" ? "var(--shadow-sm)" : "none",
+                      }}
                     >
-                      <BarsOutlined className="text-gray-600" />
+                      <BarsOutlined />
                     </button>
                   </div>
                 </div>

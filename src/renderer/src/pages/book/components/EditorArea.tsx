@@ -1,15 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useWriterStore } from '@renderer/store/useWriterStore';
 import { fontFamilyMap } from '../../../components/WriterAssistant/ChapterToolbar';
-import { Button, Popover } from 'antd';
+import { Button } from 'antd';
 import {
   BookOutlined,
   UserOutlined,
   ExpandOutlined,
   CompressOutlined,
-  BgColorsOutlined,
-  PictureOutlined,
-  UndoOutlined,
 } from '@ant-design/icons';
 import useAppStore from '@renderer/store/app';
 
@@ -18,27 +15,15 @@ interface EditorAreaProps {
   onChange: (content: string) => void;
 }
 
-const bgPresets = [
-  { label: '默认', value: '#ffffff', icon: '⬜' },
-  { label: '护眼绿', value: '#f0f7f0', icon: '🟩' },
-  { label: '暖黄', value: '#fdf8ef', icon: '🟨' },
-  { label: '淡蓝', value: '#f0f5fd', icon: '🟦' },
-  { label: '淡紫', value: '#f5f0fd', icon: '🟪' },
-  { label: '深色', value: '#1e1e2e', icon: '⬛' },
-  { label: '羊皮纸', value: '#f5e6c8', icon: '🟫' },
-  { label: '玫瑰', value: '#fdf0f0', icon: '🟥' },
-];
 
 const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [lineCount, setLineCount] = useState(1);
   const [column, setColumn] = useState(1);
 
   const book = useWriterStore((s) => s.book);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
-  const setEditorBg = useWriterStore((s) => s.setEditorBg);
   const appStore = useAppStore();
 
   useEffect(() => {
@@ -87,20 +72,6 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result;
-      if (typeof result === 'string') {
-        setEditorBg({ type: 'image', value: result });
-      }
-    };
-    reader.readAsDataURL(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   const textareaStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
     fontSize: `${editorSettings.fontSize}px`,
@@ -123,57 +94,6 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
   const textareaTextColor = isDarkBg ? '#e0e0e0' : undefined;
 
   const charCount = content.length;
-
-  const bgPopoverContent = (
-    <div className="w-56">
-      <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">颜色预设</div>
-      <div className="grid grid-cols-4 gap-1.5 mb-3">
-        {bgPresets.map((preset) => (
-          <button
-            key={preset.value}
-            onClick={() => setEditorBg({ type: 'color', value: preset.value })}
-            className={`group relative w-full aspect-square rounded-lg border-2 transition-all hover:scale-105 ${editorBg?.type === 'color' && editorBg.value === preset.value
-                ? 'border-indigo-400 shadow-sm'
-                : 'border-gray-100 hover:border-gray-200'
-              }`}
-            style={{ backgroundColor: preset.value }}
-            title={preset.label}
-          >
-            {editorBg?.type === 'color' && editorBg.value === preset.value && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className={`w-2 h-2 rounded-full ${preset.value === '#1e1e2e' ? 'bg-white' : 'bg-indigo-500'}`} />
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
-      <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">自定义</div>
-      <div className="flex gap-1.5">
-        <Button
-          size="small"
-          icon={<PictureOutlined className="text-xs" />}
-          onClick={() => fileInputRef.current?.click()}
-          className="flex-1 text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg"
-        >
-          上传图片
-        </Button>
-        <Button
-          size="small"
-          icon={<UndoOutlined className="text-xs" />}
-          onClick={() => setEditorBg(null)}
-          className="text-gray-400 hover:text-gray-600 rounded-lg"
-          title="重置为默认"
-        />
-      </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
-    </div>
-  );
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
@@ -205,23 +125,6 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
               {charCount} 字
             </span>
           </div>
-          {/* 背景设置 */}
-          <Popover
-            content={bgPopoverContent}
-            trigger="click"
-            placement="bottomRight"
-            arrow={false}
-            overlayInnerStyle={{ padding: '12px' }}
-          >
-            <Button
-              size="small"
-              type="text"
-              icon={<BgColorsOutlined className={`text-sm ${isDarkBg ? 'text-gray-400' : 'text-gray-400'}`} />}
-              className={`rounded-lg transition-all ${isDarkBg ? 'hover:bg-gray-700 hover:text-indigo-300' : 'hover:bg-indigo-50 hover:text-indigo-500'
-                }`}
-              title="背景设置"
-            />
-          </Popover>
           {/* 全屏切换 */}
           <Button
             size="small"

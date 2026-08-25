@@ -1,10 +1,42 @@
 .theme-vintage-paper {
+  /* 基础颜色 */
   --bg-color: #F4E4BC;
   --text-color: #4A3B2A;
+  
+  /* 语义颜色 */
   --primary-color: #8B4513;
   --secondary-color: #A0522D;
+  --accent-color: #8B4513;
+  
+  /* 边框颜色 */
   --border-color: #D2B48C;
-  --hover-bg: #EEE4B0;
-  --active-bg: #E8DCA4;
-  --disabled-color: #C4B498;
+  --border-light: #E8DCC8;
+  
+  /* 背景变体 */
+  --bg-primary: #F4E4BC;
+  --bg-secondary: #EEE4B0;
+  --bg-tertiary: #E8DCA4;
+  --bg-hover: #EEE4B0;
+  --bg-active: #E8DCA4;
+  
+  /* 文本变体 */
+  --text-primary: #4A3B2A;
+  --text-secondary: #6B5B4A;
+  --text-tertiary: #8B7B6A;
+  --text-muted: #AB9B8A;
+  
+  /* 功能颜色 */
+  --success-color: #6B8E23;
+  --warning-color: #DAA520;
+  --error-color: #CD5C5C;
+  --info-color: #4682B4;
+  
+  /* 滚动条 */
+  --scrollbar-track: #E8DCC8;
+  --scrollbar-thumb: #D2B48C;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(74, 59, 42, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(74, 59, 42, 0.15);
+  --shadow-lg: 0 10px 15px -3px rgba(74, 59, 42, 0.2);
 }

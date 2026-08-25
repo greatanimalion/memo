@@ -6,7 +6,7 @@ const MainLayout = () => {
   const AppStore=useAppStore()
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden text-black">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
       <Header />
       <div className="flex flex-1 overflow-hidden">
         {!AppStore.isBookScreen?<Sidebar />:null}

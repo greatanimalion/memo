@@ -320,7 +320,7 @@ const ChatPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-1 h-full bg-white w-full">
+    <div className="flex flex-1 h-full w-full" style={{ backgroundColor: "var(--bg-primary)" }}>
       {contextHolder}
       <Modal
         title="恢复未完成的回复"
@@ -358,18 +358,24 @@ const ChatPage: React.FC = () => {
               <div
                 key={conv.id}
                 onClick={() => handleSelectSession(conv.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  currentSessionId === conv.id
-                    ? "shadow-lg"
-                    : "hover:bg-gray-100 border-transparent"
-                }`}
-              >
+        <div className="p-3 rounded-lg cursor-pointer transition-all duration-200"
+          style={{
+            backgroundColor: currentSessionId === conv.id ? "var(--bg-tertiary)" : "transparent",
+            boxShadow: currentSessionId === conv.id ? "var(--shadow-lg)" : "none",
+          }}
+          onMouseEnter={(e) => {
+            if (currentSessionId !== conv.id) e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+          }}
+          onMouseLeave={(e) => {
+            if (currentSessionId !== conv.id) e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm text-gray-800 truncate">
+                    <h3 className="font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
                       {conv.title}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
                       {conv.messages.length > 1
                         ? conv.messages[conv.messages.length - 1].content.slice(
                             0,
@@ -379,11 +385,14 @@ const ChatPage: React.FC = () => {
                     </p>
                   </div>
                   {sessions.length > 1 && (
-                    <button
-                      onClick={(e) => handleDeleteSessionWithEvent(conv.id, e)}
-                      className="p-1 hover:bg-gray-200 rounded transition-colors ml-2 cursor-pointer"
-                    >
-                      <DeleteOutlined className="text-gray-400 text-sm" />
+                      <button
+                        onClick={(e) => handleDeleteSessionWithEvent(conv.id, e)}
+                        className="p-1 rounded transition-colors ml-2 cursor-pointer"
+                        style={{ color: "var(--text-muted)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-tertiary)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                      >
+                        <DeleteOutlined className="text-sm" />
                     </button>
                   )}
                 </div>
@@ -414,14 +423,15 @@ const ChatPage: React.FC = () => {
                       trigger={["contextMenu"]}
                     >
                       <div
-                        className={`rounded-2xl px-4 py-3 text-gray-800 ${
-                          msg.role === "user"
-                            ? "bg-[#ebf5ff] rounded-tr-sm"
-                            : "bg-gray-100 rounded-tl-sm"
-                        }`}
+                        className="rounded-2xl px-4 py-3"
+                        style={{
+                          backgroundColor: msg.role === "user" ? "var(--info-color)" : "var(--bg-tertiary)",
+                          color: msg.role === "user" ? "#fff" : "var(--text-primary)",
+                          borderRadius: msg.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+                        }}
                       >
                         <XMarkdown content={msg.content} />
-                        <p className="text-xs mt-2 text-gray-400">
+                        <p className="text-xs mt-2" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.7)" : "var(--text-muted)" }}>
                           {formatTime(msg.timestamp)}
                         </p>
                       </div>
@@ -437,9 +447,9 @@ const ChatPage: React.FC = () => {
                   <div className="flex-1">
                     <Think title="Complete thinking" blink loading={true} />
                     {isTyping && (
-                      <div className="rounded-2xl px-4 py-3 bg-gray-100 text-gray-800 rounded-tl-sm">
+                      <div className="rounded-2xl px-4 py-3 rounded-tl-sm" style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
                         <XMarkdown content={typingTarget} />
-                        <p className="text-xs mt-2 text-gray-400">
+                        <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
                           {formatTime(+typingDate)}
                         </p>
                       </div>

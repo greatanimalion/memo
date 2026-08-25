@@ -219,7 +219,7 @@ function App({ setUrl }) {
       <div className="max-w-5xl mx-auto mb-6">
         <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-gray-800">我的网站</h1>
+            <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>我的网站</h1>
           </div>
           <Button
             icon={<PlusOutlined />}
@@ -233,7 +233,7 @@ function App({ setUrl }) {
       </div>
 
       {/* 图标网格 */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg  ">
+      <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
         <div className="">
           {web.length > 0 ? (
             <div className="flex flex-wrap gap-4">
@@ -279,7 +279,7 @@ function App({ setUrl }) {
                       onClick={() => setUrl(w.url)}
                     >
                       {renderIcon(w)}
-                      <span className="text-sm text-gray-700 text-center max-w-full truncate">
+                      <span className="text-sm text-center max-w-full truncate" style={{ color: "var(--text-secondary)" }}>
                         {w.name}
                       </span>
                     </span>

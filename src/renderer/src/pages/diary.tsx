@@ -174,36 +174,36 @@ const DiaryPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 overflow-y-auto p-8">
+    <div className="flex-1 overflow-y-auto p-8" style={{ backgroundColor: "var(--bg-secondary)" }}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 页面标题 */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">日记</h1>
-          <p className="text-gray-500">记录每一天的待办事项和笔记</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>日记</h1>
+          <p style={{ color: "var(--text-tertiary)" }}>记录每一天的待办事项和笔记</p>
         </div>
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-4 max-sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">当天待办</div>
+          <div className="rounded-xl p-5 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
+            <div className="text-sm mb-1" style={{ color: "var(--text-tertiary)" }}>当天待办</div>
             <div className="text-3xl font-bold text-blue-600">
               {stats.todayTodos}
             </div>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">当月总待办数</div>
+          <div className="rounded-xl p-5 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
+            <div className="text-sm mb-1" style={{ color: "var(--text-tertiary)" }}>当月总待办数</div>
             <div className="text-3xl font-bold text-purple-600">
               {stats.totalTodos}
             </div>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">已完成</div>
+          <div className="rounded-xl p-5 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
+            <div className="text-sm mb-1" style={{ color: "var(--text-tertiary)" }}>已完成</div>
             <div className="text-3xl font-bold text-green-600">
               {stats.completedTodos}
             </div>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm text-gray-500 mb-1">当月记录天数</div>
+          <div className="rounded-xl p-5 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
+            <div className="text-sm mb-1" style={{ color: "var(--text-tertiary)" }}>当月记录天数</div>
             <div className="text-3xl font-bold text-orange-600">
               {stats.daysWithTodos}
             </div>
@@ -211,10 +211,10 @@ const DiaryPage: React.FC = () => {
         </div>
 
         {/* 日历 */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-800">日历视图</h2>
-            <p className="text-sm text-gray-500">点击日期查看或编辑待办事项</p>
+            <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>日历视图</h2>
+            <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>点击日期查看或编辑待办事项</p>
           </div>
           <div>
             <Calendar
@@ -227,9 +227,9 @@ const DiaryPage: React.FC = () => {
         </div>
 
         {/* 待办事项列表 */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-800">本月待办概览</h2>
+            <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>本月待办概览</h2>
           </div>
           {Object.keys(diaryData).length === 0 ? (
             <Empty description="暂无待办事项，点击日历添加" />
@@ -256,7 +256,10 @@ const DiaryPage: React.FC = () => {
                         });
                         setIsModalOpen(true);
                       }}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-4 rounded-xl transition-colors cursor-pointer"
+                      style={{ backgroundColor: "var(--bg-tertiary)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-tertiary)")}
                     >
                       <div className="flex items-center gap-4">
                         <div className="text-sm font-medium text-blue-600">
@@ -270,7 +273,7 @@ const DiaryPage: React.FC = () => {
                         )}
                         {data.note && <Badge count="有笔记" color="blue" />}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>
                         {data.todos.length > 0 &&
                           `${data.todos.filter((t) => t.completed).length}/${data.todos.length} 已完成`}
                       </div>

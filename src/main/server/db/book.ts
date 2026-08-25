@@ -1,5 +1,5 @@
-﻿import Database from 'better-sqlite3';
-import { BaseDatabase } from '@main/server/db/base';
+﻿import Database from "better-sqlite3";
+import { BaseDatabase } from "@main/server/db/base";
 
 export class BookDatabase extends BaseDatabase {
   constructor(db: Database.Database) {
@@ -9,27 +9,27 @@ export class BookDatabase extends BaseDatabase {
     if (!row) return row;
     return {
       ...row,
-      chapters: JSON.parse(row.chapters || '[]'),
-      volumes: JSON.parse(row.volumes || '[]'),
-      settings: JSON.parse(row.settings || '{}')
+      chapters: JSON.parse(row.chapters || "[]"),
+      volumes: JSON.parse(row.volumes || "[]"),
+      settings: JSON.parse(row.settings || "{}"),
     };
   }
 
   private serializeValue(key: string, value: any): any {
-    if (key === 'chapters' || key === 'volumes' || key === 'settings') {
+    if (key === "chapters" || key === "volumes" || key === "settings") {
       return JSON.stringify(value);
     }
     return value;
   }
 
   public getBooks(): any[] {
-    const stmt = this.db.prepare('SELECT * FROM books');
+    const stmt = this.db.prepare("SELECT * FROM books");
     const rows = stmt.all() as any[];
     return rows.map((row) => this.parseRow(row));
   }
 
   public getBookById(id: string): any | undefined {
-    const stmt = this.db.prepare('SELECT * FROM books WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM books WHERE id = ?");
     const row = stmt.get(id) as any;
     return this.parseRow(row);
   }
@@ -41,77 +41,77 @@ export class BookDatabase extends BaseDatabase {
     stmt.run(
       book.id,
       book.title,
-      book.author || '',
-      book.cover || '',
+      book.author || "",
+      book.cover || "",
       JSON.stringify(book.chapters || []),
       JSON.stringify(book.volumes || []),
-      JSON.stringify(book.settings || {})
+      JSON.stringify(book.settings || {}),
     );
     return this.parseRow({
       ...book,
       chapters: book.chapters || [],
       volumes: book.volumes || [],
-      settings: book.settings || {}
+      settings: book.settings || {},
     });
   }
 
   public updateBook(id: string, updates: any): any | null {
     const fields = Object.keys(updates)
-      .filter((key) => key !== 'id')
+      .filter((key) => key !== "id")
       .map((key) => `${key} = ?`);
 
     const values = Object.entries(updates)
-      .filter(([key]) => key !== 'id')
+      .filter(([key]) => key !== "id")
       .map(([key, value]) => this.serializeValue(key, value));
 
     if (fields.length === 0) return null;
 
     const stmt = this.db.prepare(`
-      UPDATE books SET ${fields.join(', ')} WHERE id = ?
+      UPDATE books SET ${fields.join(", ")} WHERE id = ?
     `);
     stmt.run(...values, id);
 
-    const selectStmt = this.db.prepare('SELECT * FROM books WHERE id = ?');
+    const selectStmt = this.db.prepare("SELECT * FROM books WHERE id = ?");
     const row = selectStmt.get(id) as any;
     return this.parseRow(row);
   }
 
   public deleteBook(id: string): boolean {
-    const stmt = this.db.prepare('DELETE FROM books WHERE id = ?');
+    const stmt = this.db.prepare("DELETE FROM books WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
   public getBookUtils(): any[] {
-    const stmt = this.db.prepare('SELECT * FROM bookUtils');
+    const stmt = this.db.prepare("SELECT * FROM bookUtils");
     const rows = stmt.all() as any[];
     return rows.map((row) => ({
       ...row,
-      image: JSON.parse(row.image || '[]'),
-      list: JSON.parse(row.list || '[]')
+      image: JSON.parse(row.image || "[]"),
+      list: JSON.parse(row.list || "[]"),
     }));
   }
 
   public getBookUtilsById(id: string): any | undefined {
-    const stmt = this.db.prepare('SELECT * FROM bookUtils WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM bookUtils WHERE id = ?");
     const row = stmt.get(id) as any;
     if (row) {
       return {
         ...row,
-        image: JSON.parse(row.image || '[]'),
-        list: JSON.parse(row.list || '[]')
+        image: JSON.parse(row.image || "[]"),
+        list: JSON.parse(row.list || "[]"),
       };
     }
     return undefined;
   }
 
   public getBookUtilsByBookId(bookId: string): any[] {
-    const stmt = this.db.prepare('SELECT * FROM bookUtils WHERE BookID = ?');
+    const stmt = this.db.prepare("SELECT * FROM bookUtils WHERE BookID = ?");
     const rows = stmt.all(bookId) as any[];
     return rows.map((row) => ({
       ...row,
-      image: JSON.parse(row.image || '[]'),
-      list: JSON.parse(row.list || '[]')
+      image: JSON.parse(row.image || "[]"),
+      list: JSON.parse(row.list || "[]"),
     }));
   }
 
@@ -124,24 +124,26 @@ export class BookDatabase extends BaseDatabase {
       bookUtils.id,
       bookUtils.BookID,
       JSON.stringify(bookUtils.image || []),
-      bookUtils.type || '',
-      bookUtils.description || '',
+      bookUtils.type || "",
+      bookUtils.description || "",
       JSON.stringify(bookUtils.list || []),
-      bookUtils.createTime || Date.now()
+      bookUtils.createTime || Date.now(),
     );
     return {
       ...bookUtils,
       image: bookUtils.image || [],
-      list: bookUtils.list || []
+      list: bookUtils.list || [],
     };
   }
 
   public updateBookUtils(id: string, updates: any): any | null {
-    const fields = Object.keys(updates).filter((key) => key !== 'id').map((key) => `${key} = ?`);
+    const fields = Object.keys(updates)
+      .filter((key) => key !== "id")
+      .map((key) => `${key} = ?`);
     const values = Object.entries(updates)
-      .filter(([key]) => key !== 'id')
+      .filter(([key]) => key !== "id")
       .map(([key, value]) => {
-        if (key === 'image' || key === 'list') {
+        if (key === "image" || key === "list") {
           return JSON.stringify(value);
         }
         return value;
@@ -149,23 +151,25 @@ export class BookDatabase extends BaseDatabase {
 
     if (fields.length === 0) return null;
 
-    const stmt = this.db.prepare(`UPDATE bookUtils SET ${fields.join(', ')} WHERE id = ?`);
+    const stmt = this.db.prepare(
+      `UPDATE bookUtils SET ${fields.join(", ")} WHERE id = ?`,
+    );
     stmt.run(...values, id);
 
-    const selectStmt = this.db.prepare('SELECT * FROM bookUtils WHERE id = ?');
+    const selectStmt = this.db.prepare("SELECT * FROM bookUtils WHERE id = ?");
     const row = selectStmt.get(id) as any;
     if (row) {
       return {
         ...row,
-        image: JSON.parse(row.image || '[]'),
-        list: JSON.parse(row.list || '[]')
+        image: JSON.parse(row.image || "[]"),
+        list: JSON.parse(row.list || "[]"),
       };
     }
     return null;
   }
 
   public deleteBookUtils(id: string): boolean {
-    const stmt = this.db.prepare('DELETE FROM bookUtils WHERE id = ?');
+    const stmt = this.db.prepare("DELETE FROM bookUtils WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
   }

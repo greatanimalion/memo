@@ -1,4 +1,4 @@
-export type FileType = 'folder' | 'file';
+export type FileType = "folder" | "file";
 
 export interface FileItem {
   id: number;

@@ -1,5 +1,5 @@
-﻿import { Bot } from 'lucide-react';
-import { AI_PROMPTS } from '@renderer/constants';
+﻿import { Bot } from "lucide-react";
+import { AI_PROMPTS } from "@renderer/constants";
 import {
   RobotOutlined,
   BulbOutlined,
@@ -7,13 +7,13 @@ import {
   PlusCircleOutlined,
   UndoOutlined,
   DeleteOutlined,
-} from '@ant-design/icons';
-import { Button, Dropdown, Input, message, Modal } from 'antd';
-import { useState } from 'react';
-import { MyAgent } from '@renderer/types/common';
-import { Session } from '@type/session';
-import TextArea from 'antd/es/input/TextArea';
-import { useAgent } from '@renderer/hooks/useAgent';
+} from "@ant-design/icons";
+import { Button, Dropdown, Input, message, Modal } from "antd";
+import { useState } from "react";
+import { MyAgent } from "@renderer/types/common";
+import { Session } from "@type/session";
+import TextArea from "antd/es/input/TextArea";
+import { useAgent } from "@renderer/hooks/useAgent";
 
 interface ChatPanelProps {
   sessions: Session[];
@@ -23,15 +23,20 @@ interface ChatPanelProps {
   agents?: MyAgent[];
 }
 
-export default function ChatPanel({ sessions, currentSession, handleCopyMessage, setAgents }: ChatPanelProps) {
+export default function ChatPanel({
+  sessions,
+  currentSession,
+  handleCopyMessage,
+  setAgents,
+}: ChatPanelProps) {
   const { agents, addAgent, updateAgent, removeAgent } = useAgent();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [agentName, setAgentName] = useState('');
-  const [agentDescription, setAgentDescription] = useState('');
-  const [agentContent, setAgentContent] = useState('');
+  const [agentName, setAgentName] = useState("");
+  const [agentDescription, setAgentDescription] = useState("");
+  const [agentContent, setAgentContent] = useState("");
   const [modal, contextHolder] = Modal.useModal();
-  const [editingId, setEditingId] = useState('');
+  const [editingId, setEditingId] = useState("");
 
   // 更新外部 agents 状态
   useState(() => {
@@ -42,24 +47,46 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
 
   const handleAddOrUpdateAgent = async () => {
     if (!agentName || !agentDescription || !agentContent) {
-      message.error('请填写完整信息');
+      message.error("请填写完整信息");
       return;
     }
 
     if (editingId) {
-      const result = await updateAgent(editingId, agentName, agentDescription, agentContent);
-      message[result.success ? 'success' : 'error'](result.message);
+      const result = await updateAgent(
+        editingId,
+        agentName,
+        agentDescription,
+        agentContent,
+      );
+      message[result.success ? "success" : "error"](result.message);
     } else {
       const result = await addAgent(agentName, agentDescription, agentContent);
-      message[result.success ? 'success' : 'error'](result.message);
+      message[result.success ? "success" : "error"](result.message);
     }
 
     if (editingId) {
-      setAgents(prev => prev.map(a =>
-        a.id === editingId ? { ...a, name: agentName, description: agentDescription, content: agentContent } : a
-      ));
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.id === editingId
+            ? {
+                ...a,
+                name: agentName,
+                description: agentDescription,
+                content: agentContent,
+              }
+            : a,
+        ),
+      );
     } else {
-      setAgents(prev => [...prev, { id: '', name: agentName, description: agentDescription, content: agentContent }]);
+      setAgents((prev) => [
+        ...prev,
+        {
+          id: "",
+          name: agentName,
+          description: agentDescription,
+          content: agentContent,
+        },
+      ]);
     }
 
     resetForm();
@@ -67,18 +94,24 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
   };
 
   const handleDeleteAgent = (agent: MyAgent) => {
-    modal.confirm({ title: '确认删除: ' + agent.name }).then(async () => {
-      await removeAgent(agent);
-      setAgents(prev => prev.filter(a => a.id !== agent.id));
-      message.success('删除智能体成功');
-    }, () => {}).catch(() => message.error('删除智能体失败'));
+    modal
+      .confirm({ title: "确认删除: " + agent.name })
+      .then(
+        async () => {
+          await removeAgent(agent);
+          setAgents((prev) => prev.filter((a) => a.id !== agent.id));
+          message.success("删除智能体成功");
+        },
+        () => {},
+      )
+      .catch(() => message.error("删除智能体失败"));
   };
 
   const resetForm = () => {
-    setAgentName('');
-    setAgentDescription('');
-    setAgentContent('');
-    setEditingId('');
+    setAgentName("");
+    setAgentDescription("");
+    setAgentContent("");
+    setEditingId("");
   };
 
   const openEditModal = (agent: MyAgent) => {
@@ -92,7 +125,7 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
   return (
     <>
       <Modal
-        title={!!editingId ? '修改智能体' : '新增智能体'}
+        title={!!editingId ? "修改智能体" : "新增智能体"}
         open={isModalOpen}
         onOk={handleAddOrUpdateAgent}
         cancelText="取消"
@@ -109,7 +142,7 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
               showCount
               maxLength={15}
               value={agentName}
-              onChange={e => setAgentName(e.target.value)}
+              onChange={(e) => setAgentName(e.target.value)}
             />
           </div>
           <div>
@@ -118,7 +151,7 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
               showCount
               maxLength={50}
               value={agentDescription}
-              onChange={e => setAgentDescription(e.target.value)}
+              onChange={(e) => setAgentDescription(e.target.value)}
             />
           </div>
           <div>
@@ -128,7 +161,7 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
               placeholder="最大字数2000"
               value={agentContent}
               maxLength={2000}
-              onChange={e => setAgentContent(e.target.value)}
+              onChange={(e) => setAgentContent(e.target.value)}
             />
           </div>
         </div>
@@ -155,30 +188,41 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
               新建智能体
             </Button>
             <div className="grid grid-cols-1 gap-2">
-              {agents.map(agent => (
-                <div key={agent.id} className="bg-white rounded-lg p-3 shadow-2xs">
+              {agents.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="bg-white rounded-lg p-3 shadow-2xs"
+                >
                   <div className="flex justify-between">
                     <div className="flex items-center gap-2">
                       <RobotOutlined />
-                      <span className="text-sm font-medium text-gray-800">{agent.name}</span>
+                      <span className="text-sm font-medium text-gray-800">
+                        {agent.name}
+                      </span>
                     </div>
                     <div>
                       <Dropdown
                         menu={{
                           items: [
                             {
-                              key: '1',
+                              key: "1",
                               label: (
-                                <div className="flex gap-1 items-center" onClick={() => openEditModal(agent)}>
+                                <div
+                                  className="flex gap-1 items-center"
+                                  onClick={() => openEditModal(agent)}
+                                >
                                   <UndoOutlined />
                                   修改
                                 </div>
                               ),
                             },
                             {
-                              key: '2',
+                              key: "2",
                               label: (
-                                <div className="text-red-500 flex gap-1 items-center" onClick={() => handleDeleteAgent(agent)}>
+                                <div
+                                  className="text-red-500 flex gap-1 items-center"
+                                  onClick={() => handleDeleteAgent(agent)}
+                                >
                                   <DeleteOutlined />
                                   删除
                                 </div>
@@ -194,7 +238,9 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
                       </Dropdown>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">{agent.description}</div>
+                  <div className="text-xs text-gray-500">
+                    {agent.description}
+                  </div>
                 </div>
               ))}
             </div>
@@ -209,12 +255,17 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
             <div className="bg-white rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">对话数量</span>
-                <span className="font-semibold text-blue-600">{sessions.length}</span>
+                <span className="font-semibold text-blue-600">
+                  {sessions.length}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">消息总数</span>
                 <span className="font-semibold text-purple-600">
-                  {sessions.reduce((sum, conv) => sum + conv.messages.length, 0)}
+                  {sessions.reduce(
+                    (sum, conv) => sum + conv.messages.length,
+                    0,
+                  )}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -239,8 +290,12 @@ export default function ChatPanel({ sessions, currentSession, handleCopyMessage,
                   onClick={() => handleCopyMessage(item.prompt)}
                   className="bg-white rounded-lg p-3 cursor-pointer hover:bg-blue-50 transition-colors"
                 >
-                  <div className="text-sm font-medium text-gray-800">{item.title}</div>
-                  <div className="text-xs text-gray-500 mt-1">{item.description}</div>
+                  <div className="text-sm font-medium text-gray-800">
+                    {item.title}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {item.description}
+                  </div>
                 </div>
               ))}
             </div>

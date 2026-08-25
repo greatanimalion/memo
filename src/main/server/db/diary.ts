@@ -1,5 +1,5 @@
-﻿import Database from 'better-sqlite3';
-import { BaseDatabase } from '@main/server/db/base';
+﻿import Database from "better-sqlite3";
+import { BaseDatabase } from "@main/server/db/base";
 
 export class DiaryDatabase extends BaseDatabase {
   constructor(db: Database.Database) {
@@ -15,12 +15,12 @@ export class DiaryDatabase extends BaseDatabase {
 
   public updateDiary(id: string, updates: any): any {
     const fields = Object.keys(updates)
-      .filter((key) => key !== 'id')
+      .filter((key) => key !== "id")
       .map((key) => `${key} = ?`);
     const values = Object.entries(updates)
-      .filter(([key]) => key !== 'id')
+      .filter(([key]) => key !== "id")
       .map(([key, value]) => {
-        if (key === 'monthDiarys') {
+        if (key === "monthDiarys") {
           return JSON.stringify(value);
         }
         return value;
@@ -29,27 +29,27 @@ export class DiaryDatabase extends BaseDatabase {
     if (fields.length === 0) return null;
 
     const stmt = this.db.prepare(`
-      UPDATE diarys SET ${fields.join(', ')} WHERE id = ?
+      UPDATE diarys SET ${fields.join(", ")} WHERE id = ?
     `);
     stmt.run(...values, id);
 
-    const selectStmt = this.db.prepare('SELECT * FROM diarys WHERE id = ?');
+    const selectStmt = this.db.prepare("SELECT * FROM diarys WHERE id = ?");
     const row = selectStmt.get(id) as any;
     if (row) {
       return {
         ...row,
-        monthDiarys: JSON.parse(row.monthDiarys)
+        monthDiarys: JSON.parse(row.monthDiarys),
       };
     }
     return null;
   }
   public findDiaryById(id: string): any {
-    const stmt = this.db.prepare('SELECT * FROM diarys WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM diarys WHERE id = ?");
     const row = stmt.get(id) as any;
     if (row) {
       return {
         ...row,
-        monthDiarys: JSON.parse(row.monthDiarys)
+        monthDiarys: JSON.parse(row.monthDiarys),
       };
     }
     return undefined;

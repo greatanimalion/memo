@@ -1,8 +1,8 @@
-﻿import fs from 'fs';
-import path from 'path';
-import { DatabaseHelper } from '@main/server/db';
-import { getSystemRootDir } from '@main/server/utils/utils';
-import { logger } from '@main/server/utils/logger';
+﻿import fs from "fs";
+import path from "path";
+import { DatabaseHelper } from "@main/server/db";
+import { getSystemRootDir } from "@main/server/utils/utils";
+import { logger } from "@main/server/utils/logger";
 
 export class StorageService {
   private dbHelper: DatabaseHelper;
@@ -15,10 +15,10 @@ export class StorageService {
 
   private resolveDbPath(): string {
     const env = process.env.NODE_ENV;
-    if (env === 'development') {
-      return path.join(__dirname, '../../data/', 'storage.db');
+    if (env === "development") {
+      return path.join(__dirname, "../../data/", "storage.db");
     }
-    return path.join(getSystemRootDir(), '.MemoryData/', 'storage.db');
+    return path.join(getSystemRootDir(), ".MemoryData/", "storage.db");
   }
 
   close(): void {
@@ -26,7 +26,7 @@ export class StorageService {
   }
 
   async init(): Promise<void> {
-    logger.info('数据库存储已初始化');
+    logger.info("数据库存储已初始化");
   }
 
   async exportStorage(): Promise<Buffer | null> {

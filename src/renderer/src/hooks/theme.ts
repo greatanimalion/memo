@@ -28,7 +28,7 @@ export function setTheme(theme: number) {
     case 7:
       setColor("#2b7fff", "#fff");
       return;
-    default: 
+    default:
       setColor("#2b7fff", "#fff");
       return;
   }

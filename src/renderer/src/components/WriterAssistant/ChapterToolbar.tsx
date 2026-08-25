@@ -1,36 +1,36 @@
-﻿import React from 'react'
-import { useWriterStore } from '@renderer/store/useWriterStore'
-import { FontFamily } from '@renderer/types/common'
-import { Select, Slider } from 'antd'
+﻿import React from "react";
+import { useWriterStore } from "@renderer/store/useWriterStore";
+import { FontFamily } from "@renderer/types/common";
+import { Select, Slider } from "antd";
 import {
   FontSizeOutlined,
   ColumnHeightOutlined,
   FontColorsOutlined,
   BoldOutlined,
-} from '@ant-design/icons'
+} from "@ant-design/icons";
 
 const fontOptions: { value: FontFamily; label: string }[] = [
-  { value: 'sans', label: '无衬线' },
-  { value: 'serif', label: '衬线体' },
-  { value: 'mono', label: '等宽体' },
-  { value: 'kaiti', label: '楷体' },
-  { value: 'songti', label: '宋体' },
-]
+  { value: "sans", label: "无衬线" },
+  { value: "serif", label: "衬线体" },
+  { value: "mono", label: "等宽体" },
+  { value: "kaiti", label: "楷体" },
+  { value: "songti", label: "宋体" },
+];
 
 const fontFamilyMap: Record<FontFamily, string> = {
-  sans: 'sans-serif',
-  serif: 'serif',
+  sans: "sans-serif",
+  serif: "serif",
   mono: '"Courier New", monospace',
   kaiti: '"KaiTi", "STKaiti", serif',
   songti: '"SimSun", "STSong", serif',
-}
+};
 
 const ChapterToolbar: React.FC = () => {
-  const editorSettings = useWriterStore((s) => s.editorSettings)
-  const setEditorFont = useWriterStore((s) => s.setEditorFont)
-  const setEditorFontSize = useWriterStore((s) => s.setEditorFontSize)
-  const setEditorLineHeight = useWriterStore((s) => s.setEditorLineHeight)
-  const setEditorFontWeight = useWriterStore((s) => s.setEditorFontWeight)
+  const editorSettings = useWriterStore((s) => s.editorSettings);
+  const setEditorFont = useWriterStore((s) => s.setEditorFont);
+  const setEditorFontSize = useWriterStore((s) => s.setEditorFontSize);
+  const setEditorLineHeight = useWriterStore((s) => s.setEditorLineHeight);
+  const setEditorFontWeight = useWriterStore((s) => s.setEditorFontWeight);
 
   return (
     <div className="flex items-center gap-4 px-4 py-2 bg-white border-b border-gray-200">
@@ -55,7 +55,9 @@ const ChapterToolbar: React.FC = () => {
           onChange={setEditorFontSize}
           tooltip={{ formatter: (v) => `${v}px` }}
         />
-        <span className="text-xs text-gray-500 w-8">{editorSettings.fontSize}px</span>
+        <span className="text-xs text-gray-500 w-8">
+          {editorSettings.fontSize}px
+        </span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -69,7 +71,9 @@ const ChapterToolbar: React.FC = () => {
           onChange={setEditorLineHeight}
           tooltip={{ formatter: (v) => `${v}` }}
         />
-        <span className="text-xs text-gray-500 w-6">{editorSettings.lineHeight}</span>
+        <span className="text-xs text-gray-500 w-6">
+          {editorSettings.lineHeight}
+        </span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -83,11 +87,13 @@ const ChapterToolbar: React.FC = () => {
           onChange={setEditorFontWeight}
           tooltip={{ formatter: (v) => `${v}` }}
         />
-        <span className="text-xs text-gray-500 w-8">{editorSettings.fontWeight}</span>
+        <span className="text-xs text-gray-500 w-8">
+          {editorSettings.fontWeight}
+        </span>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export { fontFamilyMap }
-export default ChapterToolbar
+export { fontFamilyMap };
+export default ChapterToolbar;

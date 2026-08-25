@@ -4,8 +4,16 @@ import fs from "fs";
 import path from "path";
 
 //为自定义的app协议提供特权，CSP（Content Security Policy，内容安全策略） 是一个计算机安全标准，用于防止和减轻跨站脚本（XSS） 等代码注入攻击。
-let schemeConfig = { standard: true, supportFetchAPI: true, bypassCSP: true, corsEnabled: true, stream: true };
-protocol.registerSchemesAsPrivileged([{ scheme: "app", privileges: schemeConfig }]);
+let schemeConfig = {
+  standard: true,
+  supportFetchAPI: true,
+  bypassCSP: true,
+  corsEnabled: true,
+  stream: true,
+};
+protocol.registerSchemesAsPrivileged([
+  { scheme: "app", privileges: schemeConfig },
+]);
 
 export class CustomScheme {
   //根据文件扩展名获取mime-type

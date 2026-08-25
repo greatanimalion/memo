@@ -1,13 +1,13 @@
 ﻿import { useEffect, useCallback } from "react";
-import { SortBy } from '@renderer/types/common';
+import { SortBy } from "@renderer/types/common";
 import {
   createMemory,
   getMemoryChildById,
   starredMemory,
-} from '@renderer/services/memeoy';
-import { generateUUID } from '@renderer/utils/helper';
-import { toggleFileStar } from '@renderer/utils';
-import useFileStore from '@renderer/store/useFileStore';
+} from "@renderer/services/memeoy";
+import { generateUUID } from "@renderer/utils/helper";
+import { toggleFileStar } from "@renderer/utils";
+import useFileStore from "@renderer/store/useFileStore";
 
 export const useMemory = () => {
   const currentPath = useFileStore((state) => state.currentPathArr);
@@ -16,11 +16,17 @@ export const useMemory = () => {
   const sortBy = useFileStore((state) => state.sortBy);
   const viewMode = useFileStore((state) => state.viewMode);
   const setViewMode = useFileStore((state) => state.setViewMode);
-  const setCurrentFolderItemsArr = useFileStore((state) => state.setCurrentFolderItemsArr,);
-  const currentFolderItems = useFileStore( (state) => state.currentFolderItemsArr,);
+  const setCurrentFolderItemsArr = useFileStore(
+    (state) => state.setCurrentFolderItemsArr,
+  );
+  const currentFolderItems = useFileStore(
+    (state) => state.currentFolderItemsArr,
+  );
   const currentFileIds = useFileStore((state) => state.currentFileIdsArr);
   const setCurrentFileIds = useFileStore((state) => state.setCurrentFileIdsArr);
-  const refreshCurrentFolderItemsArr = useFileStore((state) => state.refreshCurrentFolderItemsArr);
+  const refreshCurrentFolderItemsArr = useFileStore(
+    (state) => state.refreshCurrentFolderItemsArr,
+  );
   // 切换排序方式
   const changeSortType = useCallback(
     (type: SortBy) => {

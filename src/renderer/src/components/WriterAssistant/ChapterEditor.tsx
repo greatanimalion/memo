@@ -1,15 +1,15 @@
-﻿import React from 'react'
-import { useWriterStore } from '@renderer/store/useWriterStore'
-import VirtualTextEditor from '@renderer/components/VirtualTextEditor'
-import { fontFamilyMap } from './ChapterToolbar'
+﻿import React from "react";
+import { useWriterStore } from "@renderer/store/useWriterStore";
+import VirtualTextEditor from "@renderer/components/VirtualTextEditor";
+import { fontFamilyMap } from "./ChapterToolbar";
 
 const ChapterEditor: React.FC = () => {
-  const book = useWriterStore((s) => s.book)
-  const currentChapterId = useWriterStore((s) => s.currentChapterId)
-  const updateChapterContent = useWriterStore((s) => s.updateChapterContent)
-  const editorSettings = useWriterStore((s) => s.editorSettings)
+  const book = useWriterStore((s) => s.book);
+  const currentChapterId = useWriterStore((s) => s.currentChapterId);
+  const updateChapterContent = useWriterStore((s) => s.updateChapterContent);
+  const editorSettings = useWriterStore((s) => s.editorSettings);
 
-  const currentChapter = book.chapters.find((c) => c.id === currentChapterId)
+  const currentChapter = book.chapters.find((c) => c.id === currentChapterId);
 
   if (!currentChapter) {
     return (
@@ -19,7 +19,7 @@ const ChapterEditor: React.FC = () => {
           <div className="text-sm">选择或创建一个章节开始写作</div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -35,12 +35,14 @@ const ChapterEditor: React.FC = () => {
         <VirtualTextEditor
           key={currentChapter.id}
           content={currentChapter.content}
-          onChange={(content) => updateChapterContent(currentChapter.id, content)}
+          onChange={(content) =>
+            updateChapterContent(currentChapter.id, content)
+          }
           fileName={currentChapter.title}
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ChapterEditor
+export default ChapterEditor;

@@ -66,7 +66,11 @@ export class AIController {
       abortController,
     );
   }
-  async chatAgent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  async chatAgent(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
     try {
       res = switchStreamRes(res);
       const { prompt, history = [], model, apiKey } = req.body;

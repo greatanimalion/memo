@@ -1,5 +1,5 @@
-﻿import { DatabaseHelper } from '@main/server/db';
-import type { MyAgent } from '@type';
+﻿import { DatabaseHelper } from "@main/server/db";
+import type { MyAgent } from "@type";
 
 export class AgentRepository {
   private dbHelper: DatabaseHelper;

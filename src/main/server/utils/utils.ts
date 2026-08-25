@@ -1,26 +1,29 @@
-import * as crypto from 'crypto';
-import { app } from 'electron';
-import path from 'path';
+import * as crypto from "crypto";
+import { app } from "electron";
+import path from "path";
 
 // 生成32字节的密钥，适配AES-256-CBC算法
-export const ENCRYPT_KEY = crypto.createHash('sha256').update('your-secret-key').digest();
+export const ENCRYPT_KEY = crypto
+  .createHash("sha256")
+  .update("your-secret-key")
+  .digest();
 
 // 加密（可逆）
 export function encrypt(content: string, key: string | Buffer): string {
-  const algorithm = 'aes-256-cbc';
+  const algorithm = "aes-256-cbc";
   const keyBuffer = Buffer.isBuffer(key) ? key : Buffer.from(key);
   const iv = Buffer.alloc(16, 0);
   const cipher = crypto.createCipheriv(algorithm, keyBuffer, iv);
-  return cipher.update(content, 'utf8', 'hex') + cipher.final('hex');
+  return cipher.update(content, "utf8", "hex") + cipher.final("hex");
 }
 
 // 解密
 export function decrypt(encrypted: string, key: string | Buffer): string {
-  const algorithm = 'aes-256-cbc';
+  const algorithm = "aes-256-cbc";
   const keyBuffer = Buffer.isBuffer(key) ? key : Buffer.from(key);
   const iv = Buffer.alloc(16, 0);
   const decipher = crypto.createDecipheriv(algorithm, keyBuffer, iv);
-  return decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
+  return decipher.update(encrypted, "hex", "utf8") + decipher.final("utf8");
 }
 
 export function getSystemRootDir(): string {
@@ -37,11 +40,11 @@ export function getSystemRootDir(): string {
 // 获取数据库文件路径
 export function getDatabasePath(): string {
   const env = process.env.NODE_ENV;
-  if (env === 'development') {
-    return path.join(__dirname, '../data/', 'storage.db');
+  if (env === "development") {
+    return path.join(__dirname, "../data/", "storage.db");
   }
   const systemRoot = getSystemRootDir();
-  return path.join(systemRoot, '.MemoryData/', 'storage.db');
+  return path.join(systemRoot, ".MemoryData/", "storage.db");
 }
 //获取文件上传路径
 export function getUploadPath(): {
@@ -50,13 +53,13 @@ export function getUploadPath(): {
 } {
   const env = process.env.NODE_ENV;
   let baseDir: string;
-  if (env === 'development') {
-    baseDir = path.join(__dirname, '../data/uploads');
+  if (env === "development") {
+    baseDir = path.join(__dirname, "../data/uploads");
   } else {
-    baseDir = path.join(getSystemRootDir(), '.MemoryData/uploads');
-  } 
+    baseDir = path.join(getSystemRootDir(), ".MemoryData/uploads");
+  }
   return {
-    filePath: path.join(baseDir, 'files'),
-    imagePath: path.join(baseDir, 'images'),
-  } 
+    filePath: path.join(baseDir, "files"),
+    imagePath: path.join(baseDir, "images"),
+  };
 }

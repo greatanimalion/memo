@@ -9,7 +9,7 @@ export const logger = {
     console.warn(`[WARN] ${new Date().toISOString()}`, ...args);
   },
   debug: (...args: any[]): void => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.debug(`[DEBUG] ${new Date().toISOString()}`, ...args);
     }
   },

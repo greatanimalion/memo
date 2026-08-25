@@ -1,5 +1,5 @@
-﻿import { SessionRepository } from '@main/server/repositories/session.repository';
-import type { Session } from '@type';
+﻿import { SessionRepository } from "@main/server/repositories/session.repository";
+import type { Session } from "@type";
 
 export class SessionService {
   private sessionRepository: SessionRepository;

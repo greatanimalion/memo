@@ -1,5 +1,5 @@
-import { BookRepository } from '@main/server/repositories/books.repository';
-import type { Book } from '@type/book';
+import { BookRepository } from "@main/server/repositories/books.repository";
+import type { Book } from "@type/book";
 
 export class BookService {
   private bookRepository: BookRepository;

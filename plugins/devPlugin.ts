@@ -1,8 +1,20 @@
 // import { ViteDevServer } from "vite";
 
 export let getReplacer = () => {
-  let externalModels = ["os", "fs", "path", "events", "child_process", "crypto", "http", "buffer", "url", "better-sqlite3", "knex"];
-  let result:any = {};
+  let externalModels = [
+    "os",
+    "fs",
+    "path",
+    "events",
+    "child_process",
+    "crypto",
+    "http",
+    "buffer",
+    "url",
+    "better-sqlite3",
+    "knex",
+  ];
+  let result: any = {};
   for (let item of externalModels) {
     result[item] = () => ({
       find: new RegExp(`^${item}$`),
@@ -10,7 +22,13 @@ export let getReplacer = () => {
     });
   }
   result["electron"] = () => {
-    let electronModules = ["clipboard", "ipcRenderer", "nativeImage", "shell", "webFrame"].join(",");
+    let electronModules = [
+      "clipboard",
+      "ipcRenderer",
+      "nativeImage",
+      "shell",
+      "webFrame",
+    ].join(",");
     return {
       find: new RegExp(`^electron$`),
       code: `const {${electronModules}} = require('electron');export {${electronModules}}`,

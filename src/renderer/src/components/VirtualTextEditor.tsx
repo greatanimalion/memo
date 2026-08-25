@@ -1,7 +1,7 @@
-﻿import React, { useRef, useEffect, useState } from 'react';
-import { useWriterStore } from '@renderer/store/useWriterStore';
-import { fontFamilyMap } from './WriterAssistant/ChapterToolbar';
-import { Select, Slider, Button, Input } from 'antd';
+﻿import React, { useRef, useEffect, useState } from "react";
+import { useWriterStore } from "@renderer/store/useWriterStore";
+import { fontFamilyMap } from "./WriterAssistant/ChapterToolbar";
+import { Select, Slider, Button, Input } from "antd";
 import {
   FontSizeOutlined,
   ColumnHeightOutlined,
@@ -13,8 +13,8 @@ import {
   FolderOpenOutlined,
   FolderOutlined,
   DeleteOutlined,
-} from '@ant-design/icons';
-import { FontFamily } from '../types/common';
+} from "@ant-design/icons";
+import { FontFamily } from "../types/common";
 
 interface TextEditorProps {
   content: string;
@@ -23,11 +23,11 @@ interface TextEditorProps {
 }
 
 const fontOptions: { value: FontFamily; label: string }[] = [
-  { value: 'sans', label: '无衬线' },
-  { value: 'serif', label: '衬线体' },
-  { value: 'mono', label: '等宽体' },
-  { value: 'kaiti', label: '楷体' },
-  { value: 'songti', label: '宋体' },
+  { value: "sans", label: "无衬线" },
+  { value: "serif", label: "衬线体" },
+  { value: "mono", label: "等宽体" },
+  { value: "kaiti", label: "楷体" },
+  { value: "songti", label: "宋体" },
 ];
 
 const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
@@ -36,7 +36,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
   const [column, setColumn] = useState(1);
   const [selectedVolumeId, setSelectedVolumeId] = useState<string | null>(null);
   const [editingVolumeId, setEditingVolumeId] = useState<string | null>(null);
-  const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
+  const [editingVolumeTitle, setEditingVolumeTitle] = useState("");
 
   const book = useWriterStore((s) => s.book);
   const currentChapterId = useWriterStore((s) => s.currentChapterId);
@@ -58,11 +58,11 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
   }, [content]);
 
   const updateLineInfo = () => {
-    if (!textareaRef.current) return;   
+    if (!textareaRef.current) return;
     const text = textareaRef.current.value;
     const cursorPos = textareaRef.current.selectionStart;
     const textBeforeCursor = text.substring(0, cursorPos);
-    const lines = textBeforeCursor.split('\n');
+    const lines = textBeforeCursor.split("\n");
     setLineCount(lines.length);
     setColumn(lines[lines.length - 1].length + 1);
   };
@@ -77,25 +77,26 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
+    if (e.key === "Tab") {
       e.preventDefault();
       const textarea = textareaRef.current;
       if (!textarea) return;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const text = textarea.value;
-      const tabSpaces = '  ';
-      const newText = text.substring(0, start) + tabSpaces + text.substring(end);
+      const tabSpaces = "  ";
+      const newText =
+        text.substring(0, start) + tabSpaces + text.substring(end);
       onChange(newText);
       setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + tabSpaces.length;
+        textarea.selectionStart = textarea.selectionEnd =
+          start + tabSpaces.length;
         updateLineInfo();
       }, 0);
     } else {
       setTimeout(updateLineInfo, 0);
     }
   };
-
 
   const textareaStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
@@ -106,13 +107,16 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
 
   // 计算字数统计
   const charCount = content.length;
-  const chineseChars = (content.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length;
+  const chineseChars = (
+    content.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []
+  ).length;
   const englishWords = content
-    .replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, ' ')
+    .replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, " ")
     .split(/\s+/)
     .filter(Boolean).length;
-  const paragraphCount = content.split(/\n\n+/).filter(p => p.trim()).length;
-  const sentenceCount = (content.match(/[.!?。！？]+/g) || []).length || (content.trim() ? 1 : 0);
+  const paragraphCount = content.split(/\n\n+/).filter((p) => p.trim()).length;
+  const sentenceCount =
+    (content.match(/[.!?。！？]+/g) || []).length || (content.trim() ? 1 : 0);
 
   // 获取当前章节
   const currentChapter = book.chapters.find((c) => c.id === currentChapterId);
@@ -142,7 +146,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
       updateVolumeTitle(editingVolumeId, editingVolumeTitle.trim());
     }
     setEditingVolumeId(null);
-    setEditingVolumeTitle('');
+    setEditingVolumeTitle("");
   };
 
   // 添加章节到分卷
@@ -164,7 +168,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
             size="small"
             type="text"
             icon={<PlusOutlined className="w-3 h-3" />}
-            onClick={()=>handleAddChapter()}
+            onClick={() => handleAddChapter()}
           />
         </div>
         {/* 分卷列表 */}
@@ -179,8 +183,8 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                   onClick={() => setCurrentChapter(chapter.id)}
                   className={`flex items-center gap-2 px-2 py-1.5 pl-[16px]  cursor-pointer transition-colors ${
                     currentChapterId === chapter.id
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-gray-50 text-gray-700'
+                      ? "bg-blue-50 text-blue-600"
+                      : "hover:bg-gray-50 text-gray-700"
                   }`}
                 >
                   <span className="text-sm truncate">{chapter.title}</span>
@@ -190,7 +194,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
           )}
           {/* 分卷 */}
           {book.volumes.length > 0 && (
-            <div  >
+            <div>
               {book.volumes.map((volume) => {
                 const isExpanded = selectedVolumeId === volume.id;
                 const volumeChapters = getChaptersByVolume(volume.id);
@@ -199,7 +203,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                     {/* 分卷标题 */}
                     <div
                       className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
-                        isExpanded ? 'bg-blue-50' : 'hover:bg-gray-50'
+                        isExpanded ? "bg-blue-50" : "hover:bg-gray-50"
                       }`}
                       onClick={() => toggleVolume(volume.id)}
                     >
@@ -212,7 +216,9 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                         <Input
                           size="small"
                           value={editingVolumeTitle}
-                          onChange={(e) => setEditingVolumeTitle(e.target.value)}
+                          onChange={(e) =>
+                            setEditingVolumeTitle(e.target.value)
+                          }
                           onBlur={saveVolumeTitle}
                           onPressEnter={saveVolumeTitle}
                           className="flex-1"
@@ -230,7 +236,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                         <>
                           <Button
                             size="small"
-                            type="text" 
+                            type="text"
                             icon={<PlusOutlined className="w-3 h-3" />}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -258,13 +264,15 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                           <div
                             key={chapter.id}
                             onClick={() => setCurrentChapter(chapter.id)}
-                          className={`flex items-center gap-2 px-4  py-1.5  cursor-pointer transition-colors ${
-                            currentChapterId === chapter.id
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'hover:bg-gray-50 text-gray-700'
+                            className={`flex items-center gap-2 px-4  py-1.5  cursor-pointer transition-colors ${
+                              currentChapterId === chapter.id
+                                ? "bg-blue-50 text-blue-600"
+                                : "hover:bg-gray-50 text-gray-700"
                             }`}
                           >
-                            <span className="text-sm truncate">{chapter.title}</span>
+                            <span className="text-sm truncate">
+                              {chapter.title}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -293,15 +301,24 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
         <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3">
             <BookOutlined className="text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">{book.title}</span>
+            <span className="text-sm font-medium text-gray-700">
+              {book.title}
+            </span>
             <span className="text-gray-300">|</span>
             <UserOutlined className="text-gray-400" />
             <span className="text-sm text-gray-500">{book.author}</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500">
-            <span>{new Date().toLocaleDateString('zh-CN')}</span>
-            <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
-            <span className="bg-blue-50 px-2 py-1 rounded-full text-blue-600">{charCount} 字</span>
+            <span>{new Date().toLocaleDateString("zh-CN")}</span>
+            <span>
+              {new Date().toLocaleTimeString("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            <span className="bg-blue-50 px-2 py-1 rounded-full text-blue-600">
+              {charCount} 字
+            </span>
           </div>
         </div>
         {/* 编辑区主体 */}
@@ -336,8 +353,10 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
       <div className="w-72 shrink-0 border-l border-gray-200 bg-gray-50/50 overflow-y-auto max-lg:w-0 transition-all duration-300">
         {/* 字体设置 */}
         <div className="p-4 border-b border-gray-200">
-          <div className="text-sm font-semibold text-gray-700 mb-3">字体设置</div>
-          
+          <div className="text-sm font-semibold text-gray-700 mb-3">
+            字体设置
+          </div>
+
           {/* 字体选择 */}
           <div className="flex items-center gap-2 mb-3">
             <FontColorsOutlined className="w-4 h-4 text-gray-400" />
@@ -349,7 +368,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
               className="flex-1"
             />
           </div>
-          
+
           {/* 字号设置 */}
           <div className="flex items-center gap-2 mb-3">
             <FontSizeOutlined className="w-4 h-4 text-gray-400" />
@@ -361,9 +380,11 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
               onChange={setEditorFontSize}
               tooltip={{ formatter: (v) => `${v}px` }}
             />
-            <span className="text-xs text-gray-500 w-8 text-right">{editorSettings.fontSize}px</span>
+            <span className="text-xs text-gray-500 w-8 text-right">
+              {editorSettings.fontSize}px
+            </span>
           </div>
-          
+
           {/* 行间距设置 */}
           <div className="flex items-center gap-2 mb-3">
             <ColumnHeightOutlined className="w-4 h-4 text-gray-400" />
@@ -376,9 +397,11 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
               onChange={setEditorLineHeight}
               tooltip={{ formatter: (v) => `${v}` }}
             />
-            <span className="text-xs text-gray-500 w-6 text-right">{editorSettings.lineHeight}</span>
+            <span className="text-xs text-gray-500 w-6 text-right">
+              {editorSettings.lineHeight}
+            </span>
           </div>
-          
+
           {/* 字体粗细设置 */}
           <div className="flex items-center gap-2">
             <BoldOutlined className="w-4 h-4 text-gray-400" />
@@ -391,37 +414,53 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
               onChange={setEditorFontWeight}
               tooltip={{ formatter: (v) => `${v}` }}
             />
-            <span className="text-xs text-gray-500 w-8 text-right">{editorSettings.fontWeight}</span>
+            <span className="text-xs text-gray-500 w-8 text-right">
+              {editorSettings.fontWeight}
+            </span>
           </div>
         </div>
 
         {/* 字数统计 */}
         <div className="p-4 border-b border-gray-200">
-          <div className="text-sm font-semibold text-gray-700 mb-3">字数统计</div>
+          <div className="text-sm font-semibold text-gray-700 mb-3">
+            字数统计
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white rounded-lg p-2">
               <div className="text-xs text-gray-400">总字符</div>
-              <div className="text-sm font-semibold text-gray-700">{charCount}</div>
+              <div className="text-sm font-semibold text-gray-700">
+                {charCount}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-2">
               <div className="text-xs text-gray-400">中文字数</div>
-              <div className="text-sm font-semibold text-gray-700">{chineseChars}</div>
+              <div className="text-sm font-semibold text-gray-700">
+                {chineseChars}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-2">
               <div className="text-xs text-gray-400">英文词数</div>
-              <div className="text-sm font-semibold text-gray-700">{englishWords}</div>
+              <div className="text-sm font-semibold text-gray-700">
+                {englishWords}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-2">
               <div className="text-xs text-gray-400">段落数</div>
-              <div className="text-sm font-semibold text-gray-700">{paragraphCount}</div>
+              <div className="text-sm font-semibold text-gray-700">
+                {paragraphCount}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-2">
               <div className="text-xs text-gray-400">句子数</div>
-              <div className="text-sm font-semibold text-gray-700">{sentenceCount}</div>
+              <div className="text-sm font-semibold text-gray-700">
+                {sentenceCount}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-2">
               <div className="text-xs text-gray-400">行数</div>
-              <div className="text-sm font-semibold text-gray-700">{content.split('\n').length}</div>
+              <div className="text-sm font-semibold text-gray-700">
+                {content.split("\n").length}
+              </div>
             </div>
           </div>
         </div>
@@ -429,12 +468,16 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
         {/* 章节详情 */}
         <div className="p-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="text-sm font-semibold text-gray-700 mb-3">章节详情</div>
+            <div className="text-sm font-semibold text-gray-700 mb-3">
+              章节详情
+            </div>
             {currentChapter ? (
               <div className="space-y-2 text-xs text-gray-500">
                 <div className="flex justify-between">
                   <span>章节标题</span>
-                  <span className="text-gray-700 font-medium">{currentChapter.title}</span>
+                  <span className="text-gray-700 font-medium">
+                    {currentChapter.title}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>章节序号</span>
@@ -444,30 +487,38 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
                   <span>所属分卷</span>
                   <span className="text-gray-700">
                     {currentChapter.volumeId
-                      ? book.volumes.find((v) => v.id === currentChapter.volumeId)?.title || '-'
-                      : '未分组'}
+                      ? book.volumes.find(
+                          (v) => v.id === currentChapter.volumeId,
+                        )?.title || "-"
+                      : "未分组"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>创建时间</span>
                   <span className="text-gray-700">
                     {currentChapter.createdAt
-                      ? new Date(currentChapter.createdAt).toLocaleString('zh-CN')
-                      : '-'}
+                      ? new Date(currentChapter.createdAt).toLocaleString(
+                          "zh-CN",
+                        )
+                      : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>更新时间</span>
                   <span className="text-gray-700">
                     {currentChapter.updatedAt
-                      ? new Date(currentChapter.updatedAt).toLocaleString('zh-CN')
-                      : '-'}
+                      ? new Date(currentChapter.updatedAt).toLocaleString(
+                          "zh-CN",
+                        )
+                      : "-"}
                   </span>
                 </div>
                 {currentChapter.metadata?.summary && (
                   <div className="pt-2 border-t border-gray-100">
                     <div className="text-xs text-gray-400 mb-1">AI 摘要</div>
-                    <div className="text-xs text-gray-600">{currentChapter.metadata.summary}</div>
+                    <div className="text-xs text-gray-600">
+                      {currentChapter.metadata.summary}
+                    </div>
                   </div>
                 )}
               </div>
@@ -482,4 +533,3 @@ const TextEditor: React.FC<TextEditorProps> = ({ content, onChange }) => {
 };
 
 export default TextEditor;
-

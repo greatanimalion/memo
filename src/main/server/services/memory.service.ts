@@ -70,9 +70,13 @@ export class MemoryService {
     return this.memoryRepository.create(data);
   }
 
-  update(id: string, data: Partial<Memory>,content: string): Partial<Memory> | null {
+  update(
+    id: string,
+    data: Partial<Memory>,
+    content: string,
+  ): Partial<Memory> | null {
     if (data.fileUrl) {
-      const size=this.updateMemoFile(data.fileUrl, content || '');
+      const size = this.updateMemoFile(data.fileUrl, content || "");
       data.size = size;
     }
     return this.memoryRepository.update(id, data);
@@ -98,7 +102,10 @@ export class MemoryService {
     return this.memoryRepository.getStarred();
   }
 
-  toggleStar(id: string): { memory: Partial<Memory> | null; wasStarred: number } {
+  toggleStar(id: string): {
+    memory: Partial<Memory> | null;
+    wasStarred: number;
+  } {
     const memory = this.memoryRepository.getById(id);
     if (!memory) {
       return { memory: null, wasStarred: 0 };

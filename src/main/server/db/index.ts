@@ -1,15 +1,15 @@
-﻿import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import { MemoryDatabase } from '@main/server/db/memory';
-import { DiaryDatabase } from '@main/server/db/diary';
-import { SessionDatabase } from '@main/server/db/session';
-import { AgentDatabase } from '@main/server/db/agent';
-import { BookDatabase } from '@main/server/db/book';
-import { getDatabasePath } from '@main/server/utils/utils';
-import { createTablesSql } from '@main/server/constants/sql';
-import { databaseConfig } from '@main/server/config/database.config';
-import { logger } from '@main/server/utils/logger';
+﻿import Database from "better-sqlite3";
+import path from "path";
+import fs from "fs";
+import { MemoryDatabase } from "@main/server/db/memory";
+import { DiaryDatabase } from "@main/server/db/diary";
+import { SessionDatabase } from "@main/server/db/session";
+import { AgentDatabase } from "@main/server/db/agent";
+import { BookDatabase } from "@main/server/db/book";
+import { getDatabasePath } from "@main/server/utils/utils";
+import { createTablesSql } from "@main/server/constants/sql";
+import { databaseConfig } from "@main/server/config/database.config";
+import { logger } from "@main/server/utils/logger";
 
 export class DatabaseHelper {
   private static instance: DatabaseHelper;
@@ -42,11 +42,11 @@ export class DatabaseHelper {
     const migrations = [
       "ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'",
       "ALTER TABLE books ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'",
-    ]
+    ];
     for (const sql of migrations) {
       try {
-        this.db.exec(sql)
-        logger.info(`迁移成功: ${sql}`)
+        this.db.exec(sql);
+        logger.info(`迁移成功: ${sql}`);
       } catch {
         // 列已存在，忽略
       }
@@ -75,9 +75,9 @@ export class DatabaseHelper {
   }
 }
 
-export { MemoryDatabase } from '@main/server/db/memory';
-export { DiaryDatabase } from '@main/server/db/diary';
-export { SessionDatabase } from '@main/server/db/session';
-export { AgentDatabase } from '@main/server/db/agent';
-export { BookDatabase } from '@main/server/db/book';
-export { BaseDatabase } from '@main/server/db/base';
+export { MemoryDatabase } from "@main/server/db/memory";
+export { DiaryDatabase } from "@main/server/db/diary";
+export { SessionDatabase } from "@main/server/db/session";
+export { AgentDatabase } from "@main/server/db/agent";
+export { BookDatabase } from "@main/server/db/book";
+export { BaseDatabase } from "@main/server/db/base";

@@ -1,13 +1,17 @@
 ﻿import React from "react";
 import { useWriterStore } from "@renderer/store/useWriterStore";
-import VirtualTextEditor from "@renderer/components/VirtualTextEditor";
 import { fontFamilyMap } from "./ChapterToolbar";
+import LeftPanel from "@renderer/pages/book/components/LeftPanel";
+import EditorArea from "@renderer/pages/book/components/EditorArea";
+import RightPanel from "@renderer/pages/book/components/RightPanel";
+import useAppStore from "@renderer/store/app";
 
 const ChapterEditor: React.FC = () => {
   const book = useWriterStore((s) => s.book);
   const currentChapterId = useWriterStore((s) => s.currentChapterId);
   const updateChapterContent = useWriterStore((s) => s.updateChapterContent);
   const editorSettings = useWriterStore((s) => s.editorSettings);
+  const appStore = useAppStore();
 
   const currentChapter = book.chapters.find((c) => c.id === currentChapterId);
 
@@ -32,14 +36,17 @@ const ChapterEditor: React.FC = () => {
           lineHeight: editorSettings.lineHeight,
         }}
       >
-        <VirtualTextEditor
-          key={currentChapter.id}
-          content={currentChapter.content}
-          onChange={(content) =>
-            updateChapterContent(currentChapter.id, content)
-          }
-          fileName={currentChapter.title}
-        />
+        <div className={`flex h-full w-full ${appStore.isBookScreen ? '' : 'bg-[#f8f9fb]'}`}>
+          <LeftPanel isBookScreen={appStore.isBookScreen} />
+          <EditorArea
+            key={currentChapter.id}
+            content={currentChapter.content}
+            onChange={(content) =>
+              updateChapterContent(currentChapter.id, content)
+            }
+          />
+          <RightPanel content={currentChapter.content} isBookScreen={appStore.isBookScreen} />
+        </div>
       </div>
     </div>
   );

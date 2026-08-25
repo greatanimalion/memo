@@ -1,0 +1,10 @@
+.theme-deep-blue {
+  --bg-color: #1A365D;
+  --text-color: #F5F5F5;
+  --primary-color: #63B3ED;
+  --secondary-color: #4FD1C5;
+  --border-color: #2D3748;
+  --hover-bg: #2A4365;
+  --active-bg: #3D5A80;
+  --disabled-color: #718096;
+}

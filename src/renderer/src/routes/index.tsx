@@ -7,7 +7,7 @@ import MemoPage from "@renderer/pages/memo";
 import DiaryPage from "@renderer/pages/diary";
 import PersonPage from "@renderer/pages/personPage";
 import WebPage from "@renderer/pages/web";
-import TextEditorPage from "@renderer/pages/textEditor";
+import TextEditorPage from "@renderer/pages/book/book";
 
 export const routes: RouteObject[] = [
   {

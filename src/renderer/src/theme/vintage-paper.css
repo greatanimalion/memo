@@ -1,0 +1,10 @@
+.theme-vintage-paper {
+  --bg-color: #F4E4BC;
+  --text-color: #4A3B2A;
+  --primary-color: #8B4513;
+  --secondary-color: #A0522D;
+  --border-color: #D2B48C;
+  --hover-bg: #EEE4B0;
+  --active-bg: #E8DCA4;
+  --disabled-color: #C4B498;
+}

@@ -1,0 +1,10 @@
+.theme-premium-gray {
+  --bg-color: #2C3E50;
+  --text-color: #ECF0F1;
+  --primary-color: #3498DB;
+  --secondary-color: #1ABC9C;
+  --border-color: #34495E;
+  --hover-bg: #34495E;
+  --active-bg: #3D566E;
+  --disabled-color: #7F8C8D;
+}

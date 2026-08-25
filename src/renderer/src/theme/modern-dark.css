@@ -1,0 +1,10 @@
+.theme-modern-dark {
+  --bg-color: #121212;
+  --text-color: #E0E0E0;
+  --primary-color: #BB86FC;
+  --secondary-color: #03DAC6;
+  --border-color: #333333;
+  --hover-bg: #1E1E1E;
+  --active-bg: #2C2C2C;
+  --disabled-color: #555555;
+}

@@ -1,8 +1,11 @@
-﻿import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useWriterStore } from '@renderer/store/useWriterStore'
-import VirtualTextEditor from '@renderer/components/VirtualTextEditor'
 import { AIAssistantPanel } from '@renderer/components/WriterAssistant'
+import LeftPanel from '@renderer/pages/book/components/LeftPanel'
+import EditorArea from '@renderer/pages/book/components/EditorArea'
+import RightPanel from '@renderer/pages/book/components/RightPanel'
+import useAppStore from '@renderer/store/app'
 
 export default function TextEditorPage() {
   const [searchParams] = useSearchParams()
@@ -12,7 +15,7 @@ export default function TextEditorPage() {
   const loadBookById = useWriterStore((s) => s.loadBookById)
   const saveBook = useWriterStore((s) => s.saveBook)
   const updateChapterContent = useWriterStore((s) => s.updateChapterContent)
-  const [fullscreen, setFullscreen] = useState(false)
+  const appStore = useAppStore()
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -34,49 +37,20 @@ export default function TextEditorPage() {
     }
   }, [book])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && fullscreen) {
-        setFullscreen(false)
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f11') {
-        e.preventDefault()
-        setFullscreen((prev) => !prev)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [fullscreen])
-
-  if (fullscreen) {
-    return (
-      <div className="h-full w-full bg-[#f8f9fb]">
-        <VirtualTextEditor
+  return (
+    <div className="h-full w-full flex">
+      <div className='flex h-full w-full'>
+        <LeftPanel isBookScreen={appStore.isBookScreen} />
+        <EditorArea
           content={currentChapter?.content || ''}
           onChange={(content) => {
             if (currentChapterId) {
               updateChapterContent(currentChapterId, content)
             }
           }}
-          fullscreen
-          onToggleFullscreen={() => setFullscreen(false)}
         />
+        <RightPanel content={currentChapter?.content || ''} isBookScreen={appStore.isBookScreen} />
       </div>
-    )
-  }
-
-  return (
-    <div className="h-full w-full flex bg-[#f8f9fb]">
-      <VirtualTextEditor
-        content={currentChapter?.content || ''}
-        onChange={(content) => {
-          if (currentChapterId) {
-            updateChapterContent(currentChapterId, content)
-          }
-        }}
-        fullscreen={false}
-        onToggleFullscreen={() => setFullscreen(true)}
-      />
       <AIAssistantPanel />
     </div>
   )

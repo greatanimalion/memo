@@ -1,0 +1,10 @@
+.theme-minimalism {
+  --bg-color: #FFFFFF;
+  --text-color: #333333;
+  --primary-color: #333333;
+  --secondary-color: #666666;
+  --border-color: #E0E0E0;
+  --hover-bg: #F5F5F5;
+  --active-bg: #EEEEEE;
+  --disabled-color: #CCCCCC;
+}

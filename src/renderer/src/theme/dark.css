@@ -1,0 +1,10 @@
+.theme-dark {
+  --bg-color: #000000;
+  --text-color: #FFFFFF;
+  --primary-color: #FFFFFF;
+  --secondary-color: #333333;
+  --border-color: #333333;
+  --hover-bg: #1a1a1a;
+  --active-bg: #2a2a2a;
+  --disabled-color: #666666;
+}

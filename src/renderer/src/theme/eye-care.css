@@ -1,0 +1,10 @@
+.theme-eye-care {
+  --bg-color: #F5F5DC;
+  --text-color: #555555;
+  --primary-color: #6B8E23;
+  --secondary-color: #8FBC8F;
+  --border-color: #D2B48C;
+  --hover-bg: #EEEEDC;
+  --active-bg: #E8E8D0;
+  --disabled-color: #C0C0A8;
+}

@@ -1,21 +1,15 @@
-﻿import React, { useState, useCallback, useEffect } from "react";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-  AliwangwangOutlined,
-} from "@ant-design/icons";
-import { Button, Dropdown, Empty, message, Modal } from "antd";
+import React, { useState, useCallback, useEffect } from "react";
+import { message } from "antd";
 import { AIKey } from "@renderer/types/common";
 import type { Message } from "@type/agents";
-import { formatTime } from "@renderer/utils/dateUtils";
 import ChatPanel from "@renderer/components/ChatPanel";
-import { XMarkdown } from "@ant-design/x-markdown";
 import AISender from "@renderer/components/common/AISender";
-import { Think } from "@ant-design/x";
 import { getLocalStore, setLocalStore } from "@renderer/utils/localStore";
 import { useChat } from "@renderer/hooks/useChat";
 import { updateSession } from "@renderer/services/session";
+import SessionList from "./components/SessionList";
+import MessageArea from "./components/MessageArea";
+import ResumeModal from "./components/ResumeModal";
 
 const ChatPage: React.FC = () => {
   const {
@@ -286,24 +280,6 @@ const ChatPage: React.FC = () => {
     [currentSession, messageApi, pushSessionToCurrentSession],
   );
 
-  const getMessageActions = useCallback(
-    (msg: Message) => [
-      {
-        key: "copy",
-        label: "复制",
-        icon: <CopyOutlined />,
-        onClick: () => handleCopyMessage(msg.content),
-      },
-      {
-        key: "delete",
-        label: "删除",
-        icon: <DeleteOutlined />,
-        onClick: () => deleteMessage(msg),
-      },
-    ],
-    [handleCopyMessage, deleteMessage],
-  );
-
   const handleDeleteSessionWithEvent = useCallback(
     async (sessionId: string, e: React.MouseEvent) => {
       e.stopPropagation();
@@ -322,146 +298,32 @@ const ChatPage: React.FC = () => {
   return (
     <div className="flex flex-1 h-full w-full" style={{ backgroundColor: "var(--bg-primary)" }}>
       {contextHolder}
-      <Modal
-        title="恢复未完成的回复"
-        open={showResumeModal}
-        footer={[
-          <Button key="discard" onClick={clearPendingResponse}>
-            放弃
-          </Button>,
-          <Button key="resume" type="primary" onClick={handleResumeResponse}>
-            <AliwangwangOutlined /> 继续回复
-          </Button>,
-        ]}
-      >
-        <p>检测到您上次有未完成的AI回复，是否继续？</p>
-        <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-40 overflow-auto">
-          <p className="text-sm text-gray-600">上次已收到的内容：</p>
-          <XMarkdown content={pendingResponse?.content || ""} />
-        </div>
-      </Modal>
+      <ResumeModal
+        isOpen={showResumeModal}
+        pendingResponse={pendingResponse}
+        onDiscard={clearPendingResponse}
+        onResume={handleResumeResponse}
+      />
 
-      <div className="w-60 border-r border-gray-200 overflow-auto flex flex-col max-md:w-0 transition-width duration-300">
-        <div className="p-4 border-b border-gray-200">
-          <Button
-            icon={<PlusOutlined />}
-            onClick={handleNewSession}
-            className="w-full"
-          >
-            新建对话
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {sessions.length > 0 ? (
-            sessions.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => handleSelectSession(conv.id)}
-        <div className="p-3 rounded-lg cursor-pointer transition-all duration-200"
-          style={{
-            backgroundColor: currentSessionId === conv.id ? "var(--bg-tertiary)" : "transparent",
-            boxShadow: currentSessionId === conv.id ? "var(--shadow-lg)" : "none",
-          }}
-          onMouseEnter={(e) => {
-            if (currentSessionId !== conv.id) e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-          }}
-          onMouseLeave={(e) => {
-            if (currentSessionId !== conv.id) e.currentTarget.style.backgroundColor = "transparent";
-          }}
-        >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
-                      {conv.title}
-                    </h3>
-                    <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-                      {conv.messages.length > 1
-                        ? conv.messages[conv.messages.length - 1].content.slice(
-                            0,
-                            30,
-                          )
-                        : "新对话"}
-                    </p>
-                  </div>
-                  {sessions.length > 1 && (
-                      <button
-                        onClick={(e) => handleDeleteSessionWithEvent(conv.id, e)}
-                        className="p-1 rounded transition-colors ml-2 cursor-pointer"
-                        style={{ color: "var(--text-muted)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-tertiary)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                      >
-                        <DeleteOutlined className="text-sm" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-5">
-              <Empty />
-            </div>
-          )}
-        </div>
-      </div>
+      <SessionList
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onSelectSession={handleSelectSession}
+        onDeleteSession={handleDeleteSessionWithEvent}
+        onNewSession={handleNewSession}
+      />
 
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-            {currentSession?.messages.map((msg) => (
-              <div
-                key={msg.timestamp}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`flex items-start gap-3 max-w-[85%] overflow-auto ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-                >
-                  <div className="flex-1">
-                    <Dropdown
-                      menu={{ items: getMessageActions(msg as Message) }}
-                      trigger={["contextMenu"]}
-                    >
-                      <div
-                        className="rounded-2xl px-4 py-3"
-                        style={{
-                          backgroundColor: msg.role === "user" ? "var(--info-color)" : "var(--bg-tertiary)",
-                          color: msg.role === "user" ? "#fff" : "var(--text-primary)",
-                          borderRadius: msg.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
-                        }}
-                      >
-                        <XMarkdown content={msg.content} />
-                        <p className="text-xs mt-2" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.7)" : "var(--text-muted)" }}>
-                          {formatTime(msg.timestamp)}
-                        </p>
-                      </div>
-                    </Dropdown>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {isThinking && currentSessionId === typeId && (
-              <div className="flex justify-start">
-                <div className="flex items-start gap-3 max-w-[85%]">
-                  <div className="flex-1">
-                    <Think title="Complete thinking" blink loading={true} />
-                    {isTyping && (
-                      <div className="rounded-2xl px-4 py-3 rounded-tl-sm" style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
-                        <XMarkdown content={typingTarget} />
-                        <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-                          {formatTime(+typingDate)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
+        <MessageArea
+          messages={currentSession?.messages || []}
+          currentSessionId={currentSessionId}
+          isThinking={isThinking}
+          typingTarget={typingTarget}
+          typingDate={typingDate}
+          typeId={typeId}
+          onCopyMessage={handleCopyMessage}
+          onDeleteMessage={deleteMessage}
+        />
 
         <AISender
           openAgent={openAgent}

@@ -1,12 +1,12 @@
 ﻿import { createBrowserRouter, RouteObject } from "react-router-dom";
 import MainLayout from "@renderer/layouts/MainLayout";
-import ChatPage from "@renderer/pages/chat";
-import HomePage from "@renderer/pages/home";
-import SettingPage from "@renderer/pages/settings";
-import MemoPage from "@renderer/pages/memo";
-import DiaryPage from "@renderer/pages/diary";
-import PersonPage from "@renderer/pages/personPage";
-import WebPage from "@renderer/pages/web";
+import ChatPage from "@renderer/pages/chat/chat";
+import HomePage from "@renderer/pages/home/home";
+import SettingPage from "@renderer/pages/settings/settings";
+import MemoPage from "@renderer/pages/memo/memo";
+import DiaryPage from "@renderer/pages/diary/diary";
+import PersonPage from "@renderer/pages/person/person";
+import WebPage from "@renderer/pages/web/web";
 import TextEditorPage from "@renderer/pages/book/book";
 
 export const routes: RouteObject[] = [

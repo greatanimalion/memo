@@ -38,7 +38,6 @@ export default function ChatPanel({
   const [modal, contextHolder] = Modal.useModal();
   const [editingId, setEditingId] = useState("");
 
-  // 更新外部 agents 状态
   useState(() => {
     if (agents.length > 0) {
       setAgents(agents);
@@ -167,11 +166,14 @@ export default function ChatPanel({
         </div>
       </Modal>
       {contextHolder}
-      <div className="w-70 border-l border-gray-200 bg-gray-50 overflow-y-auto max-lg:w-0 transition-width duration-300">
+      <div
+        className="w-70 overflow-y-auto max-lg:w-0 transition-width duration-300"
+        style={{ borderLeft: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)" }}
+      >
         <div className="p-4 space-y-6">
           {/* AI 能力 */}
           <div>
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
               <Bot />
               agent代理
             </h3>
@@ -191,12 +193,13 @@ export default function ChatPanel({
               {agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="bg-white rounded-lg p-3 shadow-2xs"
+                  className="rounded-lg p-3 shadow-2xs"
+                  style={{ backgroundColor: "var(--bg-primary)" }}
                 >
                   <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                      <RobotOutlined />
-                      <span className="text-sm font-medium text-gray-800">
+                      <RobotOutlined style={{ color: "var(--accent-color)" }} />
+                      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                         {agent.name}
                       </span>
                     </div>
@@ -232,13 +235,18 @@ export default function ChatPanel({
                         }}
                         placement="bottomRight"
                       >
-                        <button className="p-1.5 hover:bg-gray-100 rounded transition-colors cursor-pointer">
-                          <span className="text-gray-400">•••</span>
+                        <button
+                          className="p-1.5 rounded transition-colors cursor-pointer"
+                          style={{ color: "var(--text-muted)" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                        >
+                          •••
                         </button>
                       </Dropdown>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
                     {agent.description}
                   </div>
                 </div>
@@ -248,19 +256,19 @@ export default function ChatPanel({
 
           {/* 对话统计 */}
           <div>
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
               <HistoryOutlined />
               对话统计
             </h3>
-            <div className="bg-white rounded-lg p-4 space-y-3">
+            <div className="rounded-lg p-4 space-y-3" style={{ backgroundColor: "var(--bg-primary)" }}>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">对话数量</span>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>对话数量</span>
                 <span className="font-semibold text-blue-600">
                   {sessions.length}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">消息总数</span>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>消息总数</span>
                 <span className="font-semibold text-purple-600">
                   {sessions.reduce(
                     (sum, conv) => sum + conv.messages.length,
@@ -269,7 +277,7 @@ export default function ChatPanel({
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">当前对话</span>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>当前对话</span>
                 <span className="font-semibold text-green-600">
                   {currentSession?.messages.length || 0}
                 </span>
@@ -279,7 +287,7 @@ export default function ChatPanel({
 
           {/* 快捷提示 */}
           <div>
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
               <BulbOutlined />
               快捷提示
             </h3>
@@ -288,12 +296,15 @@ export default function ChatPanel({
                 <div
                   key={index}
                   onClick={() => handleCopyMessage(item.prompt)}
-                  className="bg-white rounded-lg p-3 cursor-pointer hover:bg-blue-50 transition-colors"
+                  className="rounded-lg p-3 cursor-pointer transition-colors"
+                  style={{ backgroundColor: "var(--bg-primary)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-primary)")}
                 >
-                  <div className="text-sm font-medium text-gray-800">
+                  <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     {item.title}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
                     {item.description}
                   </div>
                 </div>

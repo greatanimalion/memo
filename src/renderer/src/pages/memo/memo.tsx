@@ -1,5 +1,3 @@
-import { useState } from "react";
-import CommandPanel from "@renderer/components/CommandPanel";
 import BlockNoteEditor from "@renderer/components/BlockNoteEditor";
 import useFileStore from "@renderer/store/useFileStore";
 import FileManager from "./components/FileManager";
@@ -10,7 +8,7 @@ function MemoPage() {
   return (
     <>
       {!selectedFile ? (
-        <FileManager onFileSelect={(file) => {}} />
+        <FileManager />
       ) : (
         <BlockNoteEditor selectedFile={selectedFile}></BlockNoteEditor>
       )}

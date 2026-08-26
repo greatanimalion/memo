@@ -3,6 +3,7 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./routes";
 import { getLocalStore } from "./utils/localStore";
 import { setTheme } from "./hooks/theme";
+import AntDesignThemeProvider from "./components/AntDesignThemeProvider";
 
 // 导入所有主题CSS文件
 import "./theme/classic-black.css";
@@ -22,9 +23,14 @@ const App = () => {
 
     // 初始化边框设置
     const _border = (getLocalStore("_border")?.value as boolean) || false;
+    void _border;
   }, []);
 
-  return <RouterProvider router={router} />;
+  return (
+    <AntDesignThemeProvider>
+      <RouterProvider router={router} />
+    </AntDesignThemeProvider>
+  );
 };
 
 export default App;

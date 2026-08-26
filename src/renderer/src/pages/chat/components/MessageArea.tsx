@@ -3,7 +3,7 @@ import { Dropdown } from "antd";
 import { CopyOutlined, DeleteOutlined } from "@ant-design/icons";
 import { XMarkdown } from "@ant-design/x-markdown";
 import { Think } from "@ant-design/x";
-import type { Message } from "@type/agents";
+import type { Message } from "@type/session";
 import { formatTime } from "@renderer/utils/dateUtils";
 
 interface MessageAreaProps {
@@ -70,7 +70,7 @@ const MessageArea: React.FC<MessageAreaProps> = ({
                   >
                     <XMarkdown content={msg.content} />
                     <p className="text-xs mt-2" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.7)" : "var(--text-muted)" }}>
-                      {formatTime(msg.timestamp)}
+                      {formatTime(msg.timestamp || 0)}
                     </p>
                   </div>
                 </Dropdown>

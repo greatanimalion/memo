@@ -1,8 +1,7 @@
 import React from "react";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty } from "antd";
-import type { Message } from "@type/agents";
-import { formatTime } from "@renderer/utils/dateUtils";
+import type { Message } from "@type/session";
 
 interface SessionListProps {
   sessions: Array<{

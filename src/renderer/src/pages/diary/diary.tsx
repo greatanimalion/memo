@@ -71,7 +71,6 @@ const DiaryPage: React.FC = () => {
           getDateData={getDateData}
           handleDateSelect={handleDateSelect}
           handleMonthChange={handleMonthChange}
-          setSelectedDate={setSelectedDate}
           setIsModalOpen={setIsModalOpen}
           form={form}
         />

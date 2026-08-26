@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Radio, message } from "antd";
+import { Modal, Form, Input, Radio } from "antd";
 
 // 图标类型定义
 interface webType {

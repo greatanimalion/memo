@@ -164,7 +164,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ content, isBookScreen }) => {
           <div className="bg-gray-50/80 rounded-xl p-3.5 space-y-2.5">
             <div className="flex justify-between items-center">
               <span className="text-[11px] text-gray-400">标题</span>
-              <span className="text-[12px] text-gray-700 font-medium truncate ml-2 max-w-[140px]">{currentChapter.title}</span>
+              <span className="text-[12px] text-gray-700 font-medium truncate ml-2 max-w-35">{currentChapter.title}</span>
             </div>
             <div className="w-full h-px bg-gray-100" />
             <div className="flex justify-between items-center">
@@ -173,7 +173,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ content, isBookScreen }) => {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[11px] text-gray-400">分卷</span>
-              <span className="text-[12px] text-gray-600 truncate ml-2 max-w-[140px]">
+              <span className="text-[12px] text-gray-600 truncate ml-2 max-w-35">
                 {currentChapter.volumeId
                   ? book.volumes.find((v) => v.id === currentChapter.volumeId)?.title || '-'
                   : '未分组'}

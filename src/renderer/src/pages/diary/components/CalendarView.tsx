@@ -1,7 +1,7 @@
 import React from "react";
 import { Calendar, Badge } from "antd";
 import type { CalendarProps } from "antd";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 import Select from "antd/es/select";
 import { Button } from "antd";
 
@@ -14,7 +14,6 @@ interface CalendarViewProps {
   };
   handleDateSelect: (value: Dayjs) => void;
   handleMonthChange: (value: Dayjs) => void;
-  setSelectedDate: (date: Dayjs | null) => void;
   setIsModalOpen: (open: boolean) => void;
   form: FormInstance;
 }
@@ -23,7 +22,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   getDateData,
   handleDateSelect,
   handleMonthChange,
-  setSelectedDate,
   setIsModalOpen,
   form,
 }) => {

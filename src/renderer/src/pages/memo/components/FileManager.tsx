@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PathNavigation, FileList } from "@renderer/components/common";
-import { Button, Input, message, Select } from "antd";
+import { Button, Input, message, Select, Modal } from "antd";
 import {
   FolderOutlined,
   AppstoreOutlined,
@@ -10,11 +10,7 @@ import {
 import { SearchProps } from "antd/es/input";
 import { useMemory } from "@renderer/hooks/useMemory";
 
-interface FileManagerProps {
-  onFileSelect: (file: any) => void;
-}
-
-const FileManager: React.FC<FileManagerProps> = ({ onFileSelect }) => {
+const FileManager: React.FC = () => {
   const {
     viewMode,
     setViewMode,
@@ -80,8 +76,7 @@ const FileManager: React.FC<FileManagerProps> = ({ onFileSelect }) => {
   return (
     <>
       {contextHolder}
-      <div
-        className="modal"
+      <Modal
         title={isFolder === 1 ? "请填写文件夹名" : "请填写文件名"}
         open={open}
         onOk={handleOk}
@@ -95,7 +90,7 @@ const FileManager: React.FC<FileManagerProps> = ({ onFileSelect }) => {
           onChange={(e) => setFileName(e.target.value)}
           value={fileName}
         />
-      </div>
+      </Modal>
       <div className="flex-1 flex flex-row" style={{ backgroundColor: "var(--bg-secondary)" }}>
         {/* 顶部操作栏 */}
         <div className="p-4 w-full overflow-auto" style={{ backgroundColor: "var(--bg-primary)", borderBottom: "1px solid var(--border-color)" }}>

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { message } from "antd";
 import { AIKey } from "@renderer/types/common";
-import type { Message } from "@type/agents";
+import type { Message } from "@type/session";
 import ChatPanel from "@renderer/components/ChatPanel";
 import AISender from "@renderer/components/common/AISender";
 import { getLocalStore, setLocalStore } from "@renderer/utils/localStore";
@@ -20,7 +20,6 @@ const ChatPage: React.FC = () => {
     setAgents,
     prompt,
     setPrompt,
-    messagesEndRef,
     handleNewSession,
     pushSessionToCurrentSession,
     handleSelectSession,
@@ -28,7 +27,6 @@ const ChatPage: React.FC = () => {
   } = useChat();
 
   const [messageApi, contextHolder] = message.useMessage();
-  const [isTyping, setIsTyping] = useState(false);
   const [typingDate, setTypingDate] = useState("");
   const [typingTarget, setTypingTarget] = useState("");
   const [typeId, setTypeId] = useState("");
@@ -87,7 +85,6 @@ const ChatPage: React.FC = () => {
 
       setIsThinking(true);
       setTypeId(currentSessionId);
-      setIsTyping(true);
 
       let sessionToUpdate = currentSession;
 
@@ -203,7 +200,6 @@ const ChatPage: React.FC = () => {
       } finally {
         setTypeId("");
         pushSessionToCurrentSession(sessionToUpdate);
-        setIsTyping(false);
         setTypingTarget("");
         updateSession(sessionToUpdate);
         setIsThinking(false);
@@ -254,7 +250,7 @@ const ChatPage: React.FC = () => {
               messageApi.warning("无法删除第一条消息");
               return;
             }
-            pairedTimestamp = currentSession.messages[i - 1].timestamp;
+            pairedTimestamp = currentSession.messages[i - 1].timestamp || 0;
             break;
           }
         }
@@ -265,7 +261,7 @@ const ChatPage: React.FC = () => {
             return;
           }
           if (currentSession.messages[i].timestamp === msg.timestamp) {
-            pairedTimestamp = currentSession.messages[i + 1].timestamp;
+            pairedTimestamp = currentSession.messages[i + 1].timestamp || 0;
             break;
           }
         }

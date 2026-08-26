@@ -15,7 +15,7 @@ const PathNavigation: React.FC<PathNavigationProps> = ({
       {path.length > 1 && (
         <button
           onClick={onBackClick}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 hover:text-blue-600"
+          className="p-2 rounded-lg transition-colors text-gray-600 hover:text-blue-600 cursor-pointer"
         >
           <ArrowLeftOutlined className="text-base" />
         </button>

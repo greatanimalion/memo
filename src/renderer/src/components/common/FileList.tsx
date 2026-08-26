@@ -62,7 +62,7 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
   };
   if (viewMode === "list") {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1">
+      <div className=" rounded-lg border overflow-hidden flex-1">
         {contextHolder}
         <Modal
           title={modifyFile?.isFolder ? "请填写文件夹名" : "请填写文件名"}
@@ -86,18 +86,18 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
           />
         </Modal>
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className=" border-b ">
             <tr>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold ">
                 名称
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold ">
                 大小
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold ">
                 修改日期
               </th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-right py-3 px-4 text-sm font-semibold ">
                 操作
               </th>
             </tr>
@@ -107,7 +107,7 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
               files.map((file) => (
                 <tr
                   key={file.id}
-                  className="hover:bg-gray-50 border-b border-gray-100 transition-colors"
+                  className="hover:bg-gray-[var(--bg-hover)] border-b  transition-colors"
                 >
                   <td
                     className="py-3 px-4"
@@ -130,16 +130,16 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
                         />
                       )}
                       <span
-                        className={`font-medium text-gray-800 ${file.isFolder ? "hover:underline" : ""}`}
+                        className={`font-medium  ${file.isFolder ? "hover:underline" : ""}`}
                       >
                         {file.title}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-3 px-4 text-sm ">
                     {file.isFolder ? null : regularNumberSize(file.size || 0)}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-3 px-4 text-sm ">
                     {formatRelativeTime(+file.updated)}
                   </td>
                   <td className="py-3 px-4 text-right">
@@ -147,7 +147,7 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
                       {!file.isFolder && (
                         <button
                           onClick={() => onToggleStar(file.id)}
-                          className="p-1.5 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                          className="p-1.5 hover:bg-gray-[var(--bg-hover)] rounded transition-colors cursor-pointer"
                         >
                           {file.starred ? (
                             <>
@@ -157,7 +157,7 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
                               />
                             </>
                           ) : (
-                            <StarOutlined className="text-gray-400 hover:text-yellow-500" />
+                            <StarOutlined className=" hover:text-yellow-500" />
                           )}
                         </button>
                       )}
@@ -192,8 +192,8 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
                         }}
                         placement="bottomRight"
                       >
-                        <button className="p-1.5 hover:bg-gray-100 rounded transition-colors cursor-pointer">
-                          <span className="text-gray-400 ">•••</span>
+                        <button className="p-1.5 hover:bg-gray-[var(--bg-hover)] rounded transition-colors cursor-pointer">
+                          <span className=" ">•••</span>
                         </button>
                       </Dropdown>
                     </div>
@@ -244,7 +244,7 @@ const GridView = ({ files, onFolderClick, onFileClick, onToggleStar }) => {
               ? onFolderClick(file.title, file.id)
               : onFileClick(file)
           }
-          className={`bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer `}
+          className={` rounded-lg border p-4 hover:shadow-md transition-shadow cursor-pointer `}
         >
           <div className="flex items-start justify-between mb-2">
             {file.isFolder ? (
@@ -264,7 +264,7 @@ const GridView = ({ files, onFolderClick, onFileClick, onToggleStar }) => {
                   e.stopPropagation();
                   onToggleStar(file.id);
                 }}
-                className="p-1 hover:bg-gray-100 rounded cursor-pointer"
+                className="p-1  rounded cursor-pointer"
               >
                 {file.starred ? (
                   <StarFilled
@@ -272,15 +272,15 @@ const GridView = ({ files, onFolderClick, onFileClick, onToggleStar }) => {
                     style={{ color: "oklch(79.5% 0.184 86.047)" }}
                   />
                 ) : (
-                  <StarOutlined className="text-gray-400 hover:text-yellow-500" />
+                  <StarOutlined className=" hover:text-yellow-500" />
                 )}
               </button>
             )}
           </div>
-          <h3 className="font-medium text-gray-800 truncate mb-1">
+          <h3 className="font-medium  truncate mb-1">
             {file.title}
           </h3>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs ">
             {file.isFolder ? null : file.size} ·{" "}
             {formatDateByTimestamp(+file.updated)}
           </p>

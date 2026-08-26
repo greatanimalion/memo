@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .border-b, .border, .border-l ,.border-t ,.border-r{
+    color:var(--border-color)
+  }
+}
+
+
 /* 默认CSS变量（当没有主题类时使用） */
 :root {
   --bg-color: #ffffff;
@@ -29,11 +36,7 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* 全局主题应用 */
-.globalTheme {
-  color: var(--text-color);
-  background-color: var(--bg-color);
-}
+
 
 /* 暗色模式默认值 */
 @media (prefers-color-scheme: dark) {

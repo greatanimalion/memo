@@ -23,8 +23,8 @@ const SessionList: React.FC<SessionListProps> = ({
   onNewSession,
 }) => {
   return (
-    <div className="w-60 border-r border-gray-200 overflow-auto flex flex-col max-md:w-0 transition-width duration-300">
-      <div className="p-4 border-b border-gray-200">
+    <div className="w-60  overflow-auto flex flex-col max-md:w-0 transition-width duration-300">
+      <div className="p-4 border-b ">
         <Button
           icon={<PlusOutlined />}
           onClick={onNewSession}

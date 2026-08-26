@@ -138,3 +138,17 @@ body::-webkit-scrollbar {
 .bg-warning { background-color: var(--warning-color); }
 .bg-error { background-color: var(--error-color); }
 .bg-info { background-color: var(--info-color); }
+
+/* 强调色工具类 */
+.text-accent { color: var(--accent-color); }
+.bg-accent { background-color: var(--accent-color); }
+.border-accent { border-color: var(--accent-color); }
+
+.bg-accent-light { background-color: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+.text-accent-light { color: color-mix(in srgb, var(--accent-color) 80%, transparent); }
+.border-accent-light { border-color: color-mix(in srgb, var(--accent-color) 20%, transparent); }
+
+/* 阴影工具类 */
+.shadow-theme-sm { box-shadow: var(--shadow-sm); }
+.shadow-theme-md { box-shadow: var(--shadow-md); }
+.shadow-theme-lg { box-shadow: var(--shadow-lg); }

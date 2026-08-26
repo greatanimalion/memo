@@ -1,8 +1,8 @@
-﻿import express from "express";
+﻿import express, { Router } from "express";
 import { BookController } from "@main/server/controllers/book.controller";
 import { asyncHandler } from "@main/server/utils/asyncHandler";
 
-const router = express.Router();
+const router:Router = express.Router();
 const bookController = new BookController();
 
 router.get("/books", asyncHandler(bookController.getAll.bind(bookController)));

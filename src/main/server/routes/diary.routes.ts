@@ -1,8 +1,8 @@
-﻿import express from "express";
+﻿import express, { Router } from "express";
 import { DiaryController } from "@main/server/controllers/diary.controller";
 import { asyncHandler } from "@main/server/utils/asyncHandler";
 
-const router = express.Router();
+const router:Router = express.Router();
 const diaryController = new DiaryController();
 
 router.get(

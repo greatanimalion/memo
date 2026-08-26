@@ -66,7 +66,8 @@ export class MemoryService {
   }
 
   create(data: Memory): Memory {
-    data.fileUrl = this.createMemoFile("");
+    console.log(data)
+    if(!data.isFolder)data.fileUrl = this.createMemoFile("");
     return this.memoryRepository.create(data);
   }
 

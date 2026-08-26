@@ -100,27 +100,27 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
       {/* 顶部信息栏 */}
       <div className={`flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-200 ${appStore.isBookScreen
           ? isDarkBg
-            ? 'bg-gray-900/80 border-gray-700 backdrop-blur-sm'
-            : 'bg-white/60 border-gray-100 backdrop-blur-sm'
-          : 'bg-white/80 border-gray-100 backdrop-blur-sm'
+            ? 'bg-theme-primary/80 border-theme backdrop-blur-sm'
+            : 'bg-theme-primary/60 border-theme-light backdrop-blur-sm'
+          : 'bg-theme-primary/80 border-theme-light backdrop-blur-sm'
         }`}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <BookOutlined className={`text-sm ${isDarkBg ? 'text-indigo-300' : 'text-indigo-400'}`} />
-            <span className={`text-sm font-semibold ${isDarkBg ? 'text-gray-200' : 'text-gray-800'}`}>{book.title}</span>
+            <BookOutlined className={`text-sm ${isDarkBg ? 'text-accent-light' : 'text-accent'}`} />
+            <span className={`text-sm font-semibold ${isDarkBg ? 'text-theme-primary' : 'text-theme-primary'}`}>{book.title}</span>
           </div>
-          <div className={`w-px h-3.5 ${isDarkBg ? 'bg-gray-600' : 'bg-gray-200'}`} />
+          <div className={`w-px h-3.5 ${isDarkBg ? 'bg-theme-border' : 'bg-theme-light'}`} />
           <div className="flex items-center gap-1.5">
-            <UserOutlined className={`text-xs ${isDarkBg ? 'text-gray-500' : 'text-gray-300'}`} />
-            <span className={`text-[13px] ${isDarkBg ? 'text-gray-400' : 'text-gray-500'}`}>{book.author}</span>
+            <UserOutlined className={`text-xs ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`} />
+            <span className={`text-[13px] ${isDarkBg ? 'text-theme-secondary' : 'text-theme-secondary'}`}>{book.author}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`flex items-center gap-3 text-[12px] mr-2 ${isDarkBg ? 'text-gray-500' : 'text-gray-400'}`}>
+          <div className={`flex items-center gap-3 text-[12px] mr-2 ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`}>
             <span>{new Date().toLocaleDateString('zh-CN')}</span>
-            <span className={isDarkBg ? 'text-gray-600' : 'text-gray-200'}>·</span>
+            <span className={isDarkBg ? 'text-theme-muted' : 'text-theme-light'}>·</span>
             <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
-            <span className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg ? 'bg-gray-800 text-indigo-300' : 'bg-indigo-50 text-indigo-500'
+            <span className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg ? 'bg-theme-tertiary text-accent-light' : 'bg-accent-light text-accent'
               }`}>
               {charCount} 字
             </span>
@@ -130,11 +130,11 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
             size="small"
             type="text"
             icon={appStore.isBookScreen
-              ? <CompressOutlined className={`text-sm ${isDarkBg ? 'text-gray-400' : 'text-gray-400'}`} />
-              : <ExpandOutlined className={`text-sm ${isDarkBg ? 'text-gray-400' : 'text-gray-400'}`} />
+              ? <CompressOutlined className={`text-sm ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`} />
+              : <ExpandOutlined className={`text-sm ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`} />
             }
             onClick={(!appStore.isBookScreen ? appStore.intoBookScreen : appStore.exitBookScreen)}
-            className={`rounded-lg transition-all ${isDarkBg ? 'hover:bg-gray-700 hover:text-indigo-300' : 'hover:bg-indigo-50 hover:text-indigo-500'
+            className={`rounded-lg transition-all ${isDarkBg ? 'hover:bg-theme-hover hover:text-accent-light' : 'hover:bg-theme-hover hover:text-accent'
               }`}
             title={appStore.isBookScreen ? '退出全屏 (Esc)' : '全屏编辑 (Ctrl+F11)'}
           />
@@ -147,7 +147,7 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
           style={editorBgStyle}
         >
           {editorBg?.type === 'image' && (
-            <div className={`absolute inset-0 ${isDarkBg ? 'bg-black/40' : 'bg-white/70'} backdrop-blur-[1px]`} />
+            <div className={`absolute inset-0 ${isDarkBg ? 'bg-black/40' : 'bg-theme-primary/70'} backdrop-blur-[1px]`} />
           )}
           <textarea
             ref={textareaRef}
@@ -155,8 +155,8 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
             onChange={handleChange}
             onSelect={handleSelect}
             onKeyDown={handleKeyDown}
-            className={`w-full h-full bg-transparent border-none outline-none resize-none placeholder-gray-300 selection:bg-indigo-100 relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
-              } ${isDarkBg ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800'}`}
+            className={`w-full h-full bg-transparent border-none outline-none resize-none placeholder-theme-muted selection:bg-accent-light relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
+              } ${isDarkBg ? 'text-theme-primary placeholder-theme-muted' : 'text-theme-primary'}`}
             style={{ ...textareaStyle, color: textareaTextColor }}
             placeholder="开始写作..."
             spellCheck={false}
@@ -165,16 +165,16 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
       </div>
       {/* 底部状态栏 */}
       <div className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
-          ? 'bg-gray-900/60 border-gray-700 text-gray-500 backdrop-blur-sm'
-          : 'bg-white/60 border-gray-100 text-gray-400 backdrop-blur-sm'
+          ? 'bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm'
+          : 'bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm'
         }`}>
         <div className="flex items-center gap-3">
-          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-gray-800 text-gray-500' : 'bg-gray-50 text-gray-400'}`}>UTF-8</span>
-          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-gray-800 text-gray-500' : 'bg-gray-50 text-gray-400'}`}>LF</span>
+          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-theme-tertiary text-theme-muted' : 'bg-theme-secondary text-theme-muted'}`}>UTF-8</span>
+          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-theme-tertiary text-theme-muted' : 'bg-theme-secondary text-theme-muted'}`}>LF</span>
         </div>
         <div className="flex items-center gap-3">
           <span>行 {lineCount}，列 {column}</span>
-          <span className={isDarkBg ? 'text-gray-600' : 'text-gray-200'}>|</span>
+          <span className={isDarkBg ? 'text-theme-muted' : 'text-theme-light'}>|</span>
           <span>{charCount} 字</span>
         </div>
       </div>

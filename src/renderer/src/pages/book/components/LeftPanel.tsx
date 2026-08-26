@@ -58,18 +58,18 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
   }
 
   return (
-    <div className="w-56 shrink-0 border-r border-gray-200/80 flex flex-col bg-white/70 backdrop-blur-sm max-md:w-0 transition-all duration-300">
+    <div className="w-56 shrink-0 border-r border-theme-light flex flex-col bg-theme-primary/70 backdrop-blur-sm max-md:w-0 transition-all duration-300">
       {/* 左侧标题栏 */}
-      <div className="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-4 py-3.5 border-b border-theme-light flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-gray-800 tracking-wide">章节管理</span>
+          <span className="text-sm font-semibold text-theme-primary tracking-wide">章节管理</span>
         </div>
         <Button
           size="small"
           type="text"
           icon={<PlusOutlined className="text-xs" />}
           onClick={() => handleAddChapter()}
-          className="text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all"
+          className="text-theme-muted hover:text-accent hover:bg-accent-light rounded-lg transition-all"
         />
       </div>
       {/* 分卷列表 */}
@@ -77,17 +77,17 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
         {/* 未分组章节 */}
         {ungroupedChapters.length > 0 && (
           <div className="mb-3">
-            <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1.5 px-2">未分组</div>
+            <div className="text-[11px] font-medium text-theme-muted uppercase tracking-wider mb-1.5 px-2">未分组</div>
             {ungroupedChapters.map((chapter) => (
               <div
                 key={chapter.id}
                 onClick={() => setCurrentChapter(chapter.id)}
                 className={`flex items-center gap-2 px-2.5 py-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-150 ${currentChapterId === chapter.id
-                    ? 'bg-indigo-50 text-indigo-600 shadow-sm shadow-indigo-100'
-                    : 'hover:bg-gray-50 text-gray-600 hover:text-gray-800'
+                    ? 'bg-accent-light text-accent shadow-theme-sm'
+                    : 'hover:bg-theme-hover text-theme-secondary hover:text-theme-primary'
                   }`}
               >
-                <FileTextOutlined className={`text-xs shrink-0 ${currentChapterId === chapter.id ? 'text-indigo-400' : 'text-gray-300'
+                <FileTextOutlined className={`text-xs shrink-0 ${currentChapterId === chapter.id ? 'text-accent' : 'text-theme-muted'
                   }`} />
                 <span className="text-[13px] truncate">{chapter.title}</span>
               </div>
@@ -104,14 +104,14 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
                 <div key={volume.id} className="mb-1">
                   {/* 分卷标题 */}
                   <div
-                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 ${isExpanded ? 'bg-indigo-50/60' : 'hover:bg-gray-50'
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 ${isExpanded ? 'bg-accent-light/60' : 'hover:bg-theme-hover'
                       }`}
                     onClick={() => toggleVolume(volume.id)}
                   >
                     {isExpanded ? (
-                      <FolderOpenOutlined className="text-sm text-indigo-400 shrink-0" />
+                      <FolderOpenOutlined className="text-sm text-accent shrink-0" />
                     ) : (
-                      <FolderOutlined className="text-sm text-gray-300 shrink-0" />
+                      <FolderOutlined className="text-sm text-theme-muted shrink-0" />
                     )}
                     {editingVolumeId === volume.id ? (
                       <Input
@@ -120,12 +120,12 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
                         onChange={(e) => setEditingVolumeTitle(e.target.value)}
                         onBlur={saveVolumeTitle}
                         onPressEnter={saveVolumeTitle}
-                        className="flex-1 rounded-md! border-indigo-200! text-sm!"
+                        className="flex-1 rounded-md! border-accent-light! text-sm!"
                         autoFocus
                       />
                     ) : (
                       <span
-                        className="flex-1 text-[13px] font-medium text-gray-700 truncate"
+                        className="flex-1 text-[13px] font-medium text-theme-primary truncate"
                         onDoubleClick={() => startEditVolume(volume)}
                       >
                         {volume.title}
@@ -141,7 +141,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
                             e.stopPropagation();
                             handleAddChapter(volume.id);
                           }}
-                          className="text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-md w-6 h-6 min-w-0"
+                          className="text-theme-muted hover:text-accent hover:bg-accent-light rounded-md w-6 h-6 min-w-0"
                         />
                         <Button
                           size="small"
@@ -151,24 +151,24 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
                             e.stopPropagation();
                             deleteVolume(volume.id);
                           }}
-                          className="text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-md w-6 h-6 min-w-0"
+                          className="text-theme-muted hover:text-error hover:bg-error/10 rounded-md w-6 h-6 min-w-0"
                         />
                       </div>
                     )}
                   </div>
                   {/* 分卷下的章节 */}
                   {isExpanded && volumeChapters.length > 0 && (
-                    <div className="ml-3 pl-2 border-l border-indigo-100/60 mt-0.5">
+                    <div className="ml-3 pl-2 border-l border-accent-light mt-0.5">
                       {volumeChapters.map((chapter) => (
                         <div
                           key={chapter.id}
                           onClick={() => setCurrentChapter(chapter.id)}
                           className={`flex items-center gap-2 px-2.5 py-1.5 mb-0.5 rounded-md cursor-pointer transition-all duration-150 ${currentChapterId === chapter.id
-                              ? 'bg-indigo-50 text-indigo-600'
-                              : 'hover:bg-gray-50 text-gray-500 hover:text-gray-700'
+                              ? 'bg-accent-light text-accent'
+                              : 'hover:bg-theme-hover text-theme-secondary hover:text-theme-primary'
                             }`}
                         >
-                          <FileTextOutlined className={`text-[10px] shrink-0 ${currentChapterId === chapter.id ? 'text-indigo-400' : 'text-gray-300'
+                          <FileTextOutlined className={`text-[10px] shrink-0 ${currentChapterId === chapter.id ? 'text-accent' : 'text-theme-muted'
                             }`} />
                           <span className="text-[13px] truncate">{chapter.title}</span>
                         </div>
@@ -186,7 +186,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
             size="small"
             icon={<PlusOutlined className="text-xs" />}
             onClick={addVolume}
-            className="w-full border-dashed border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-500 text-gray-400 rounded-lg transition-all"
+            className="w-full border-dashed border-theme-light hover:border-accent hover:bg-accent-light/50 hover:text-accent text-theme-muted rounded-lg transition-all"
           >
             新建分卷
           </Button>

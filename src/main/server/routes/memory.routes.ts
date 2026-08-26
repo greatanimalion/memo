@@ -1,8 +1,8 @@
-﻿import express from "express";
+﻿import express, { Router } from "express";
 import { MemoryController } from "@main/server/controllers/memory.controller";
 import { asyncHandler } from "@main/server/utils/asyncHandler";
 
-const router = express.Router();
+const router :Router= express.Router();
 const memoryController = new MemoryController();
 
 router.get(

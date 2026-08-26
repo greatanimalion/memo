@@ -38,7 +38,7 @@ export default function TextEditorPage() {
   }, [book])
 
   return (
-    <div className="h-full w-full flex">
+    <div className="h-full w-full flex bg-theme-primary">
       <div className='flex h-full w-full'>
         <LeftPanel isBookScreen={appStore.isBookScreen} />
         <EditorArea

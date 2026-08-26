@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Form } from "antd";
-import dayjs, { Dayjs } from "dayjs";
 import { useDiary } from "@renderer/hooks/useDiary";
 import { updateDiary } from "@renderer/services/diary";
 import StatsCards from "./components/StatsCards";
@@ -23,11 +22,11 @@ const DiaryPage: React.FC = () => {
   const [form] = Form.useForm();
 
   const handleSave = () => {
-    form.validateFields().then(async (values) => {
+    form.validateFields().then(async (values: { todos: Array<{ text: string; completed: boolean }>; note: string }) => {
       if (selectedDate) {
         const dateKey = selectedDate.format("YYYY-MM-DD");
         const todos = values.todos
-          .map((todo: any, index: number) => ({
+          .map((todo, index) => ({
             id: index + 1,
             text: todo.text,
             completed: todo.completed,
@@ -48,7 +47,7 @@ const DiaryPage: React.FC = () => {
           };
         }
         const monthKey = dateKey.substring(0, 7);
-        updateDiary({
+        await updateDiary({
           id: monthKey,
           monthDiarys: newDiary,
         });

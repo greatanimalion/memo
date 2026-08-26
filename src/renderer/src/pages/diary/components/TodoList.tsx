@@ -1,18 +1,19 @@
 import React from "react";
 import { Badge, Empty } from "antd";
 import dayjs from "dayjs";
+import type { FormInstance } from "antd";
 
 interface TodoListProps {
   diaryData: Record<
     string,
     {
       todos: Array<{ text: string; completed: boolean }>;
-      note: string;
+      note?: string;
     }
   >;
   setSelectedDate: (date: dayjs.Dayjs | null) => void;
   setIsModalOpen: (open: boolean) => void;
-  form: any;
+  form: FormInstance;
 }
 
 const TodoList: React.FC<TodoListProps> = ({

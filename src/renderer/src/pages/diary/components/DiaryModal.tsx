@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Form, Input, Button, Checkbox, Typography } from "antd";
 import type { Dayjs } from "dayjs";
+import type { FormInstance } from "antd";
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -8,7 +9,7 @@ const { Title } = Typography;
 interface DiaryModalProps {
   isOpen: boolean;
   selectedDate: Dayjs | null;
-  form: any;
+  form: FormInstance;
   onSave: () => void;
   onCancel: () => void;
 }

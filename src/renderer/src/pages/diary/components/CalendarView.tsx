@@ -5,16 +5,18 @@ import dayjs, { Dayjs } from "dayjs";
 import Select from "antd/es/select";
 import { Button } from "antd";
 
+import type { FormInstance } from "antd";
+
 interface CalendarViewProps {
   getDateData: (dateKey: string) => {
     todos: Array<{ text: string; completed: boolean }>;
-    note: string;
+    note?: string;
   };
   handleDateSelect: (value: Dayjs) => void;
   handleMonthChange: (value: Dayjs) => void;
   setSelectedDate: (date: Dayjs | null) => void;
   setIsModalOpen: (open: boolean) => void;
-  form: any;
+  form: FormInstance;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({
@@ -59,7 +61,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         text: todo.text,
         completed: todo.completed,
       })),
-      note: data.note || "",
+      note: data.note ?? "",
     });
     //@ts-ignore
     if (window.___NOTPOPEN) return;
@@ -93,7 +95,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 //@ts-ignore
                 window.___NOTPOPEN = true;
                 const _Y = value.clone().year(newYear);
-                onChange(_Y);
+                onChange?.(_Y);
                 handleMonthChange(_Y);
                 //@ts-ignore
                 window.___NOTPOPEN = false;
@@ -108,7 +110,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 //@ts-ignore
                 window.___NOTPOPEN = true;
                 const _m = value.clone().month(newMonth);
-                onChange(_m);
+                onChange?.(_m);
                 handleMonthChange(_m);
                 //@ts-ignore
                 window.___NOTPOPEN = false;
@@ -118,7 +120,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               size="middle"
             />
           </div>
-          <Button type="primary" onClick={() => onChange(value.clone())}>
+          <Button type="primary" onClick={() => onChange?.(value.clone())}>
             今天
           </Button>
         </div>

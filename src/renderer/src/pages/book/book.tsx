@@ -5,6 +5,7 @@ import { AIAssistantPanel } from '@renderer/components/WriterAssistant'
 import LeftPanel from '@renderer/pages/book/components/LeftPanel'
 import EditorArea from '@renderer/pages/book/components/EditorArea'
 import RightPanel from '@renderer/pages/book/components/RightPanel'
+import Bookshelf from '@renderer/pages/book/components/Bookshelf'
 import useAppStore from '@renderer/store/app'
 
 export default function TextEditorPage() {
@@ -28,6 +29,7 @@ export default function TextEditorPage() {
   }, [bookId])
 
   useEffect(() => {
+    if (!bookId) return
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       saveBook()
@@ -35,7 +37,12 @@ export default function TextEditorPage() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
     }
-  }, [book])
+  }, [book, bookId])
+
+  // 无 bookId 时显示书架
+  if (!bookId) {
+    return <Bookshelf />
+  }
 
   return (
     <div className="h-full w-full flex bg-theme-primary">

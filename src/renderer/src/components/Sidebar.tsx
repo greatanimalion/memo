@@ -8,7 +8,7 @@ import {
   MessageOutlined,
   InsertRowAboveOutlined,
   GlobalOutlined,
-  WalletOutlined,
+  BookOutlined,
 } from "@ant-design/icons";
 import { ViewType } from "@renderer/types/common";
 
@@ -28,9 +28,9 @@ const Sidebar: React.FC = () => {
     },
     { id: "chat" as ViewType, label: "AI 聊天", icon: <MessageOutlined /> },
     {
-      id: "textEditor" as ViewType,
+      id: "book" as ViewType,
       label: "文本编辑器",
-      icon: <WalletOutlined />,
+      icon: <BookOutlined />,
     },
     { id: "web" as ViewType, label: "Web", icon: <GlobalOutlined /> },
     { id: "settings" as ViewType, label: "设置", icon: <SettingOutlined /> },

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useWriterStore } from '@renderer/store/useWriterStore';
 import { fontFamilyMap } from '../../../components/WriterAssistant/ChapterToolbar';
 import { Button } from 'antd';
@@ -10,14 +10,21 @@ import {
 } from '@ant-design/icons';
 import useAppStore from '@renderer/store/app';
 
+import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
+import { debounce } from '@renderer/utils';
+
 interface EditorAreaProps {
   content: string;
   onChange: (content: string) => void;
 }
 
-
 const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [lineCount, setLineCount] = useState(1);
   const [column, setColumn] = useState(1);
 
@@ -26,51 +33,42 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
   const editorBg = useWriterStore((s) => s.editorBg);
   const appStore = useAppStore();
 
+  const editorRef = useRef<any>(null);
+  const lastExternalContent = useRef(content);
+
+  // 外部内容变化时同步到 Lexical
   useEffect(() => {
-    if (textareaRef.current && textareaRef.current.value !== content) {
-      textareaRef.current.value = content;
-      updateLineInfo();
+    if (editorRef.current && content !== lastExternalContent.current) {
+      const editor = editorRef.current;
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        if (content) {
+          const paragraphs = content.split('\n');
+          paragraphs.forEach((text) => {
+            const p = $createParagraphNode();
+            p.append($createTextNode(text));
+            root.append(p);
+          });
+        }
+      });
+      lastExternalContent.current = content;
     }
   }, [content]);
-
-  const updateLineInfo = () => {
-    if (!textareaRef.current) return;
-    const text = textareaRef.current.value;
-    const cursorPos = textareaRef.current.selectionStart;
-    const textBeforeCursor = text.substring(0, cursorPos);
-    const lines = textBeforeCursor.split('\n');
-    setLineCount(lines.length);
-    setColumn(lines[lines.length - 1].length + 1);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-    updateLineInfo();
-  };
-
-  const handleSelect = () => {
-    updateLineInfo();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const textarea = textareaRef.current;
-      if (!textarea) return;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const text = textarea.value;
-      const tabSpaces = '  ';
-      const newText = text.substring(0, start) + tabSpaces + text.substring(end);
-      onChange(newText);
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + tabSpaces.length;
-        updateLineInfo();
-      }, 0);
-    } else {
-      setTimeout(updateLineInfo, 0);
-    }
-  };
+  const LexChange=debounce((editorState: EditorState) => {
+    editorState.read(() => {
+      const root = $getRoot();
+      const text = root.getTextContent();
+      lastExternalContent.current = text;
+      onChange(text);
+      // 更新行列信息
+      const selection = root.__cachedText || '';
+      const lines = selection.split('\n');
+      setLineCount(lines.length || 1);
+      setColumn(lines[lines.length - 1]?.length + 1 || 1);
+    });
+  }, 300)
+  const handleLexicalChange = useCallback(LexChange, [onChange]);
 
   const textareaStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
@@ -79,21 +77,23 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
     fontWeight: editorSettings.fontWeight,
   };
 
-  const editorBgStyle: React.CSSProperties = editorBg
-    ? editorBg.type === 'image'
-      ? {
-        backgroundImage: `url(${editorBg.value})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }
-      : { backgroundColor: editorBg.value }
-    : {};
-
   const isDarkBg = editorBg?.type === 'color' && ['#1e1e2e'].includes(editorBg.value);
-  const textareaTextColor = isDarkBg ? '#e0e0e0' : undefined;
 
   const charCount = content.length;
+
+  const initialConfig = {
+    namespace: 'BookEditor',
+    theme: {
+      paragraph: 'editor-paragraph',
+      text: {
+        bold: 'editor-text-bold',
+        italic: 'editor-text-italic',
+        underline: 'editor-text-underline',
+        strikethrough: 'editor-text-strikethrough',
+      },
+    },
+    onError: (error: Error) => console.error(error),
+  };
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
@@ -111,14 +111,14 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
           </div>
           <div className={`w-px h-3.5 ${isDarkBg ? 'bg-theme-border' : 'bg-theme-light'}`} />
           <div className="flex items-center gap-1.5">
-            <UserOutlined className={`text-xs ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`} />
-            <span className={`text-[13px] ${isDarkBg ? 'text-theme-secondary' : 'text-theme-secondary'}`}>{book.author}</span>
+            <UserOutlined className="text-xs text-theme-muted" />
+            <span className="text-[13px] text-theme-secondary">{book.author}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`flex items-center gap-3 text-[12px] mr-2 ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`}>
+          <div className="flex items-center gap-3 text-[12px] mr-2 text-theme-muted">
             <span>{new Date().toLocaleDateString('zh-CN')}</span>
-            <span className={isDarkBg ? 'text-theme-muted' : 'text-theme-light'}>·</span>
+            <span className="text-theme-light">·</span>
             <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
             <span className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg ? 'bg-theme-tertiary text-accent-light' : 'bg-accent-light text-accent'
               }`}>
@@ -130,39 +130,46 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
             size="small"
             type="text"
             icon={appStore.isBookScreen
-              ? <CompressOutlined className={`text-sm ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`} />
-              : <ExpandOutlined className={`text-sm ${isDarkBg ? 'text-theme-muted' : 'text-theme-muted'}`} />
+              ? <CompressOutlined className="text-sm text-theme-muted" />
+              : <ExpandOutlined className="text-sm text-theme-muted" />
             }
             onClick={(!appStore.isBookScreen ? appStore.intoBookScreen : appStore.exitBookScreen)}
-            className={`rounded-lg transition-all ${isDarkBg ? 'hover:bg-theme-hover hover:text-accent-light' : 'hover:bg-theme-hover hover:text-accent'
-              }`}
-            title={appStore.isBookScreen ? '退出全屏 (Esc)' : '全屏编辑 (Ctrl+F11)'}
+            className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
+            title={appStore.isBookScreen ? '退出全屏' : '全屏编辑 '}
           />
         </div>
       </div>
+
       {/* 编辑区主体 */}
       <div className="flex-1 flex overflow-hidden">
         <div
           className="flex-1 overflow-hidden relative transition-colors duration-200"
-          style={editorBgStyle}
         >
           {editorBg?.type === 'image' && (
-            <div className={`absolute inset-0 ${isDarkBg ? 'bg-black/40' : 'bg-theme-primary/70'} backdrop-blur-[1px]`} />
+            <div className="absolute inset-0 bg-theme-primary/70 backdrop-blur-[1px]" />
           )}
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleChange}
-            onSelect={handleSelect}
-            onKeyDown={handleKeyDown}
-            className={`w-full h-full bg-transparent border-none outline-none resize-none placeholder-theme-muted selection:bg-accent-light relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
-              } ${isDarkBg ? 'text-theme-primary placeholder-theme-muted' : 'text-theme-primary'}`}
-            style={{ ...textareaStyle, color: textareaTextColor }}
-            placeholder="开始写作..."
-            spellCheck={false}
-          />
+          <LexicalComposer initialConfig={initialConfig}>
+            <div
+              className={`w-full h-full relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
+                }`}
+            >
+              <RichTextPlugin
+                contentEditable={
+                  <ContentEditable
+                    className="w-full h-full outline-none resize-none"
+                    style={textareaStyle}
+                  />
+                }
+                placeholder={<span className="text-theme-muted pointer-events-none">开始写作...</span>}
+                ErrorBoundary={LexicalErrorBoundary}
+              />
+              <HistoryPlugin />
+              <OnChangePlugin onChange={handleLexicalChange} />
+            </div>
+          </LexicalComposer>
         </div>
       </div>
+
       {/* 底部状态栏 */}
       <div className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
           ? 'bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm'
@@ -174,7 +181,7 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
         </div>
         <div className="flex items-center gap-3">
           <span>行 {lineCount}，列 {column}</span>
-          <span className={isDarkBg ? 'text-theme-muted' : 'text-theme-light'}>|</span>
+          <span className="text-theme-light">|</span>
           <span>{charCount} 字</span>
         </div>
       </div>

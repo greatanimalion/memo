@@ -58,7 +58,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
   }
 
   return (
-    <div className="w-56 shrink-0 border-r border-theme-light flex flex-col bg-theme-primary/70 backdrop-blur-sm max-md:w-0 transition-all duration-300">
+    <div className="w-56 shrink-0 border-r border-theme-light flex flex-col bg-theme-primary/70 backdrop-blur-sm max-md:hidden transition-all duration-300">
       {/* 左侧标题栏 */}
       <div className="px-4 py-3.5 border-b border-theme-light flex items-center justify-between">
         <div className="flex items-center gap-2.5">

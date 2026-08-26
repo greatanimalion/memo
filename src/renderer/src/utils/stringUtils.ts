@@ -66,7 +66,7 @@ export const deepClone = <T>(obj: T): T => {
  */
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
-  delay: number,
+  delay: number=300,
 ): ((...args: Parameters<T>) => void) => {
   let timeoutId: NodeJS.Timeout;
   return (...args: Parameters<T>) => {

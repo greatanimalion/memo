@@ -19,13 +19,13 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
+import { $getRoot, $createParagraphNode, $createTextNode, $getSelection, $isRangeSelection, EditorState, KEY_TAB_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { debounce } from '@renderer/utils';
 import { Chapter } from '@type';
 
 // ========== 内层组件：所有依赖 LexicalComposer Context 的逻辑 ==========
 const LexicalEditorContent: React.FC<{
-  currentChapter: Chapter|null;
+  currentChapter: Chapter | null;
   updateChapterContent: (id: string, content: string) => void;
   setLineCount: (count: number) => void;
   setColumn: (col: number) => void;
@@ -36,14 +36,31 @@ const LexicalEditorContent: React.FC<{
     editor.update(() => {
       const root = $getRoot();
       root.clear(); // 清空当前内容
-      const paragraphs = currentChapter.content.split('\n');
-      paragraphs.forEach((text) => {
-        const p = $createParagraphNode();
-        p.append($createTextNode(text));
-        root.append(p);
-      });
+      const p = $createParagraphNode();
+      p.append($createTextNode(currentChapter.content));
+      root.append(p);
+
     });
   }, [editor, currentChapter?.id]);
+
+  // Tab 键插入制表符
+  useEffect(() => {
+    if (!editor) return;
+    return editor.registerCommand(
+      KEY_TAB_COMMAND,
+      (event: KeyboardEvent) => {
+        event.preventDefault();
+        editor.update(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            selection.insertText("\t");
+          }
+        });
+        return true;
+      },
+      COMMAND_PRIORITY_LOW
+    );
+  }, [editor]);
 
   const handleLexicalChange = useCallback(
     debounce((editorState: EditorState) => {
@@ -67,8 +84,7 @@ const LexicalEditorContent: React.FC<{
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className="w-full h-full outline-none resize-none"
-            // 样式继承自父级传入的 textareaStyle，我们将在外部通过 CSS 或 wrapper 传递
+            className="w-full min-h-full outline-none resize-none"
           />
         }
         ErrorBoundary={LexicalErrorBoundary}
@@ -178,15 +194,15 @@ const EditorArea: React.FC = () => {
 
       {/* 编辑区主体 */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden relative transition-colors duration-200">
+        <div className="flex-1 overflow-y-auto relative transition-colors duration-200">
           {editorBg?.type === 'image' && (
             <div className="absolute inset-0 bg-theme-primary/70 backdrop-blur-[1px]" />
           )}
           <LexicalComposer initialConfig={initialConfig}>
             <div
-              className={`w-full h-full relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
+              className={`w-full min-h-full relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
                 }`}
-              style={textareaStyle} // 将样式传递给容器，ContentEditable 会继承
+              style={textareaStyle}
             >
               <LexicalEditorContent
                 currentChapter={currentChapter}

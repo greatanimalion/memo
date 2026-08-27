@@ -8,3 +8,8 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
     <App />
   </React.StrictMode>,
 );
+
+// 通知主进程渲染完成
+setTimeout(() => {
+  window.require("electron").ipcRenderer.send("app-ready");
+}, 100);

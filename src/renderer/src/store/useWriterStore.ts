@@ -167,7 +167,7 @@ export const useWriterStore = create<WriterState>((set, get) => ({
     if (!currentChapter) return
     try {
       // const wordCount = countWords(currentChapter.content, book.settings?.wordCountMode || 'chinese')
-      const wordCount=text.length
+      const wordCount=currentChapter.content.length
       await apiUpdateChapter(currentChapter.id, { content: currentChapter.content, wordCount })
     } catch {
       console.error('保存章节失败')

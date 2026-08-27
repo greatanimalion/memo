@@ -41,8 +41,8 @@ let splashWindow: BrowserWindow|null = null!;
 
 function createSplashWindow(): void {
   splashWindow = new BrowserWindow({
-    width: 400,
-    height: 320,
+    width: 900,
+    height: 720,
     frame: false,
     transparent: true,
     resizable: false,
@@ -66,6 +66,7 @@ function createWindow(): void {
     minHeight: 488,
     icon: path.join(__dirname, "../../resources/icon.png"),
     show: false,
+    backgroundColor: "#0f0f14",
     autoHideMenuBar: true,
     ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
@@ -79,16 +80,21 @@ function createWindow(): void {
   });
 
   mainWindow.on("ready-to-show", () => {
-    // 关闭启动画面，显示主窗口
-    if (splashWindow) {
-      splashWindow.close();
-      splashWindow = null;
-    }
-    mainWindow.show();
     try {
       startExpressServer();
     } catch (error) {
       console.log(error);
+    }
+  });
+
+  // 渲染进程通知内容就绪后，再显示主窗口并关闭 splash
+  ipcMain.on("app-ready", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+    }
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+      splashWindow = null;
     }
   });
 

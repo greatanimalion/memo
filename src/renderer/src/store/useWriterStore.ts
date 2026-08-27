@@ -13,7 +13,6 @@ import {
   updateVolume as apiUpdateVolume,
   deleteVolume as apiDeleteVolume,
 } from '@renderer/services/book'
-import { text } from 'stream/consumers'
 
 function countWords(text: string, mode: 'chinese' | 'english'|'all' = 'chinese'): number {
   if (mode === 'chinese') {

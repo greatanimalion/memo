@@ -37,6 +37,27 @@ app.on("second-instance", () => {
 });
 
 let mainWindow: BrowserWindow = null!;
+let splashWindow: BrowserWindow|null = null!;
+
+function createSplashWindow(): void {
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 320,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  splashWindow.loadFile(join(__dirname, "../../resources/splash.html"));
+  splashWindow.center();
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -58,6 +79,11 @@ function createWindow(): void {
   });
 
   mainWindow.on("ready-to-show", () => {
+    // 关闭启动画面，显示主窗口
+    if (splashWindow) {
+      splashWindow.close();
+      splashWindow = null;
+    }
     mainWindow.show();
     try {
       startExpressServer();
@@ -99,7 +125,10 @@ app.whenReady().then(() => {
     mainWindow && mainWindow.reload();
   });
 
+  // 先显示启动画面，再创建主窗口
+  createSplashWindow();
   createWindow();
+
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

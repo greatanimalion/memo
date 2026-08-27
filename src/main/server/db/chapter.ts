@@ -20,6 +20,13 @@ export class ChapterDatabase extends BaseDatabase {
     return rows.map((row) => this.parseRow(row));
   }
 
+  public getMetaByBookId(bookId: string): any[] {
+    const stmt = this.db.prepare(
+      "SELECT id, bookId, title, wordCount, volumeId, `order`, createdAt, updatedAt FROM chapters WHERE bookId = ? ORDER BY `order` ASC"
+    );
+    return stmt.all(bookId) as any[];
+  }
+
   public getById(id: string): any | undefined {
     const stmt = this.db.prepare("SELECT * FROM chapters WHERE id = ?");
     const row = stmt.get(id) as any;

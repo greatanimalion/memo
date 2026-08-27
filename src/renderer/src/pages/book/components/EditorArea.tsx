@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useWriterStore } from '@renderer/store/useWriterStore';
 import { fontFamilyMap } from '../../../components/WriterAssistant/ChapterToolbar';
 import { Button } from 'antd';
@@ -8,6 +8,8 @@ import {
   ExpandOutlined,
   CompressOutlined,
   SaveOutlined,
+  CloudOutlined,
+  CloudDownloadOutlined,
 } from '@ant-design/icons';
 import useAppStore from '@renderer/store/app';
 
@@ -17,60 +19,81 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
 import { debounce } from '@renderer/utils';
+import { Chapter } from '@type';
 
-interface EditorAreaProps {
-  content: string;
-  onChange: (content: string) => void;
-}
+// ========== 内层组件：所有依赖 LexicalComposer Context 的逻辑 ==========
+const LexicalEditorContent: React.FC<{
+  currentChapter: Chapter|null;
+  updateChapterContent: (id: string, content: string) => void;
+  setLineCount: (count: number) => void;
+  setColumn: (col: number) => void;
+}> = ({ currentChapter, updateChapterContent, setLineCount, setColumn }) => {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    if (!editor || !currentChapter) return;
 
-const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear(); // 清空当前内容
+      const paragraphs = currentChapter.content.split('\n');
+      paragraphs.forEach((text) => {
+        const p = $createParagraphNode();
+        p.append($createTextNode(text));
+        root.append(p);
+      });
+    });
+  }, [editor, currentChapter?.id]);
+
+  const handleLexicalChange = useCallback(
+    debounce((editorState: EditorState) => {
+      editorState.read(() => {
+        const root = $getRoot();
+        const text = root.getTextContent();
+        if (currentChapter?.id) {
+          updateChapterContent(currentChapter.id, text);
+        }
+        // 更新行列信息（供底部状态栏使用）
+        const lines = text.split('\n');
+        setLineCount(lines.length || 1);
+        setColumn(lines[lines.length - 1]?.length + 1 || 1);
+      });
+    }, 1000),
+    [currentChapter, updateChapterContent, setLineCount, setColumn]
+  );
+
+  return (
+    <>
+      <RichTextPlugin
+        contentEditable={
+          <ContentEditable
+            className="w-full h-full outline-none resize-none"
+            // 样式继承自父级传入的 textareaStyle，我们将在外部通过 CSS 或 wrapper 传递
+          />
+        }
+        placeholder={<span className="text-theme-muted pointer-events-none">开始写作...</span>}
+        ErrorBoundary={LexicalErrorBoundary}
+      />
+      <HistoryPlugin />
+      <OnChangePlugin onChange={handleLexicalChange} />
+    </>
+  );
+};
+
+const EditorArea: React.FC = () => {
   const [lineCount, setLineCount] = useState(1);
   const [column, setColumn] = useState(1);
 
   const book = useWriterStore((s) => s.book);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
-  const saveBook = useWriterStore((s) => s.saveBook);
+  const autoSave = useWriterStore((s) => s.autoSave);
+  const setAutoSave = useWriterStore((s) => s.setAutoSave);
+  const updateChapterContent = useWriterStore((s) => s.updateChapterContent);
+  const currentChapter = useWriterStore((s) => s.currentChapter);
   const appStore = useAppStore();
-
-  const editorRef = useRef<any>(null);
-  const lastExternalContent = useRef(content);
-
-  // 外部内容变化时同步到 Lexical
-  useEffect(() => {
-    if (editorRef.current && content !== lastExternalContent.current) {
-      const editor = editorRef.current;
-      editor.update(() => {
-        const root = $getRoot();
-        root.clear();
-        if (content) {
-          const paragraphs = content.split('\n');
-          paragraphs.forEach((text) => {
-            const p = $createParagraphNode();
-            p.append($createTextNode(text));
-            root.append(p);
-          });
-        }
-      });
-      lastExternalContent.current = content;
-    }
-  }, [content]);
-  const LexChange=debounce((editorState: EditorState) => {
-    editorState.read(() => {
-      const root = $getRoot();
-      const text = root.getTextContent();
-      lastExternalContent.current = text;
-      onChange(text);
-      // 更新行列信息
-      const selection = root.__cachedText || '';
-      const lines = selection.split('\n');
-      setLineCount(lines.length || 1);
-      setColumn(lines[lines.length - 1]?.length + 1 || 1);
-    });
-  }, 300)
-  const handleLexicalChange = useCallback(LexChange, [onChange]);
 
   const textareaStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
@@ -81,7 +104,6 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
 
   const isDarkBg = editorBg?.type === 'color' && ['#1e1e2e'].includes(editorBg.value);
 
-  const charCount = content.length;
 
   const initialConfig = {
     namespace: 'BookEditor',
@@ -101,10 +123,10 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
     <div className="flex-1 flex flex-col min-w-0">
       {/* 顶部信息栏 */}
       <div className={`flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-200 ${appStore.isBookScreen
-          ? isDarkBg
-            ? 'bg-theme-primary/80 border-theme backdrop-blur-sm'
-            : 'bg-theme-primary/60 border-theme-light backdrop-blur-sm'
-          : 'bg-theme-primary/80 border-theme-light backdrop-blur-sm'
+        ? isDarkBg
+          ? 'bg-theme-primary/80 border-theme backdrop-blur-sm'
+          : 'bg-theme-primary/60 border-theme-light backdrop-blur-sm'
+        : 'bg-theme-primary/80 border-theme-light backdrop-blur-sm'
         }`}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -124,19 +146,27 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
             <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
             <span className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg ? 'bg-theme-tertiary text-accent-light' : 'bg-accent-light text-accent'
               }`}>
-              {charCount} 字
+              {0} 字
             </span>
           </div>
-          {/* 保存按钮 */}
           <Button
             size="small"
             type="text"
-            icon={<SaveOutlined className="text-sm text-theme-muted" />}
-            onClick={saveBook}
+            icon={autoSave ? <CloudOutlined className="text-sm text-accent" /> : <CloudDownloadOutlined className="text-sm text-theme-muted" />}
+            onClick={() => setAutoSave(!autoSave)}
             className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
-            title="保存"
+            title={autoSave ? '自动保存中' : '手动保存模式'}
           />
-          {/* 全屏切换 */}
+          {!autoSave && (
+            <Button
+              size="small"
+              type="text"
+              icon={<SaveOutlined className="text-sm text-theme-muted" />}
+              onClick={() => useWriterStore.getState().saveCurrentChapter()}
+              className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
+              title="保存当前章节"
+            />
+          )}
           <Button
             size="small"
             type="text"
@@ -153,9 +183,7 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
 
       {/* 编辑区主体 */}
       <div className="flex-1 flex overflow-hidden">
-        <div
-          className="flex-1 overflow-hidden relative transition-colors duration-200"
-        >
+        <div className="flex-1 overflow-hidden relative transition-colors duration-200">
           {editorBg?.type === 'image' && (
             <div className="absolute inset-0 bg-theme-primary/70 backdrop-blur-[1px]" />
           )}
@@ -163,19 +191,14 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
             <div
               className={`w-full h-full relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
                 }`}
+              style={textareaStyle} // 将样式传递给容器，ContentEditable 会继承
             >
-              <RichTextPlugin
-                contentEditable={
-                  <ContentEditable
-                    className="w-full h-full outline-none resize-none"
-                    style={textareaStyle}
-                  />
-                }
-                placeholder={<span className="text-theme-muted pointer-events-none">开始写作...</span>}
-                ErrorBoundary={LexicalErrorBoundary}
+              <LexicalEditorContent
+                currentChapter={currentChapter}
+                updateChapterContent={updateChapterContent}
+                setLineCount={setLineCount}
+                setColumn={setColumn}
               />
-              <HistoryPlugin />
-              <OnChangePlugin onChange={handleLexicalChange} />
             </div>
           </LexicalComposer>
         </div>
@@ -183,8 +206,8 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
 
       {/* 底部状态栏 */}
       <div className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
-          ? 'bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm'
-          : 'bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm'
+        ? 'bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm'
+        : 'bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm'
         }`}>
         <div className="flex items-center gap-3">
           <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-theme-tertiary text-theme-muted' : 'bg-theme-secondary text-theme-muted'}`}>UTF-8</span>
@@ -193,7 +216,7 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
         <div className="flex items-center gap-3">
           <span>行 {lineCount}，列 {column}</span>
           <span className="text-theme-light">|</span>
-          <span>{charCount} 字</span>
+          <span>{0} 字</span>
         </div>
       </div>
     </div>

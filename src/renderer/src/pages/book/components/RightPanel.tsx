@@ -14,7 +14,6 @@ import {
 import { FontFamily } from '../../../types/common';
 
 interface RightPanelProps {
-  content: string;
   isBookScreen: boolean;
 }
 
@@ -26,16 +25,16 @@ const fontOptions: { value: FontFamily; label: string }[] = [
   { value: 'songti', label: '宋体' },
 ];
 
-const RightPanel: React.FC<RightPanelProps> = ({ content, isBookScreen }) => {
+const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
   const book = useWriterStore((s) => s.book);
-  const currentChapterId = useWriterStore((s) => s.currentChapterId);
+  const currentChapter = useWriterStore((s) => s.currentChapter);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const setEditorFont = useWriterStore((s) => s.setEditorFont);
   const setEditorFontSize = useWriterStore((s) => s.setEditorFontSize);
   const setEditorLineHeight = useWriterStore((s) => s.setEditorLineHeight);
   const setEditorFontWeight = useWriterStore((s) => s.setEditorFontWeight);
 
-  const currentChapter = book.chapters.find((c) => c.id === currentChapterId);
+  const content = currentChapter?.content || '';
 
   const charCount = content.length;
   const chineseChars = (content.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length;

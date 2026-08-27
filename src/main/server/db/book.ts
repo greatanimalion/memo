@@ -43,12 +43,13 @@ export class BookDatabase extends BaseDatabase {
   }
 
   public updateBook(id: string, updates: any): any | null {
+    const allowedKeys = ["title", "author", "cover", "tags", "settings"];
     const fields = Object.keys(updates)
-      .filter((key) => key !== "id")
+      .filter((key) => allowedKeys.includes(key))
       .map((key) => `${key} = ?`);
 
     const values = Object.entries(updates)
-      .filter(([key]) => key !== "id")
+      .filter(([key]) => allowedKeys.includes(key))
       .map(([key, value]) => {
         if (key === "tags" || key === "settings") return JSON.stringify(value);
         return value;

@@ -28,7 +28,7 @@ export class BookService {
     if (!book) return null;
     return {
       ...book,
-      chapters: this.dbHelper.chapter.getByBookId(id),
+      chapters: this.dbHelper.chapter.getMetaByBookId(id),
       volumes: this.dbHelper.volume.getByBookId(id),
     };
   }

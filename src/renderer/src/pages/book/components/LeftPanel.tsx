@@ -22,7 +22,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
   const navigate = useNavigate();
 
   const book = useWriterStore((s) => s.book);
-  const currentChapterId = useWriterStore((s) => s.currentChapterId);
+  const currentChapter = useWriterStore((s) => s.currentChapter);
   const setCurrentChapter = useWriterStore((s) => s.setCurrentChapter);
   const addChapter = useWriterStore((s) => s.addChapter);
   const addVolume = useWriterStore((s) => s.addVolume);
@@ -92,14 +92,15 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
               <div
                 key={chapter.id}
                 onClick={() => setCurrentChapter(chapter.id)}
-                className={`flex items-center gap-2 px-2.5 py-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-150 ${currentChapterId === chapter.id
+                className={`flex items-center gap-2 px-2.5 py-2 mb-0.5 rounded-lg cursor-pointer transition-all duration-150 ${currentChapter?.id === chapter.id
                     ? 'bg-accent-light text-accent shadow-theme-sm'
                     : 'hover:bg-theme-hover text-theme-secondary hover:text-theme-primary'
                   }`}
               >
-                <FileTextOutlined className={`text-xs shrink-0 ${currentChapterId === chapter.id ? 'text-accent' : 'text-theme-muted'
+                <FileTextOutlined className={`text-xs shrink-0 ${currentChapter?.id === chapter.id ? 'text-accent' : 'text-theme-muted'
                   }`} />
-                <span className="text-[13px] truncate">{chapter.title}</span>
+                <span className="text-[13px] truncate flex-1">{chapter.title}</span>
+                <span className="text-[10px] text-theme-muted shrink-0">{chapter.wordCount || 0}字</span>
               </div>
             ))}
           </div>
@@ -173,14 +174,15 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
                         <div
                           key={chapter.id}
                           onClick={() => setCurrentChapter(chapter.id)}
-                          className={`flex items-center gap-2 px-2.5 py-1.5 mb-0.5 rounded-md cursor-pointer transition-all duration-150 ${currentChapterId === chapter.id
+                          className={`flex items-center gap-2 px-2.5 py-1.5 mb-0.5 rounded-md cursor-pointer transition-all duration-150 ${currentChapter?.id === chapter.id
                               ? 'bg-accent-light text-accent'
                               : 'hover:bg-theme-hover text-theme-secondary hover:text-theme-primary'
                             }`}
                         >
-                          <FileTextOutlined className={`text-[10px] shrink-0 ${currentChapterId === chapter.id ? 'text-accent' : 'text-theme-muted'
+                          <FileTextOutlined className={`text-[10px] shrink-0 ${currentChapter?.id === chapter.id ? 'text-accent' : 'text-theme-muted'
                             }`} />
-                          <span className="text-[13px] truncate">{chapter.title}</span>
+                          <span className="text-[13px] truncate flex-1">{chapter.title}</span>
+                          <span className="text-[10px] text-theme-muted shrink-0">{chapter.wordCount || 0}字</span>
                         </div>
                       ))}
                     </div>

@@ -16,7 +16,7 @@ const Bookshelf: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [bookTitle, setBookTitle] = useState('未命名作品');
+  const [bookTitle, setBookTitle] = useState('');
   const navigate = useNavigate();
 
   const loadBooks = async () => {
@@ -42,7 +42,11 @@ const Bookshelf: React.FC = () => {
 
   const handleConfirmCreate = async () => {
     const title = bookTitle.trim();
-    if(!title)return message.error('请输入作品名称')
+    if (!title) {
+      message.error('请输入作品名称');
+      return;
+    }
+
     try {
       const newBook: Book = {
         id: generateUUID(),

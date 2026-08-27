@@ -13,8 +13,9 @@ import {
   updateVolume as apiUpdateVolume,
   deleteVolume as apiDeleteVolume,
 } from '@renderer/services/book'
+import { text } from 'stream/consumers'
 
-function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): number {
+function countWords(text: string, mode: 'chinese' | 'english'|'all' = 'chinese'): number {
   if (mode === 'chinese') {
     const chineseChars = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length
     const englishWords = text
@@ -22,8 +23,10 @@ function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): numb
       .split(/\s+/)
       .filter(Boolean).length
     return chineseChars + englishWords
+  }else if(mode==='english'){
+    return text.split(/\s+/).filter(Boolean).length
   }
-  return text.split(/\s+/).filter(Boolean).length
+  return text.length
 }
 
 function createChapterLocal(bookId: string, title: string, order: number, volumeId?: string): Chapter {
@@ -68,7 +71,7 @@ function createDefaultBook(): BookDetail {
     volumes: [],
     settings: {
       maxChapterWords: 20000,
-      wordCountMode: 'chinese',
+      wordCountMode: 'all',
     },
   }
 }
@@ -160,11 +163,12 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   setAutoSave: (auto) => set({ autoSave: auto }),
 
   saveCurrentChapter: async () => {
-    const {currentChapter,book } = get()
+    const {currentChapter } = get()
     if (!currentChapter) return
     if (!currentChapter) return
     try {
-      const wordCount = countWords(currentChapter.content, book.settings?.wordCountMode || 'chinese')
+      // const wordCount = countWords(currentChapter.content, book.settings?.wordCountMode || 'chinese')
+      const wordCount=text.length
       await apiUpdateChapter(currentChapter.id, { content: currentChapter.content, wordCount })
     } catch {
       console.error('保存章节失败')
@@ -314,7 +318,7 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   },
 
   updateChapterContent: (id, content) => {
-    const wordCount = countWords(content, get().book.settings?.wordCountMode || 'chinese')
+    const wordCount = countWords(content, get().book.settings?.wordCountMode || 'all')
     if (get().autoSave) {
       apiUpdateChapter(id, { content, wordCount }).catch(() => {
         console.error('保存章节内容失败')

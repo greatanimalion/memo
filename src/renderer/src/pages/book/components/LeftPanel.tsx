@@ -99,7 +99,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
               >
                 <FileTextOutlined className={`text-xs shrink-0 ${currentChapter?.id === chapter.id ? 'text-accent' : 'text-theme-muted'
                   }`} />
-                <span className="text-[13px] truncate flex-1">{chapter.title}</span>
+                <span className="text-[13px] truncate flex-1">第{chapter.order}章</span>
                 <span className="text-[10px] text-theme-muted shrink-0">{chapter.wordCount || 0}字</span>
               </div>
             ))}
@@ -181,7 +181,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
                         >
                           <FileTextOutlined className={`text-[10px] shrink-0 ${currentChapter?.id === chapter.id ? 'text-accent' : 'text-theme-muted'
                             }`} />
-                          <span className="text-[13px] truncate flex-1">{chapter.title}</span>
+                          <span className="text-[13px] truncate flex-1">第{chapter.order}章</span>
                           <span className="text-[10px] text-theme-muted shrink-0">{chapter.wordCount || 0}字</span>
                         </div>
                       ))}

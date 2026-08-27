@@ -23,7 +23,7 @@ export interface ChapterMetadata {
 
 export interface BookSettings {
   maxChapterWords: number;
-  wordCountMode: "chinese" | "english";
+  wordCountMode: "chinese" | "english"|'all';
 }
 
 // 章节接口

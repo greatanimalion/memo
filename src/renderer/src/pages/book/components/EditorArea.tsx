@@ -4,7 +4,6 @@ import { fontFamilyMap } from '../../../components/WriterAssistant/ChapterToolba
 import { Button } from 'antd';
 import {
   BookOutlined,
-  UserOutlined,
   ExpandOutlined,
   CompressOutlined,
   SaveOutlined,
@@ -34,7 +33,6 @@ const LexicalEditorContent: React.FC<{
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
     if (!editor || !currentChapter) return;
-
     editor.update(() => {
       const root = $getRoot();
       root.clear(); // 清空当前内容
@@ -60,7 +58,7 @@ const LexicalEditorContent: React.FC<{
         setLineCount(lines.length || 1);
         setColumn(lines[lines.length - 1]?.length + 1 || 1);
       });
-    }, 1000),
+    }, 500),
     [currentChapter, updateChapterContent, setLineCount, setColumn]
   );
 
@@ -73,7 +71,6 @@ const LexicalEditorContent: React.FC<{
             // 样式继承自父级传入的 textareaStyle，我们将在外部通过 CSS 或 wrapper 传递
           />
         }
-        placeholder={<span className="text-theme-muted pointer-events-none">开始写作...</span>}
         ErrorBoundary={LexicalErrorBoundary}
       />
       <HistoryPlugin />
@@ -85,7 +82,6 @@ const LexicalEditorContent: React.FC<{
 const EditorArea: React.FC = () => {
   const [lineCount, setLineCount] = useState(1);
   const [column, setColumn] = useState(1);
-
   const book = useWriterStore((s) => s.book);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
@@ -135,8 +131,7 @@ const EditorArea: React.FC = () => {
           </div>
           <div className={`w-px h-3.5 ${isDarkBg ? 'bg-theme-border' : 'bg-theme-light'}`} />
           <div className="flex items-center gap-1.5">
-            <UserOutlined className="text-xs text-theme-muted" />
-            <span className="text-[13px] text-theme-secondary">{book.author}</span>
+            <span className="text-[13px] text-theme-secondary">标题:《{currentChapter?.title}》</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -146,7 +141,7 @@ const EditorArea: React.FC = () => {
             <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
             <span className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg ? 'bg-theme-tertiary text-accent-light' : 'bg-accent-light text-accent'
               }`}>
-              {0} 字
+              {currentChapter?.wordCount} 字
             </span>
           </div>
           <Button
@@ -216,7 +211,7 @@ const EditorArea: React.FC = () => {
         <div className="flex items-center gap-3">
           <span>行 {lineCount}，列 {column}</span>
           <span className="text-theme-light">|</span>
-          <span>{0} 字</span>
+          <span>{currentChapter?.wordCount} 字</span>
         </div>
       </div>
     </div>

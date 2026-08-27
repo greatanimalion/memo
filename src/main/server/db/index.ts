@@ -6,6 +6,8 @@ import { DiaryDatabase } from "@main/server/db/diary";
 import { SessionDatabase } from "@main/server/db/session";
 import { AgentDatabase } from "@main/server/db/agent";
 import { BookDatabase } from "@main/server/db/book";
+import { ChapterDatabase } from "@main/server/db/chapter";
+import { VolumeDatabase } from "@main/server/db/volume";
 import { getDatabasePath } from "@main/server/utils/utils";
 import { createTablesSql } from "@main/server/constants/sql";
 import { databaseConfig } from "@main/server/config/database.config";
@@ -19,6 +21,8 @@ export class DatabaseHelper {
   public session: SessionDatabase;
   public agent: AgentDatabase;
   public book: BookDatabase;
+  public chapter: ChapterDatabase;
+  public volume: VolumeDatabase;
 
   private constructor() {
     let dbPath = getDatabasePath();
@@ -36,12 +40,15 @@ export class DatabaseHelper {
     this.session = new SessionDatabase(this.db);
     this.agent = new AgentDatabase(this.db);
     this.book = new BookDatabase(this.db);
+    this.chapter = new ChapterDatabase(this.db);
+    this.volume = new VolumeDatabase(this.db);
   }
 
   private runMigrations(): void {
     const migrations = [
       "ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'",
       "ALTER TABLE books ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'",
+      "ALTER TABLE books ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
     ];
     for (const sql of migrations) {
       try {
@@ -80,4 +87,6 @@ export { DiaryDatabase } from "@main/server/db/diary";
 export { SessionDatabase } from "@main/server/db/session";
 export { AgentDatabase } from "@main/server/db/agent";
 export { BookDatabase } from "@main/server/db/book";
+export { ChapterDatabase } from "@main/server/db/chapter";
+export { VolumeDatabase } from "@main/server/db/volume";
 export { BaseDatabase } from "@main/server/db/base";

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWriterStore } from '@renderer/store/useWriterStore';
+import { useNavigate } from 'react-router-dom';
 import { Button, Input } from 'antd';
 import {
   PlusOutlined,
@@ -7,6 +8,7 @@ import {
   FolderOutlined,
   DeleteOutlined,
   FileTextOutlined,
+  HomeOutlined,
 } from '@ant-design/icons';
 
 interface LeftPanelProps {
@@ -17,6 +19,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
   const [selectedVolumeId, setSelectedVolumeId] = useState<string | null>(null);
   const [editingVolumeId, setEditingVolumeId] = useState<string | null>(null);
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
+  const navigate = useNavigate();
 
   const book = useWriterStore((s) => s.book);
   const currentChapterId = useWriterStore((s) => s.currentChapterId);
@@ -62,6 +65,13 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
       {/* 左侧标题栏 */}
       <div className="px-4 py-3.5 border-b border-theme-light flex items-center justify-between">
         <div className="flex items-center gap-2.5">
+          <Button
+            type="text"
+            size="small"
+            icon={<HomeOutlined />}
+            onClick={() => navigate('/book')}
+            className="text-theme-muted hover:text-accent"
+          />
           <span className="text-sm font-semibold text-theme-primary tracking-wide">章节管理</span>
         </div>
         <Button

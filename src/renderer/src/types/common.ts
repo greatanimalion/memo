@@ -43,5 +43,6 @@ export type { Volume } from "@type/book";
 // 文件类型
 export type FileType = "folder" | "file";
 export type { Book } from "@type/book";
+export type { BookDetail } from "@type/book";
 export type { Chapter } from "@type/book";
 export type { BookUtils } from "@type/book";

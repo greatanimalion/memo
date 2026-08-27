@@ -5,21 +5,14 @@ export class BookDatabase extends BaseDatabase {
   constructor(db: Database.Database) {
     super(db);
   }
+
   private parseRow(row: any): any {
     if (!row) return row;
     return {
       ...row,
-      chapters: JSON.parse(row.chapters || "[]"),
-      volumes: JSON.parse(row.volumes || "[]"),
-      settings: JSON.parse(row.settings || "{}"),
+      tags: typeof row.tags === "string" ? JSON.parse(row.tags || "[]") : row.tags || [],
+      settings: typeof row.settings === "string" ? JSON.parse(row.settings || "{}") : row.settings || {},
     };
-  }
-
-  private serializeValue(key: string, value: any): any {
-    if (key === "chapters" || key === "volumes" || key === "settings") {
-      return JSON.stringify(value);
-    }
-    return value;
   }
 
   public getBooks(): any[] {
@@ -36,23 +29,17 @@ export class BookDatabase extends BaseDatabase {
 
   public addBook(book: any): any {
     const stmt = this.db.prepare(`
-      INSERT INTO books (id, title, author, cover, chapters, volumes, settings) VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO books (id, title, author, cover, tags, settings) VALUES (?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       book.id,
       book.title,
       book.author || "",
       book.cover || "",
-      JSON.stringify(book.chapters || []),
-      JSON.stringify(book.volumes || []),
+      JSON.stringify(book.tags || []),
       JSON.stringify(book.settings || {}),
     );
-    return this.parseRow({
-      ...book,
-      chapters: book.chapters || [],
-      volumes: book.volumes || [],
-      settings: book.settings || {},
-    });
+    return this.parseRow(book);
   }
 
   public updateBook(id: string, updates: any): any | null {
@@ -62,7 +49,10 @@ export class BookDatabase extends BaseDatabase {
 
     const values = Object.entries(updates)
       .filter(([key]) => key !== "id")
-      .map(([key, value]) => this.serializeValue(key, value));
+      .map(([key, value]) => {
+        if (key === "tags" || key === "settings") return JSON.stringify(value);
+        return value;
+      });
 
     if (fields.length === 0) return null;
 
@@ -82,6 +72,7 @@ export class BookDatabase extends BaseDatabase {
     return result.changes > 0;
   }
 
+  // bookUtils 相关方法保留
   public getBookUtils(): any[] {
     const stmt = this.db.prepare("SELECT * FROM bookUtils");
     const rows = stmt.all() as any[];

@@ -37,9 +37,31 @@ export const createTablesSql = `
         title TEXT NOT NULL,
         author TEXT NOT NULL,
         cover TEXT NOT NULL DEFAULT '',
-        chapters TEXT NOT NULL DEFAULT '[]',
-        volumes TEXT NOT NULL DEFAULT '[]',
+        tags TEXT NOT NULL DEFAULT '[]',
         settings TEXT NOT NULL DEFAULT '{}'
+      );
+
+      CREATE TABLE IF NOT EXISTS chapters (
+        id TEXT PRIMARY KEY,
+        bookId TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        wordCount INTEGER NOT NULL DEFAULT 0,
+        volumeId TEXT,
+        \`order\` INTEGER NOT NULL DEFAULT 0,
+        createdAt INTEGER NOT NULL DEFAULT 0,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        metadata TEXT DEFAULT '{}',
+        FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS volumes (
+        id TEXT PRIMARY KEY,
+        bookId TEXT NOT NULL,
+        title TEXT NOT NULL,
+        \`order\` INTEGER NOT NULL DEFAULT 0,
+        createdAt INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
       );
 
       CREATE TABLE IF NOT EXISTS bookUtils (

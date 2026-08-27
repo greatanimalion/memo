@@ -7,6 +7,7 @@ import {
   UserOutlined,
   ExpandOutlined,
   CompressOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import useAppStore from '@renderer/store/app';
 
@@ -31,6 +32,7 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
   const book = useWriterStore((s) => s.book);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
+  const saveBook = useWriterStore((s) => s.saveBook);
   const appStore = useAppStore();
 
   const editorRef = useRef<any>(null);
@@ -125,6 +127,15 @@ const EditorArea: React.FC<EditorAreaProps> = ({ content, onChange }) => {
               {charCount} 字
             </span>
           </div>
+          {/* 保存按钮 */}
+          <Button
+            size="small"
+            type="text"
+            icon={<SaveOutlined className="text-sm text-theme-muted" />}
+            onClick={saveBook}
+            className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
+            title="保存"
+          />
           {/* 全屏切换 */}
           <Button
             size="small"

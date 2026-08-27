@@ -1,7 +1,17 @@
-﻿﻿import { create } from 'zustand'
-import { FontFamily, Chapter, Book, Volume } from '@renderer/types/common'
+﻿import { create } from 'zustand'
+import { FontFamily, Chapter, Volume, BookDetail } from '@renderer/types/common'
 import {generateUUID} from '@renderer/utils/helper'
-import { getBookById, updateBook, createBook } from '@renderer/services/book'
+import {
+  getBookDetail,
+  updateBook,
+  createBook,
+  createChapter as apiCreateChapter,
+  updateChapter as apiUpdateChapter,
+  deleteChapter as apiDeleteChapter,
+  createVolume as apiCreateVolume,
+  updateVolume as apiUpdateVolume,
+  deleteVolume as apiDeleteVolume,
+} from '@renderer/services/book'
 
 function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): number {
   if (mode === 'chinese') {
@@ -15,10 +25,11 @@ function countWords(text: string, mode: 'chinese' | 'english' = 'chinese'): numb
   return text.split(/\s+/).filter(Boolean).length
 }
 
-function createChapter(title: string, order: number, volumeId?: string): Chapter {
+function createChapterLocal(bookId: string, title: string, order: number, volumeId?: string): Chapter {
   const now = Date.now()
   return {
     id: generateUUID(),
+    bookId,
     title,
     content: '',
     wordCount: 0,
@@ -34,22 +45,25 @@ function createChapter(title: string, order: number, volumeId?: string): Chapter
   }
 }
 
-function createVolume(title: string, order: number): Volume {
+function createVolumeLocal(bookId: string, title: string, order: number): Volume {
   return {
     id: generateUUID(),
+    bookId,
     title,
     order,
     createdAt: Date.now(),
   }
 }
 
-function createDefaultBook(): Book {
+function createDefaultBook(): BookDetail {
+  const bookId = generateUUID()
   return {
-    id: generateUUID(),
+    id: bookId,
     title: '未命名作品',
     author: '佚名',
     cover: '',
-    chapters: [createChapter('第1章', 1)],
+    tags: [],
+    chapters: [createChapterLocal(bookId, '第1章', 1)],
     volumes: [],
     settings: {
       maxChapterWords: 20000,
@@ -59,7 +73,7 @@ function createDefaultBook(): Book {
 }
 
 interface WriterState {
-  book: Book
+  book: BookDetail
   bookId: string | null
   currentChapterId: string | null
   editorSettings: { fontFamily: FontFamily; fontSize: number; lineHeight: number; fontWeight: number }
@@ -71,15 +85,15 @@ interface WriterState {
   setBookTitle: (title: string) => void
   setAuthor: (author: string) => void
   setCurrentChapter: (id: string) => void
-  addChapter: (volumeId?: string) => void
-  deleteChapter: (id: string) => void
+  addChapter: (volumeId?: string) => Promise<void>
+  deleteChapter: (id: string) => Promise<void>
   reorderChapters: (chapters: Chapter[]) => void
   updateChapterTitle: (id: string, title: string) => void
   updateChapterContent: (id: string, content: string) => void
-  addVolume: () => void
-  deleteVolume: (id: string) => void
-  updateVolumeTitle: (id: string, title: string) => void
-  setChapterVolume: (chapterId: string, volumeId: string | undefined) => void
+  addVolume: () => Promise<void>
+  deleteVolume: (id: string) => Promise<void>
+  updateVolumeTitle: (id: string, title: string) => Promise<void>
+  setChapterVolume: (chapterId: string, volumeId: string | undefined) => Promise<void>
   setEditorFont: (font: FontFamily) => void
   setEditorFontSize: (size: number) => void
   setEditorLineHeight: (height: number) => void
@@ -104,7 +118,7 @@ export const useWriterStore = create<WriterState>((set, get) => ({
 
   loadBookById: async (id: string) => {
     try {
-      const book = await getBookById(id)
+      const book = await getBookDetail(id)
       set({
         book,
         bookId: id,
@@ -118,8 +132,15 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   saveBook: async () => {
     const { book, bookId } = get()
     try {
+      const bookData = {
+        title: book.title,
+        author: book.author,
+        cover: book.cover,
+        tags: book.tags,
+        settings: book.settings,
+      }
       if (bookId) {
-        await updateBook(bookId, book)
+        await updateBook(bookId, bookData)
       } else {
         const created = await createBook(book)
         set({ bookId: created.id })
@@ -137,20 +158,31 @@ export const useWriterStore = create<WriterState>((set, get) => ({
 
   setCurrentChapter: (id) => set({ currentChapterId: id }),
 
-  addChapter: (volumeId?: string) =>
-    set((state) => {
-      const order = state.book.chapters.length + 1
-      const newChapter = createChapter(`第${order}章`, order, volumeId)
-      return {
-        book: {
-          ...state.book,
-          chapters: [...state.book.chapters, newChapter],
-        },
-        currentChapterId: newChapter.id,
-      }
-    }),
+  addChapter: async (volumeId?: string) => {
+    const { book, bookId } = get()
+    if (!bookId) return
+    const order = book.chapters.length + 1
+    const newChapter = createChapterLocal(bookId, `第${order}章`, order, volumeId)
+    try {
+      await apiCreateChapter(newChapter)
+    } catch {
+      console.error('创建章节失败')
+    }
+    set((state) => ({
+      book: {
+        ...state.book,
+        chapters: [...state.book.chapters, newChapter],
+      },
+      currentChapterId: newChapter.id,
+    }))
+  },
 
-  deleteChapter: (id) =>
+  deleteChapter: async (id) => {
+    try {
+      await apiDeleteChapter(id)
+    } catch {
+      console.error('删除章节失败')
+    }
     set((state) => {
       const filtered = state.book.chapters.filter((c) => c.id !== id)
       const reordered = filtered.map((c, i) => ({ ...c, order: i + 1 }))
@@ -161,21 +193,33 @@ export const useWriterStore = create<WriterState>((set, get) => ({
         book: { ...state.book, chapters: reordered },
         currentChapterId: current,
       }
-    }),
+    })
+  },
 
-  addVolume: () =>
-    set((state) => {
-      const order = state.book.volumes.length + 1
-      const newVolume = createVolume(`第${order}卷`, order)
-      return {
-        book: {
-          ...state.book,
-          volumes: [...state.book.volumes, newVolume],
-        },
-      }
-    }),
+  addVolume: async () => {
+    const { book, bookId } = get()
+    if (!bookId) return
+    const order = book.volumes.length + 1
+    const newVolume = createVolumeLocal(bookId, `第${order}卷`, order)
+    try {
+      await apiCreateVolume(newVolume)
+    } catch {
+      console.error('创建分卷失败')
+    }
+    set((state) => ({
+      book: {
+        ...state.book,
+        volumes: [...state.book.volumes, newVolume],
+      },
+    }))
+  },
 
-  deleteVolume: (id) =>
+  deleteVolume: async (id) => {
+    try {
+      await apiDeleteVolume(id)
+    } catch {
+      console.error('删除分卷失败')
+    }
     set((state) => {
       const filtered = state.book.volumes.filter((v) => v.id !== id)
       const reordered = filtered.map((v, i) => ({ ...v, order: i + 1 }))
@@ -188,9 +232,15 @@ export const useWriterStore = create<WriterState>((set, get) => ({
           ),
         },
       }
-    }),
+    })
+  },
 
-  updateVolumeTitle: (id, title) =>
+  updateVolumeTitle: async (id, title) => {
+    try {
+      await apiUpdateVolume(id, { title })
+    } catch {
+      console.error('更新分卷标题失败')
+    }
     set((state) => ({
       book: {
         ...state.book,
@@ -198,9 +248,15 @@ export const useWriterStore = create<WriterState>((set, get) => ({
           v.id === id ? { ...v, title } : v
         ),
       },
-    })),
+    }))
+  },
 
-  setChapterVolume: (chapterId, volumeId) =>
+  setChapterVolume: async (chapterId, volumeId) => {
+    try {
+      await apiUpdateChapter(chapterId, { volumeId })
+    } catch {
+      console.error('更新章节分卷失败')
+    }
     set((state) => ({
       book: {
         ...state.book,
@@ -208,7 +264,8 @@ export const useWriterStore = create<WriterState>((set, get) => ({
           c.id === chapterId ? { ...c, volumeId } : c
         ),
       },
-    })),
+    }))
+  },
 
   reorderChapters: (chapters) =>
     set((state) => ({ book: { ...state.book, chapters } })),

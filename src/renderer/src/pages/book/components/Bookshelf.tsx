@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Empty, Spin, Popconfirm, message } from 'antd';
+import { Button, Empty, Spin, Popconfirm, Modal, Input, message } from 'antd';
 import {
   PlusOutlined,
   BookOutlined,
@@ -15,6 +15,8 @@ import { generateUUID } from '@renderer/utils/helper';
 const Bookshelf: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [bookTitle, setBookTitle] = useState('未命名作品');
   const navigate = useNavigate();
 
   const loadBooks = async () => {
@@ -33,27 +35,34 @@ const Bookshelf: React.FC = () => {
     loadBooks();
   }, []);
 
-  const handleCreateBook = async () => {
+  const handleOpenCreateModal = () => {
+    setBookTitle('');
+    setModalOpen(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    const title = bookTitle.trim();
+    if(!title)return message.error('请输入作品名称')
     try {
       const newBook: Book = {
         id: generateUUID(),
-        title: '未命名作品',
+        title,
         author: '佚名',
         cover: '',
-        chapters: [{ id: generateUUID(), title: '第1章', content: '', order: 1 }],
-        volumes: [],
+        tags: [],
         settings: { maxChapterWords: 20000, wordCountMode: 'chinese' },
       };
       const created = await createBook(newBook);
       message.success('创建成功');
-      navigate(`/textEditor?id=${created.id}`);
+      setModalOpen(false);
+      navigate(`/book?id=${created.id}`);
     } catch {
       message.error('创建失败');
     }
   };
 
   const handleOpenBook = (id: string) => {
-    navigate(`/textEditor?id=${id}`);
+    navigate(`/book?id=${id}`);
   };
 
   const handleDeleteBook = async (id: string, e?: React.MouseEvent) => {
@@ -69,7 +78,7 @@ const Bookshelf: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-theme-primary">
+      <div className="h-full w-full flex items-center justify-center bg-theme-primary">
         <Spin size="large" />
       </div>
     );
@@ -87,7 +96,7 @@ const Bookshelf: React.FC = () => {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={handleCreateBook}
+          onClick={handleOpenCreateModal}
           className="rounded-lg"
         >
           新建作品
@@ -101,7 +110,7 @@ const Bookshelf: React.FC = () => {
             description={<span className="text-theme-muted">还没有作品，开始创作吧</span>}
             className="mt-20"
           >
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateBook}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
               创建第一本作品
             </Button>
           </Empty>
@@ -114,7 +123,7 @@ const Bookshelf: React.FC = () => {
                 className="group  cursor-pointer rounded-xl border border-theme-light bg-theme-secondary/50 hover:bg-theme-hover hover:border-accent transition-all duration-200 overflow-hidden"
               >
                 {/* 封面区域 */}
-                <div className="aspect-3/4 bg-linear-to-br from-accent/20 to-accent/5 flex items-center justify-center relative overflow-hidden">
+                <div className="h-40 bg-linear-to-br from-accent/20 to-accent/5 flex items-center justify-center relative overflow-hidden">
                   {book.cover ? (
                     <img src={book.cover} alt={book.title} className="w-full h-full object-cover" />
                   ) : (
@@ -162,11 +171,7 @@ const Bookshelf: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1 text-[10px] text-theme-muted">
                     <ClockCircleOutlined />
-                    <span>{book.chapters?.length || 0} 章</span>
-                    <span className="text-theme-light">·</span>
-                    <span>
-                      {(book.chapters || []).reduce((sum, c) => sum + (c.wordCount || 0), 0)} 字
-                    </span>
+                    <span>点击查看</span>
                   </div>
                 </div>
               </div>
@@ -174,8 +179,8 @@ const Bookshelf: React.FC = () => {
 
             {/* 新建卡片 */}
             <div
-              onClick={handleCreateBook}
-              className="cursor-pointer rounded-xl border-2 border-dashed border-theme-light hover:border-accent bg-theme-secondary/30 hover:bg-theme-hover transition-all duration-200 flex flex-col items-center justify-center   min-h-0"
+              onClick={handleOpenCreateModal}
+              className="h-62 cursor-pointer rounded-xl border-2 border-dashed border-theme-light hover:border-accent bg-theme-secondary/30 hover:bg-theme-hover transition-all duration-200 flex flex-col items-center justify-center   min-h-0"
             >
               <PlusOutlined className="text-3xl text-theme-muted mb-2" />
               <span className="text-sm text-theme-muted">新建作品</span>
@@ -183,6 +188,25 @@ const Bookshelf: React.FC = () => {
           </div>
         )}
       </div>
+
+      <Modal
+        title="新建作品"
+        open={modalOpen}
+        onOk={handleConfirmCreate}
+        onCancel={() => setModalOpen(false)}
+        okText="创建"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <p className="mb-2">请输入作品名称：</p>
+        <Input
+          placeholder="请输入书名"
+          value={bookTitle}
+          onChange={(e) => setBookTitle(e.target.value)}
+          onPressEnter={handleConfirmCreate}
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 };

@@ -31,7 +31,7 @@ src/
     src/
       components/
       hooks/
-      pages/      路由页面：chat, home, memo, diary, settings, person, web, textEditor
+      pages/      路由页面：chat, home, memo, diary, settings, person, web, book
       services/   Axios 客户端（baseURL http://localhost:32068/）
       store/      Zustand 状态管理
       utils/

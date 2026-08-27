@@ -26,9 +26,10 @@ export interface BookSettings {
   wordCountMode: "chinese" | "english";
 }
 
-// 章节接口 - 扩展服务端类型
+// 章节接口
 export interface Chapter {
   id: string;
+  bookId: string;
   title: string;
   content: string;
   wordCount?: number;
@@ -39,20 +40,26 @@ export interface Chapter {
   metadata?: ChapterMetadata;
 }
 
-// 书籍接口 - 扩展服务端类型
+// 书籍接口
 export interface Book {
   id: string;
   title: string;
   author: string;
   cover: string;
-  chapters: Chapter[];
-  volumes: Volume[];
+  tags: string[];
   settings?: BookSettings;
 }
 
 export interface Volume {
   id: string;
+  bookId: string;
   title: string;
   order?: number;
   createdAt?: number;
+}
+
+// 带章节和卷的完整书籍（用于查询返回）
+export interface BookDetail extends Book {
+  chapters: Chapter[];
+  volumes: Volume[];
 }

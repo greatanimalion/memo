@@ -22,21 +22,24 @@ src/
   main/           Electron 主进程 + Express 服务器
     index.ts      主进程入口
     server/       Express API（端口 32068）
-      routes/     CRUD 路由：memory, diary, session, agent, ai
+      routes/     CRUD 路由：memory, diary, session, agent, ai, book
       controllers/
-      services/
-      config/
+      services/   book.service.ts, storage.service.ts, ai.service.ts
+      config/     ai.config.ts
+      db/         数据库层：book.ts, chapter.ts, volume.ts, index.ts（迁移+自动建表）
   preload/        预加载脚本（contextIsolation: false, nodeIntegration: true）
   renderer/       React 前端（Vite）
     src/
-      components/
+      components/ Header.tsx, BlockNoteEditor.tsx 等
       hooks/
       pages/      路由页面：chat, home, memo, diary, settings, person, web, book
-      services/   Axios 客户端（baseURL http://localhost:32068/）
-      store/      Zustand 状态管理
-      utils/
+        book/     book.tsx（入口）
+          components/ EditorArea.tsx, LeftPanel.tsx, RightPanel.tsx, Bookshelf.tsx
+      services/   Axios 客户端（baseURL http://localhost:32068/），book.ts（API 封装）
+      store/      Zustand 状态管理（useWriterStore 管理编辑器状态）
+      utils/      localStore.ts, helper.ts
       routes/     React Router v7（createBrowserRouter）
-  types/          共享 TS 类型（entities: Memory, Diary, Session, MyAgent）
+  types/          共享 TS 类型（entities: Memory, Diary, Session, MyAgent, Book/Chapter/Volume）
 plugins/          Vite 插件（devPlugin 替换 Node 模块引用）
 ```
 
@@ -52,6 +55,10 @@ plugins/          Vite 插件（devPlugin 替换 Node 模块引用）
 - **主题**：通过 `setTheme()` 更改 CSS 变量实现全局颜色切换，暗色模式通过 `prefers-color-scheme: dark`。
 - **本地存储**：`utils/localStore.ts` 封装 `localStorage`（theme, _border 等）。
 - **路由**：`createBrowserRouter`，所有页面在 `MainLayout` 下。
+- **数据库三表拆分**：`books` / `chapters` / `volumes`，外键关联，`order` 字段管理排序。
+- **Lexical 编辑器**：Tab 键通过 `registerCommand(KEY_TAB_COMMAND)` 插入制表符；内容按需加载（`getMetaByBookId` 不加载 content，切换章节时单独 fetch）。
+- **编辑器设置持久化**：`editorSettings` + `editorBg` 存入 localStorage（key: `writer-editor-settings`），启动时自动恢复。
+- **章节保存**：自动保存（1s debounce）/ 手动保存（按钮触发 `PUT /api/chapters/:id`）双模式；`setCurrentChapter` 先 await API 再原子更新 state，避免空内容竞态。
 
 ## 开发注意事项
 

@@ -58,6 +58,16 @@ function createVolumeLocal(bookId: string, title: string, order: number): Volume
   }
 }
 
+const EDITOR_STORAGE_KEY = 'writer-editor-settings'
+
+function loadEditorSettings() {
+  try {
+    const raw = localStorage.getItem(EDITOR_STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
 function createDefaultBook(): BookDetail {
   const bookId = generateUUID()
   return {
@@ -118,13 +128,13 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   currentVolume:null,
   currnetVolumeId:null,
   autoSave: true,
-  editorSettings: {
+  editorSettings: loadEditorSettings()?.editorSettings ?? {
     fontFamily: 'sans' as FontFamily,
     fontSize: 16,
     lineHeight: 1.8,
     fontWeight: 400,
   },
-  editorBg: null,
+  editorBg: loadEditorSettings()?.editorBg ?? null,
   aiPanelOpen: false,
 
   loadBookById: async (id: string) => {
@@ -341,26 +351,38 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   },
 
   setEditorFont: (fontFamily) =>
-    set((state) => ({
-      editorSettings: { ...state.editorSettings, fontFamily },
-    })),
+    set((state) => {
+      const editorSettings = { ...state.editorSettings, fontFamily }
+      localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify({ editorSettings, editorBg: state.editorBg }))
+      return { editorSettings }
+    }),
 
   setEditorFontSize: (fontSize) =>
-    set((state) => ({
-      editorSettings: { ...state.editorSettings, fontSize },
-    })),
+    set((state) => {
+      const editorSettings = { ...state.editorSettings, fontSize }
+      localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify({ editorSettings, editorBg: state.editorBg }))
+      return { editorSettings }
+    }),
 
   setEditorLineHeight: (lineHeight) =>
-    set((state) => ({
-      editorSettings: { ...state.editorSettings, lineHeight },
-    })),
+    set((state) => {
+      const editorSettings = { ...state.editorSettings, lineHeight }
+      localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify({ editorSettings, editorBg: state.editorBg }))
+      return { editorSettings }
+    }),
 
   setEditorFontWeight: (fontWeight) =>
-    set((state) => ({
-      editorSettings: { ...state.editorSettings, fontWeight },
-    })),
+    set((state) => {
+      const editorSettings = { ...state.editorSettings, fontWeight }
+      localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify({ editorSettings, editorBg: state.editorBg }))
+      return { editorSettings }
+    }),
 
-  setEditorBg: (editorBg) => set({ editorBg }),
+  setEditorBg: (editorBg) =>
+    set((state) => {
+      localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify({ editorSettings: state.editorSettings, editorBg }))
+      return { editorBg }
+    }),
 
   toggleAiPanel: () =>
     set((state) => ({ aiPanelOpen: !state.aiPanelOpen })),

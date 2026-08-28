@@ -1,5 +1,7 @@
 # memo — Electron + React + TypeScript 桌面应用
 
+> **重要：修改或访问后端代码前，必须先读取 `src/main/agents-end.md`**（包含数据库表结构、所有 API 接口文档）。
+
 ## 开发命令
 
 ```bash

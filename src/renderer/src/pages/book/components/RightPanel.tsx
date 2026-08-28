@@ -11,7 +11,7 @@ import {
   InfoCircleOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { FontFamily } from '../../../types/common';
+import { FontFamily } from '@renderer/types/common';
 
 interface RightPanelProps {
   isBookScreen: boolean;

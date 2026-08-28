@@ -9,16 +9,19 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getBooks, getBookDetail, createBook, deleteBook, updateBook } from '@renderer/services/book';
-import { uploadImage } from '@renderer/services/memeoy';
+import { uploadImage, deleteFile } from '@renderer/services/memeoy';
 import { Book, BookDetail } from '@type/book';
 import { generateUUID } from '@renderer/utils/helper';
 import { getLocalUrl } from '@renderer/utils';
+import {formatRelativeTime as relativeTime} from '@renderer/utils/dateUtils'
+
 
 const Bookshelf: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [bookTitle, setBookTitle] = useState('');
+  const [bookAuthor, setBookAuthor] = useState('');
 
   // 编辑弹窗状态
   const [editOpen, setEditOpen] = useState(false);
@@ -31,7 +34,6 @@ const Bookshelf: React.FC = () => {
   const [editTotalWords, setEditTotalWords] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
-
   const navigate = useNavigate();
 
   const loadBooks = async () => {
@@ -52,6 +54,7 @@ const Bookshelf: React.FC = () => {
 
   const handleOpenCreateModal = () => {
     setBookTitle('');
+    setBookAuthor('');
     setModalOpen(true);
   };
 
@@ -66,10 +69,10 @@ const Bookshelf: React.FC = () => {
       const newBook: Book = {
         id: generateUUID(),
         title,
-        author: '佚名',
+        author: bookAuthor.trim() || '佚名',
         cover: '',
         tags: [],
-        settings: { maxChapterWords: 20000, wordCountMode: 'chinese' },
+        settings: { maxChapterWords: 20000, wordCountMode: 'all' },
       };
       const created = await createBook(newBook);
       message.success('创建成功');
@@ -87,6 +90,10 @@ const Bookshelf: React.FC = () => {
   const handleDeleteBook = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
+      const book = books.find((b) => b.id === id);
+      if (book?.cover) {
+        deleteFile(book.cover);
+      }
       await deleteBook(id);
       message.success('已删除');
       loadBooks();
@@ -115,8 +122,12 @@ const Bookshelf: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      const oldCover = editCover;
       const { url } = await uploadImage(file);
       setEditCover(url);
+      if (oldCover) {
+        deleteFile(oldCover);
+      }
     } catch {
       message.error('封面上传失败');
     }
@@ -207,7 +218,7 @@ const Bookshelf: React.FC = () => {
               <div
                 key={book.id}
                 onClick={() => handleOpenBook(book.id)}
-                className=" cursor-pointer rounded-xl border border-theme-light transition-all duration-200 overflow-hidden"
+                className="group cursor-pointer rounded-xl border border-theme-light transition-all duration-200 overflow-hidden"
                 style={{
                   boxShadow: "var(--shadow-lg)",
                 }}
@@ -261,7 +272,7 @@ const Bookshelf: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1 text-[10px] text-theme-muted">
                     <ClockCircleOutlined />
-                    <span>点击查看</span>
+                    <span>{relativeTime(book.updatedAt! || book.createdAt!)}</span>
                   </div>
                 </div>
               </div>
@@ -287,16 +298,29 @@ const Bookshelf: React.FC = () => {
         onCancel={() => setModalOpen(false)}
         okText="创建"
         cancelText="取消"
-        destroyOnClose
+        destroyOnHidden
       >
-        <p className="mb-2">请输入作品名称：</p>
-        <Input
-          placeholder="请输入书名"
-          value={bookTitle}
-          onChange={(e) => setBookTitle(e.target.value)}
-          onPressEnter={handleConfirmCreate}
-          autoFocus
-        />
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="text-xs text-theme-muted mb-1">作品名称</div>
+            <Input
+              placeholder="请输入书名"
+              value={bookTitle}
+              onChange={(e) => setBookTitle(e.target.value)}
+              onPressEnter={handleConfirmCreate}
+              autoFocus
+            />
+          </div>
+          <div>
+            <div className="text-xs text-theme-muted mb-1">作者</div>
+            <Input
+              placeholder="请输入作者名（选填，默认佚名）"
+              value={bookAuthor}
+              onChange={(e) => setBookAuthor(e.target.value)}
+              onPressEnter={handleConfirmCreate}
+            />
+          </div>
+        </div>
       </Modal>
 
       {/* 编辑书籍详情弹窗 */}
@@ -315,7 +339,7 @@ const Bookshelf: React.FC = () => {
             {/* 封面 + 基本信息 */}
             <div className="flex items-start gap-4">
               <div
-                className="w-24 h-32 rounded-lg overflow-hidden border border-theme-light bg-theme-secondary/50 flex items-center justify-center cursor-pointer hover:border-accent transition-colors flex-shrink-0"
+                className="w-24 h-32 rounded-lg overflow-hidden border border-theme-light bg-theme-secondary/50 flex items-center justify-center cursor-pointer hover:border-accent transition-colors shrink-0"
                 onClick={() => coverInputRef.current?.click()}
               >
                 {editCover ? (
@@ -396,10 +420,10 @@ const Bookshelf: React.FC = () => {
             {/* 时间信息 */}
             <div className="flex gap-6 text-xs text-theme-muted pt-2 border-t border-theme-light">
               {editBook.createdAt && (
-                <span>创建于 {new Date(editBook.createdAt).toLocaleString('zh-CN')}</span>
+                <span>创建于 {relativeTime(editBook.createdAt)}</span>
               )}
               {editBook.updatedAt && (
-                <span>更新于 {new Date(editBook.updatedAt).toLocaleString('zh-CN')}</span>
+                <span>更新于 {relativeTime(editBook.updatedAt)}</span>
               )}
             </div>
           </div>

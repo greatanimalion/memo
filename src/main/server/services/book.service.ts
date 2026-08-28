@@ -36,19 +36,14 @@ export class BookService {
   createBook(data: Book): BookDetail {
     const book = this.dbHelper.book.addBook(data);
     // 创建时自动添加默认章节
-    if (!data.chapters || data.chapters.length === 0) {
-      this.dbHelper.chapter.addChapter({
-        id: data.chapters?.[0]?.id || generateUUID(),
-        bookId: book.id,
-        title: "第1章",
-        content: "",
-        order: 1,
-      });
-    } else {
-      for (const ch of data.chapters) {
-        this.dbHelper.chapter.addChapter({ ...ch, bookId: book.id });
-      }
-    }
+    this.dbHelper.chapter.addChapter({
+      id: generateUUID(),
+      bookId: book.id,
+      title: "第1章",
+      content: "",
+      order: 1,
+    });
+
     return this.getBookDetail(book.id)!;
   }
 

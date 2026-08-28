@@ -1,5 +1,6 @@
 ﻿import api from ".";
 import type { Memory } from "@type/memory";
+import { getRelativePath } from "@renderer/utils";
 
 export const getMemorys = async (): Promise<Memory[]> => {
   try {
@@ -99,7 +100,7 @@ export const uploadImage = async (
 export const deleteFile = (url: string) => {
   api.delete("/deleteFile", {
     data: {
-      filePath: url.replace("http://localhost:32068/uploads", ""),
+      filePath: getRelativePath(url).replace("/uploads", ""),
     },
   });
 };

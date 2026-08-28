@@ -37,27 +37,6 @@ app.on("second-instance", () => {
 });
 
 let mainWindow: BrowserWindow = null!;
-let splashWindow: BrowserWindow|null = null!;
-
-function createSplashWindow(): void {
-  splashWindow = new BrowserWindow({
-    width: 900,
-    height: 720,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  splashWindow.loadFile(join(__dirname, "../../resources/splash.html"));
-  splashWindow.center();
-}
-
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -66,7 +45,6 @@ function createWindow(): void {
     minHeight: 488,
     icon: path.join(__dirname, "../../resources/icon.png"),
     show: false,
-    backgroundColor: "#0f0f14",
     autoHideMenuBar: true,
     ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
@@ -80,21 +58,11 @@ function createWindow(): void {
   });
 
   mainWindow.on("ready-to-show", () => {
+    mainWindow.show();
     try {
       startExpressServer();
     } catch (error) {
       console.log(error);
-    }
-  });
-
-  // 渲染进程通知内容就绪后，再显示主窗口并关闭 splash
-  ipcMain.on("app-ready", () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show();
-    }
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close();
-      splashWindow = null;
     }
   });
 
@@ -131,10 +99,7 @@ app.whenReady().then(() => {
     mainWindow && mainWindow.reload();
   });
 
-  // 先显示启动画面，再创建主窗口
-  createSplashWindow();
   createWindow();
-
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

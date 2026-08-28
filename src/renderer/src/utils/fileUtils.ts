@@ -2,7 +2,40 @@
  * 文件工具函数
  */
 
+import { port } from "@renderer/constants";
 import type { Memory } from "@type/memory";
+
+const BASE_URL = `http://localhost:${port}`;
+
+/**
+ * 将相对路径拼接为完整的本地 URL
+ * @param path 相对路径，如 "/uploads/images/xxx.png"
+ * @returns 完整 URL
+ */
+export const getLocalUrl = (path: string): string => {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+};
+
+/**
+ * 从完整 URL 中提取相对路径（去掉 baseUrl 前缀）
+ * @param url 完整 URL
+ * @returns 相对路径
+ */
+export const getRelativePath = (url: string): string => {
+  if (!url) return "";
+  return url.replace(BASE_URL, "");
+};
+
+/**
+ * 获取 API 地址
+ * @param path API 路径，如 "/api/chat-stream"
+ * @returns 完整 API URL
+ */
+export const getApiUrl = (path: string): string => {
+  return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+};
 
 /**
  * 根据名称查找文件
@@ -126,7 +159,7 @@ export const getFileIconInfo = (fileName: string) => {
  * @param {string} encoding - 编码格式，默认为 UTF-8
  * @returns {Promise<string>} - 文件内容的字符串
  */
-export function fileToText(file: File, encoding: string = "UTF-8") {
+export function fileToText(file: File, encoding: string = "UTF-8"): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 

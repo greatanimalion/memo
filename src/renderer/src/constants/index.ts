@@ -2,6 +2,11 @@
  * 应用常量定义
  * 统一管理应用中使用的常量
  */
+//后端端口
+export const port=32068
+
+//持久化存储的key
+export const DOCUMENTMODEL='documentModel'//memo编辑采用的模型
 
 import { Memory } from "@type";
 

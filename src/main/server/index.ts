@@ -7,7 +7,6 @@ import cors from "cors";
 import { getSystemRootDir, getUploadPath } from "@main/server/utils/utils";
 import { StorageService } from "@main/server/services/storage.service";
 import { logger } from "@main/server/utils/logger";
-
 import memoryRoutes from "@main/server/routes/memory.routes";
 import diaryRoutes from "@main/server/routes/diary.routes";
 import sessionRoutes from "@main/server/routes/session.routes";
@@ -121,23 +120,7 @@ export async function startExpressServer(): Promise<void> {
       res.status(500).json({ code: 500, error: "获取存储数据失败" });
     }
   });
-
-  // expressApp.post('/api/storage/restore', async (req, res) => {
-  //   try {
-  //     const restoreData = req.body.restoreData;
-  //     if (!restoreData) {
-  //       return res.status(400).json({ error: 'No restoreData provided' });
-  //     }
-  //     const service = new StorageService();
-  //     await service.init();
-  //     await service.writeData(restoreData);
-  //     res.json({ code: 200, message: '数据还原成功' });
-  //   } catch (error) {
-  //     console.error('还原存储数据失败:', error);
-  //     res.status(500).json({ code: 500, error: '还原存储数据失败' });
-  //   }
-  // });
-
+  
   expressApp.use("/api", notFoundMiddleware);
   expressApp.use(errorMiddleware);
 

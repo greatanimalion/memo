@@ -10,6 +10,7 @@ import { updateSession } from "@renderer/services/session";
 import SessionList from "./components/SessionList";
 import MessageArea from "./components/MessageArea";
 import ResumeModal from "./components/ResumeModal";
+import { getApiUrl } from "@renderer/utils";
 
 const ChatPage: React.FC = () => {
   const {
@@ -119,9 +120,7 @@ const ChatPage: React.FC = () => {
         if (prompt) {
           _prompt = `请基于以下文档内容回答问题：\n ${prompt}\n问题：${userContent}`;
         }
-        const url = openAgent
-          ? "http://localhost:32068/api/chat-agent"
-          : "http://localhost:32068/api/chat-stream";
+        const url = getApiUrl(`/api/${openAgent?'chat-agent:':'chat-stream'}`)
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

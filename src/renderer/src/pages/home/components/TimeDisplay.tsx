@@ -1,6 +1,6 @@
 import React from "react";
 import { formatTime, formatDate } from "@renderer/utils/dateUtils";
-import RealTimeClock from "@renderer/components/clock";
+import RealTimeClock from "@renderer/pages/home/components/clock";
 
 interface TimeDisplayProps {
   currentTime: Date;

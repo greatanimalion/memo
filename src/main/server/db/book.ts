@@ -28,8 +28,9 @@ export class BookDatabase extends BaseDatabase {
   }
 
   public addBook(book: any): any {
+    const now = Date.now();
     const stmt = this.db.prepare(`
-      INSERT INTO books (id, title, author, cover, tags, settings) VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO books (id, title, author, cover, tags, settings, description, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       book.id,
@@ -38,18 +39,22 @@ export class BookDatabase extends BaseDatabase {
       book.cover || "",
       JSON.stringify(book.tags || []),
       JSON.stringify(book.settings || {}),
+      book.description || "",
+      now,
+      now,
     );
-    return this.parseRow(book);
+    return this.parseRow({ ...book, description: book.description || "", createdAt: now, updatedAt: now });
   }
 
   public updateBook(id: string, updates: any): any | null {
-    const allowedKeys = ["title", "author", "cover", "tags", "settings"];
+    const allowedKeys = ["title", "author", "cover", "tags", "settings", "description"];
+    updates.updatedAt = Date.now();
     const fields = Object.keys(updates)
-      .filter((key) => allowedKeys.includes(key))
+      .filter((key) => allowedKeys.includes(key) || key === "updatedAt")
       .map((key) => `${key} = ?`);
 
     const values = Object.entries(updates)
-      .filter(([key]) => allowedKeys.includes(key))
+      .filter(([key]) => allowedKeys.includes(key) || key === "updatedAt")
       .map(([key, value]) => {
         if (key === "tags" || key === "settings") return JSON.stringify(value);
         return value;

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { AIService } from "../services/ai/ai.service";
-import { AgentToolService } from "../services/ai/agent.service";
+import { LangGraphService } from "../services/ai/langgraph.service";
 import { logger } from "../utils/logger";
 
 const switchStreamRes = (res: Response) => {
@@ -40,10 +40,10 @@ function getModels(type: "qwen-plus" | "glm-5.1" | "deepseek" | "openRouter") {
 const abortControllerMap = new Map<string, AbortController>();
 export class AIController {
   private aiService: AIService;
-  private agentToolService: AgentToolService;
+  private langGraphService: LangGraphService;
   constructor() {
     this.aiService = new AIService();
-    this.agentToolService = new AgentToolService();
+    this.langGraphService = new LangGraphService();
   }
   chatStream(req: Request, res: Response): Response | void {
     res = switchStreamRes(res);
@@ -81,15 +81,15 @@ export class AIController {
       }
       const abortController = new AbortController();
       const config = getModels(model as any);
-      await this.agentToolService.runAgent(
-        prompt,
-        history,
-        config.model,
+      await this.langGraphService.runAgent({
+        userMessage: prompt,
+        conversationHistory: history,
+        model: config.model,
         apiKey,
-        config.url,
+        url: config.url,
         res,
         abortController,
-      );
+      });
     } catch (error) {
       next(error);
       return;

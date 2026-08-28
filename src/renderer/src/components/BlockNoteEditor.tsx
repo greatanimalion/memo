@@ -12,6 +12,7 @@ import {
   getDefaultReactSlashMenuItems,
   getFormattingToolbarItems,
 } from "@blocknote/react";
+import { getLocalUrl } from '@renderer/utils'
 import { BlockNoteEditor, filterSuggestionItems } from "@blocknote/core";
 import { AIExtension } from "@blocknote/xl-ai";
 import "@blocknote/xl-ai/style.css";
@@ -24,6 +25,12 @@ import {
   getAISlashMenuItems,
 } from "@blocknote/xl-ai";
 import { AIKey } from "@renderer/types/common";
+
+const darkThemes = new Set([0, 2, 4, 7, 6]);
+function getThemeMode(): "light" | "dark" {
+  const val = getLocalStore<number>("theme")?.value ?? 7;
+  return darkThemes.has(val) ? "dark" : "light";
+}
 import {
   deleteFile,
   getMemoryById,
@@ -43,6 +50,7 @@ import {
 import { ipcRenderer } from "electron";
 import useFileStore from "@renderer/store/useFileStore";
 import axios from "axios";
+import { DOCUMENTMODEL } from "@renderer/constants";
 
 function exportFile(editor: any, type: "md" | "html" | "json", name?: string) {
   let endFixed = "." + type;
@@ -66,10 +74,11 @@ function exportFile(editor: any, type: "md" | "html" | "json", name?: string) {
 }
 const Editor = ({ selectedFile }) => {
   const [html, setHTML] = useState<string>("");
+  const [themeMode, setThemeMode] = useState<"light" | "dark">(getThemeMode);
   const [messageApi, contextHolder] = message.useMessage();
   const { clearSelectedFile } = useFileStore();
   const getTransport = useMemo(() => {
-    let currentModelName = getLocalStore<any>("documentModel")?.value;
+    let currentModelName = getLocalStore<any>(DOCUMENTMODEL)?.value;
     const model = getModels(currentModelName);
     let key =
       getLocalStore<AIKey[]>("model")?.value.find(
@@ -103,9 +112,9 @@ const Editor = ({ selectedFile }) => {
       const res = await uploadImage(file);
       changeURL.addMap.set(
         new Date().getTime().toString(),
-        "http://localhost:32068" + res.url,
+        getLocalUrl(res.url),
       );
-      return "http://localhost:32068" + res.url;
+      return getLocalUrl(res.url);
     },
   });
   editor.onChange((_editor, { getChanges }) => {
@@ -210,6 +219,12 @@ const Editor = ({ selectedFile }) => {
     },
   ];
   useEffect(() => {
+    const observer = new MutationObserver(() => setThemeMode(getThemeMode()));
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === "s") {
         document.getElementById("____Btn")?.click();
@@ -220,7 +235,7 @@ const Editor = ({ selectedFile }) => {
       const file = await getMemoryById(selectedFile.id);
       if (!file) return;
       const content = await axios
-        .get("http://localhost:32068" + file.fileUrl)
+        .get(getLocalUrl(file.fileUrl!))//////////////////////////////////////
         .then((res) => res.data)
         .catch((err) => {
           messageApi.open({
@@ -240,7 +255,7 @@ const Editor = ({ selectedFile }) => {
 
   if (!editor) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex items-center justify-center h-full">
         加载编辑器...
       </div>
     );
@@ -249,7 +264,7 @@ const Editor = ({ selectedFile }) => {
     <div className="flex flex-col h-full w-full">
       {contextHolder}
       {/* 工具栏 */}
-      <div className="flex items-center justify-between p-3 bg-white border-b border-gray-200 shadow-sm relative z-10">
+      <div className="flex items-center justify-between p-3  border-b shadow-sm relative z-10">
         <div className="flex items-center  gap-2">
           <Button>
             <ImportOutlined />
@@ -319,10 +334,10 @@ const Editor = ({ selectedFile }) => {
         </div>
       </div>
       {/* 编辑器 */}
-      <div className="overflow-y-auto bg-white h-full">
+      <div className="overflow-y-auto  h-full" style={{backgroundColor:'var(--bg-color)'}}>
         <BlockNoteView
           editor={editor}
-          theme="light"
+          theme={themeMode}
           formattingToolbar={false}
           slashMenu={false}
           onChange={onInputChange}

@@ -49,6 +49,9 @@ export class DatabaseHelper {
       "ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'",
       "ALTER TABLE books ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'",
       "ALTER TABLE books ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+      "ALTER TABLE books ADD COLUMN description TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE books ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE books ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0",
     ];
     for (const sql of migrations) {
       try {

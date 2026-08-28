@@ -152,3 +152,95 @@ body::-webkit-scrollbar {
 .shadow-theme-sm { box-shadow: var(--shadow-sm); }
 .shadow-theme-md { box-shadow: var(--shadow-md); }
 .shadow-theme-lg { box-shadow: var(--shadow-lg); }
+
+/* ============================================================
+   BlockNote Editor 主题适配
+   将 app 的 CSS 变量映射到 BlockNote 的 --bn-* 变量
+   ============================================================ */
+
+/* 暗色主题映射 */
+.theme-classic-black .bn-container,
+.theme-modern-dark .bn-container,
+.theme-dark .bn-container,
+.theme-deep-blue .bn-container,
+.theme-blue .bn-container,
+.theme-premium-gray .bn-container {
+  color-scheme: dark;
+  --bn-colors-editor-text: var(--text-color);
+  --bn-colors-editor-background: var(--bg-color);
+  --bn-colors-menu-text: var(--text-color);
+  --bn-colors-menu-background: var(--bg-secondary);
+  --bn-colors-tooltip-text: var(--text-color);
+  --bn-colors-tooltip-background: var(--bg-tertiary);
+  --bn-colors-hovered-text: var(--text-color);
+  --bn-colors-hovered-background: var(--bg-hover);
+  --bn-colors-selected-text: #ffffff;
+  --bn-colors-selected-background: var(--accent-color);
+  --bn-colors-disabled-text: var(--text-muted);
+  --bn-colors-disabled-background: var(--bg-tertiary);
+  --bn-colors-shadow: rgba(0, 0, 0, 0.4);
+  --bn-colors-border: var(--border-color);
+  --bn-colors-side-menu: var(--text-muted);
+  --bn-colors-highlights-gray-text: var(--text-secondary);
+  --bn-colors-highlights-gray-background: var(--bg-tertiary);
+  --bn-colors-highlights-brown-text: var(--text-secondary);
+  --bn-colors-highlights-brown-background: var(--bg-tertiary);
+  --bn-colors-highlights-red-text: var(--error-color);
+  --bn-colors-highlights-red-background: color-mix(in srgb, var(--error-color) 20%, transparent);
+  --bn-colors-highlights-orange-text: var(--warning-color);
+  --bn-colors-highlights-orange-background: color-mix(in srgb, var(--warning-color) 20%, transparent);
+  --bn-colors-highlights-yellow-text: var(--warning-color);
+  --bn-colors-highlights-yellow-background: color-mix(in srgb, var(--warning-color) 20%, transparent);
+  --bn-colors-highlights-green-text: var(--success-color);
+  --bn-colors-highlights-green-background: color-mix(in srgb, var(--success-color) 20%, transparent);
+  --bn-colors-highlights-blue-text: var(--info-color);
+  --bn-colors-highlights-blue-background: color-mix(in srgb, var(--info-color) 20%, transparent);
+  --bn-colors-highlights-purple-text: var(--accent-color);
+  --bn-colors-highlights-purple-background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  --bn-colors-highlights-pink-text: var(--accent-color);
+  --bn-colors-highlights-pink-background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  --bn-shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --bn-shadow-light: 0 2px 6px var(--border-color);
+}
+
+/* 亮色主题映射 */
+.theme-minimalism .bn-container,
+.theme-eye-care .bn-container,
+.theme-vintage-paper .bn-container {
+  color-scheme: light;
+  --bn-colors-editor-text: var(--text-color);
+  --bn-colors-editor-background: var(--bg-color);
+  --bn-colors-menu-text: var(--text-color);
+  --bn-colors-menu-background: var(--bg-primary);
+  --bn-colors-tooltip-text: var(--text-color);
+  --bn-colors-tooltip-background: var(--bg-tertiary);
+  --bn-colors-hovered-text: var(--text-color);
+  --bn-colors-hovered-background: var(--bg-hover);
+  --bn-colors-selected-text: #ffffff;
+  --bn-colors-selected-background: var(--accent-color);
+  --bn-colors-disabled-text: var(--text-muted);
+  --bn-colors-disabled-background: var(--bg-tertiary);
+  --bn-colors-shadow: var(--border-light);
+  --bn-colors-border: var(--border-color);
+  --bn-colors-side-menu: var(--text-muted);
+  --bn-colors-highlights-gray-text: var(--text-secondary);
+  --bn-colors-highlights-gray-background: var(--bg-tertiary);
+  --bn-colors-highlights-brown-text: var(--text-secondary);
+  --bn-colors-highlights-brown-background: var(--bg-tertiary);
+  --bn-colors-highlights-red-text: var(--error-color);
+  --bn-colors-highlights-red-background: color-mix(in srgb, var(--error-color) 12%, transparent);
+  --bn-colors-highlights-orange-text: var(--warning-color);
+  --bn-colors-highlights-orange-background: color-mix(in srgb, var(--warning-color) 12%, transparent);
+  --bn-colors-highlights-yellow-text: var(--warning-color);
+  --bn-colors-highlights-yellow-background: color-mix(in srgb, var(--warning-color) 12%, transparent);
+  --bn-colors-highlights-green-text: var(--success-color);
+  --bn-colors-highlights-green-background: color-mix(in srgb, var(--success-color) 12%, transparent);
+  --bn-colors-highlights-blue-text: var(--info-color);
+  --bn-colors-highlights-blue-background: color-mix(in srgb, var(--info-color) 12%, transparent);
+  --bn-colors-highlights-purple-text: var(--accent-color);
+  --bn-colors-highlights-purple-background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+  --bn-colors-highlights-pink-text: var(--accent-color);
+  --bn-colors-highlights-pink-background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+  --bn-shadow-medium: 0 4px 12px var(--border-light);
+  --bn-shadow-light: 0 2px 6px var(--border-light);
+}

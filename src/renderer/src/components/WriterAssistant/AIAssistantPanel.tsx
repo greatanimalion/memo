@@ -15,7 +15,7 @@ const AIAssistantPanel: React.FC = () => {
   const aiPanelOpen = useWriterStore((s) => s.aiPanelOpen);
   const setAiPanelOpen = useWriterStore((s) => s.setAiPanelOpen);
   const book = useWriterStore((s) => s.book);
-  const currentChapterId = useWriterStore((s) => s.currentChapterId);
+  const currentChapterId = useWriterStore((s) => s.currentChapter?.id);
 
   const [prompt, setPrompt] = React.useState("");
   const [messages, setMessages] = React.useState<

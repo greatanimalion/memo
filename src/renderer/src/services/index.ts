@@ -1,7 +1,8 @@
+import { port } from "@renderer/constants";
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:32068/",
+  baseURL: `http://localhost:${port}/`,
 });
 
 export async function exportAll() {

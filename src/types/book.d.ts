@@ -47,6 +47,9 @@ export interface Book {
   author: string;
   cover: string;
   tags: string[];
+  description?: string;
+  createdAt?: number;
+  updatedAt?: number;
   settings?: BookSettings;
 }
 

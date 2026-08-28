@@ -5,6 +5,7 @@ import { getLocalStore, setLocalStore } from "@renderer/utils/localStore";
 import ApiKeyList from "./components/ApiKeyList";
 import AddKeyForm from "./components/AddKeyForm";
 import DocumentModelManager from "./components/DocumentModelManager";
+import { DOCUMENTMODEL } from "@renderer/constants";
 
 const PersonPage: React.FC = () => {
   const [aiKeys, setAiKeys] = useState<AIKey[]>([]);
@@ -13,7 +14,7 @@ const PersonPage: React.FC = () => {
   useEffect(() => {
     const model: AIKey[] = getLocalStore<AIKey[]>("model")?.value || [];
     const _documentModel =
-      getLocalStore<string>("documentModel")?.value || "请选择模型";
+      getLocalStore<string>(DOCUMENTMODEL)?.value || "请选择模型";
     setAiKeys(model);
     setDocumentModel(_documentModel);
   }, []);
@@ -27,7 +28,7 @@ const PersonPage: React.FC = () => {
   };
 
   const handleDocumentModelChange = (value: string) => {
-    setLocalStore("documentModel", { value });
+    setLocalStore(DOCUMENTMODEL, { value });
     setDocumentModel(value);
   };
 

@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWriterStore } from '@renderer/store/useWriterStore';
-import { fontFamilyMap } from '../../../components/WriterAssistant/ChapterToolbar';
 import { Button } from 'antd';
 import {
   BookOutlined,
@@ -22,7 +21,16 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getRoot, $createParagraphNode, $createTextNode, $getSelection, $isRangeSelection, EditorState, KEY_TAB_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { debounce } from '@renderer/utils';
 import { Chapter } from '@type';
+import { FontFamily } from '@renderer/types/common';
 
+
+const fontFamilyMap: Record<FontFamily, string> = {
+  sans: "sans-serif",
+  serif: "serif",
+  mono: '"Courier New", monospace',
+  kaiti: '"KaiTi", "STKaiti", serif',
+  songti: '"SimSun", "STSong", serif',
+};
 // ========== 内层组件：所有依赖 LexicalComposer Context 的逻辑 ==========
 const LexicalEditorContent: React.FC<{
   currentChapter: Chapter | null;

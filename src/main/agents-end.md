@@ -39,8 +39,15 @@ src/main/server/
     book.service.ts     书籍/章节/卷 管理
     storage.service.ts  存储服务（数据库大小、导出）
     ai/
-      ai.service.ts     普通流式聊天（ChatOpenAI）
-      langgraph.service.ts  Agent 模式（StateGraph + 工具调用）
+      langgraph.service.ts  统一 AI 服务（LangGraph StateGraph + 工具调用 + 流式输出）
+      book-agent/           AI 写书多 Agent 系统
+        index.ts            LangGraph 组装（5 Agent + 工具 + 路由）
+        orchestrator.ts     总控/规划Agent 提示词
+        thinker.ts          构思/规划Agent 提示词
+        writer.ts           写作Agent 提示词
+        editor.ts           编辑/审校Agent 提示词
+        consistency.ts      一致性检查Agent 提示词
+        book-agent.md       详细文档
   repositories/         数据库访问层（封装 SQL 操作）
   middleware/
     error.middleware.ts  日志/404/错误中间件
@@ -280,9 +287,31 @@ src/main/server/
 - 章节按 `order` 字段排序
 
 ### AI
-- 流式聊天用 `@langchain/openai` ChatOpenAI，支持 abort
-- Agent 模式用 LangGraph StateGraph，内置工具：`get_time`、`write_diary`
+- **统一使用 LangGraph**：`langgraph.service.ts` 是唯一的 AI 服务（`ai.service.ts` 和 `ai/agent.service.ts` 已删除）
+- `chat-stream` 和 `chat-agent` 都通过 `LangGraphService.runAgent()` 执行
+- `chat-stream`：`maxRounds=1`，不带工具，纯聊天（system prompt: "你是一个中文 AI 助手"）
+- `chat-agent`：带工具调用（get_time、write_diary、get_memory），支持多轮工具循环
+- 流式输出：`streaming: true`，通过 SSE 逐 token 返回
+- 支持前端传入自定义 `systemPrompt`（来自 agents 表的 content 字段）
+- 内置工具：
+  - `get_time` — 获取当前日期时间
+  - `write_diary` — 记录日记（日期+待办+备注）
+  - `get_memory` — 搜索/列出用户记忆
 - 历史消息最多取最近 10 条
+- 请求取消：通过 `requestId` 维护 `AbortController` 映射
+
+### Book Agent（AI 写书）
+- 基于 LangGraph 的多 Agent 协作写书系统，位于 `services/ai/book-agent/`
+- 5 个专业 Agent 通过 StateGraph 协作：
+  - **Orchestrator**（`orchestrator.ts`）：总控/规划，调度其他 Agent，质量把关
+  - **Thinker**（`thinker.ts`）：构思大纲，结构设计，角色/世界观设定
+  - **Writer**（`writer.ts`）：撰写章节正文
+  - **Editor**（`editor.ts`）：编辑润色，优化表达和节奏
+  - **Consistency**（`consistency.ts`）：一致性检查，防止"吃书"
+- Graph 流程：`orchestrator → thinker → orchestrator → writer → editor → consistency → orchestrator → ... → END`
+- 工具：`get_book_info`、`save_chapter`、`update_chapter`、`save_to_memory`
+- 每个 Agent 的提示词模板在对应 `.ts` 文件的 `EXPORTED_PROMPT` 常量中
+- 详细文档见 `book-agent/book-agent.md`
 
 ### 文件存储
 - 开发环境：`src/main/data/uploads/`

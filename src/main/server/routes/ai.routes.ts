@@ -1,8 +1,8 @@
-﻿import express from "express";
+﻿import express, { Router } from "express";
 import { AIController } from "@main/server/controllers/ai.controller";
 import { asyncHandler } from "@main/server/utils/asyncHandler";
 
-const router = express.Router();
+const router :Router= express.Router();
 const aiController = new AIController();
 
 router.post(

@@ -6,6 +6,9 @@ import { logger } from "../utils/logger";
 const switchStreamRes = (res: Response) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Transfer-Encoding", "chunked");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
   return res;
 };
 

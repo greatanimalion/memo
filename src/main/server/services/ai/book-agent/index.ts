@@ -135,6 +135,13 @@ for (const t of bookAgentTools) {
   toolMap.set(t.name, t);
 }
 
+function flushWrite(res: ExpressResponse, data: string): void {
+  res.write(data);
+  if (typeof (res as any).flush === "function") {
+    (res as any).flush();
+  }
+}
+
 // ──────────────────── State 定义 ────────────────────
 
 interface BookAgentState {
@@ -142,9 +149,9 @@ interface BookAgentState {
   currentPhase: string;
   bookId: string;
   chapterOrder: number;
-  maxChapters: number;
   phaseHistory: string[];
   result: string;
+  stepCount: number;
 }
 
 const BookAgentState = Annotation.Root({
@@ -164,10 +171,6 @@ const BookAgentState = Annotation.Root({
     reducer: (_curr, prev) => prev,
     default: () => 1,
   }),
-  maxChapters: Annotation<number>({
-    reducer: (_curr, prev) => prev,
-    default: () => 10,
-  }),
   phaseHistory: Annotation<string[]>({
     reducer: (curr, prev) => [...curr, ...prev],
     default: () => [],
@@ -176,28 +179,89 @@ const BookAgentState = Annotation.Root({
     reducer: (_curr, prev) => prev,
     default: () => "",
   }),
+  stepCount: Annotation<number>({
+    reducer: (curr, prev) => prev,
+    default: () => 0,
+  }),
 });
 
 // ──────────────────── Agent 节点工厂 ────────────────────
 
-function createAgentNode(systemPrompt: string, tools?: typeof bookAgentTools) {
+function createAgentNode(
+  systemPrompt: string,
+  res: ExpressResponse,
+  agentName: string,
+  tools?: typeof bookAgentTools,
+) {
   return async (state: typeof BookAgentState.State) => {
     const lastMsg = state.messages[state.messages.length - 1];
     if (!lastMsg) return { messages: [] };
 
     const llm = new ChatOpenAI({
-      modelName: (globalThis as any).__bookAgentModel || "qwen-plus",
+      modelName: (globalThis as any).__bookAgentModel || "deepseek-v4-pro",
       apiKey: (globalThis as any).__bookAgentApiKey || "",
       configuration: {
-        baseURL: (globalThis as any).__bookAgentUrl || "",
+        baseURL: (globalThis as any).__bookAgentUrl || "https://api.deepseek.com",
       },
       temperature: 0.7,
-      streaming: false,
+      streaming: true,
     });
 
     const target = tools ? llm.bindTools(tools) : llm;
     const msgs = [new SystemMessage(systemPrompt), ...state.messages];
-    const response = await target.invoke(msgs);
+    const stream = await target.stream(msgs);
+
+    flushWrite(res, `\n### [${agentName}]\n\n`);
+
+    let fullContent = "";
+    const toolCalls: { name: string; args: Record<string, any>; id?: string }[] = [];
+
+    for await (const chunk of stream) {
+      if (chunk.content) {
+        const text =
+          typeof chunk.content === "string"
+            ? chunk.content
+            : Array.isArray(chunk.content)
+              ? chunk.content
+                  .filter((p: any) => p.type === "text")
+                  .map((p: any) => p.text)
+                  .join("")
+              : "";
+        if (text) {
+          fullContent += text;
+          flushWrite(res, text);
+        }
+      }
+      if (chunk.tool_calls) {
+        for (const tc of chunk.tool_calls) {
+          const existing = toolCalls.find((t) => t.id && tc.id && t.id === tc.id);
+          if (existing) {
+            if (tc.args && typeof tc.args === "object") {
+              existing.args = { ...existing.args, ...tc.args };
+            }
+          } else {
+            toolCalls.push({
+              name: tc.name,
+              args: tc.args && typeof tc.args === "object" ? { ...tc.args } : {},
+              id: tc.id,
+            });
+          }
+          flushWrite(res, `\n[${agentName}:${tc.name}]\n`);
+        }
+      }
+    }
+
+    logger.info(`[${agentName}] 完整回复:`, fullContent.substring(0, 300) + (fullContent.length > 300 ? '...' : ''));
+    if (toolCalls.length > 0) {
+      for (const tc of toolCalls) {
+        logger.info(`[${agentName}] 工具调用: ${tc.name}, args: ${JSON.stringify(tc.args)}`);
+      }
+    }
+
+    const response = new AIMessage({
+      content: fullContent,
+      tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+    });
 
     return { messages: [response] };
   };
@@ -208,6 +272,7 @@ function createAgentNode(systemPrompt: string, tools?: typeof bookAgentTools) {
 function shouldContinue(state: typeof BookAgentState.State): string {
   const lastMsg = state.messages[state.messages.length - 1] as AIMessage;
   if (lastMsg?.tool_calls && lastMsg.tool_calls.length > 0) {
+    logger.info(`[shouldContinue] 有 ${lastMsg.tool_calls.length} 个工具调用, 走 tools`);
     return "tools";
   }
   return "route";
@@ -217,26 +282,37 @@ function routePhase(state: typeof BookAgentState.State): string {
   const phase = state.currentPhase;
   const lastMsg = state.messages[state.messages.length - 1] as AIMessage;
   const content =
-    typeof lastMsg?.content === "string"
-      ? lastMsg.content
-      : "";
+    typeof lastMsg?.content === "string" ? lastMsg.content : "";
 
+  if (state.stepCount >= 20) {
+    logger.info(`[route] stepCount=${state.stepCount} >= 20, 强制结束`);
+    return END;
+  }
+
+  let next = END;
   switch (phase) {
     case "orchestrator":
-      if (content.includes("构思") || content.includes("大纲")) return "thinker";
-      if (content.includes("完成") || content.includes("结束")) return END;
-      return "orchestrator";
+      if (content.includes("构思") || content.includes("大纲") || content.includes("规划") || content.includes("计划")) next = "thinker";
+      else if (content.includes("撰写") || content.includes("写作") || content.includes("正文") || content.includes("执行")) next = "writer";
+      else if (content.includes("完成") || content.includes("结束") || content.includes("全部完成")) next = END;
+      else next = "thinker";
+      break;
     case "thinker":
-      return "orchestrator";
+      next = "orchestrator";
+      break;
     case "writer":
-      return "editor";
+      next = "editor";
+      break;
     case "editor":
-      return "consistency";
+      next = "consistency";
+      break;
     case "consistency":
-      return "orchestrator";
-    default:
-      return END;
+      next = "orchestrator";
+      break;
   }
+
+  logger.info(`[route] phase=${phase}, stepCount=${state.stepCount}, next=${next}`);
+  return next;
 }
 
 function routeFromTools(state: typeof BookAgentState.State): string {
@@ -252,11 +328,28 @@ async function executeTools(
   const results: BaseMessage[] = [];
 
   for (const tc of lastMsg.tool_calls || []) {
+    if (!tc.args || Object.keys(tc.args).length === 0) {
+      logger.warn(`[tools] 跳过空参数工具调用: ${tc.name}`);
+      results.push(
+        new ToolMessage({
+          content: `工具 ${tc.name} 的参数为空，已跳过。请用纯文本回复代替工具调用。`,
+          tool_call_id: tc.id!,
+          name: tc.name,
+        }),
+      );
+      continue;
+    }
+
     let result = "";
     try {
+      if (tc.name === "get_book_info" && !tc.args.bookId && state.bookId) {
+        tc.args.bookId = state.bookId;
+      }
+      logger.info(`[tools] 执行 ${tc.name}, 参数: ${JSON.stringify(tc.args)}`);
       const targetTool = toolMap.get(tc.name) as any;
       if (targetTool) {
         result = (await targetTool.invoke(tc.args)) as string;
+        logger.info(`[tools] ${tc.name} 返回: ${result.substring(0, 200)}`);
       } else {
         result = `未知工具: ${tc.name}`;
       }
@@ -277,71 +370,87 @@ async function executeTools(
 
 // ──────────────────── 构建 Graph ────────────────────
 
-function buildBookAgentGraph() {
-  const orchestratorNode = createAgentNode(ORCHESTRATOR_PROMPT, bookAgentTools);
-  const thinkerNode = createAgentNode(THINKER_PROMPT);
-  const writerNode = createAgentNode(WRITER_PROMPT, bookAgentTools);
-  const editorNode = createAgentNode(EDITOR_PROMPT);
-  const consistencyNode = createAgentNode(CONSISTENCY_PROMPT);
+function buildBookAgentGraph(res: ExpressResponse) {
+  const orchestratorNode = createAgentNode(ORCHESTRATOR_PROMPT, res, "orchestrator");
+  const thinkerNode = createAgentNode(THINKER_PROMPT, res, "thinker");
+  const writerNode = createAgentNode(WRITER_PROMPT, res, "writer");
+  const editorNode = createAgentNode(EDITOR_PROMPT, res, "editor");
+  const consistencyNode = createAgentNode(CONSISTENCY_PROMPT, res, "consistency");
 
   const workflow = new StateGraph(BookAgentState)
     .addNode("orchestrator", async (state) => {
       const result = await orchestratorNode(state);
-      return { ...result, currentPhase: "orchestrator" };
+      return { ...result, currentPhase: "orchestrator", phaseHistory: ["orchestrator"], stepCount: state.stepCount + 1 };
     })
     .addNode("thinker", async (state) => {
       const result = await thinkerNode(state);
-      return { ...result, currentPhase: "thinker" };
+      return { ...result, currentPhase: "thinker", phaseHistory: ["thinker"], stepCount: state.stepCount + 1 };
     })
     .addNode("writer", async (state) => {
       const result = await writerNode(state);
-      return { ...result, currentPhase: "writer" };
+      const content = typeof result.messages?.[0]?.content === "string" ? result.messages[0].content : "";
+      if (content.length > 100) {
+        const titleMatch = content.match(/(?:标题|title)[：:]\s*(.+)/i);
+        const title = titleMatch ? titleMatch[1].trim() : `第${state.chapterOrder}章`;
+        try {
+          bookService.createChapter({
+            id: crypto.randomUUID(),
+            bookId: state.bookId,
+            title,
+            content,
+            wordCount: content.length,
+            order: state.chapterOrder,
+          });
+          logger.info(`[auto-save] 章节已保存: ${title} (${content.length}字)`);
+        } catch (e: any) {
+          logger.error(`[auto-save] 章节保存失败: ${e.message}`);
+        }
+      }
+      return { ...result, currentPhase: "writer", phaseHistory: ["writer"], stepCount: state.stepCount + 1, chapterOrder: state.chapterOrder + 1 };
     })
     .addNode("editor", async (state) => {
       const result = await editorNode(state);
-      return { ...result, currentPhase: "editor" };
+      return { ...result, currentPhase: "editor", phaseHistory: ["editor"], stepCount: state.stepCount + 1 };
     })
     .addNode("consistency", async (state) => {
       const result = await consistencyNode(state);
-      return { ...result, currentPhase: "consistency" };
+      return { ...result, currentPhase: "consistency", phaseHistory: ["consistency"], stepCount: state.stepCount + 1 };
     })
-    .addNode("tools", executeTools)
-    .addNode("route", () => ({}))
 
     .addEdge(START, "orchestrator")
-    .addConditionalEdges("orchestrator", shouldContinue, {
-      tools: "tools",
-      route: "route",
-    })
-    .addConditionalEdges("thinker", shouldContinue, {
-      tools: "tools",
-      route: "route",
-    })
-    .addConditionalEdges("writer", shouldContinue, {
-      tools: "tools",
-      route: "route",
-    })
-    .addConditionalEdges("editor", shouldContinue, {
-      tools: "tools",
-      route: "route",
-    })
-    .addConditionalEdges("consistency", shouldContinue, {
-      tools: "tools",
-      route: "route",
-    })
-    .addConditionalEdges("tools", routeFromTools, {
-      orchestrator: "orchestrator",
+    .addConditionalEdges("orchestrator", routePhase, {
       thinker: "thinker",
       writer: "writer",
       editor: "editor",
       consistency: "consistency",
+      [END]: END,
     })
-    .addConditionalEdges("route", routePhase, {
+    .addConditionalEdges("thinker", routePhase, {
+      orchestrator: "orchestrator",
+      writer: "writer",
+      editor: "editor",
+      consistency: "consistency",
+      [END]: END,
+    })
+    .addConditionalEdges("writer", routePhase, {
+      orchestrator: "orchestrator",
+      thinker: "thinker",
+      editor: "editor",
+      consistency: "consistency",
+      [END]: END,
+    })
+    .addConditionalEdges("editor", routePhase, {
+      orchestrator: "orchestrator",
+      thinker: "thinker",
+      writer: "writer",
+      consistency: "consistency",
+      [END]: END,
+    })
+    .addConditionalEdges("consistency", routePhase, {
       orchestrator: "orchestrator",
       thinker: "thinker",
       writer: "writer",
       editor: "editor",
-      consistency: "consistency",
       [END]: END,
     });
 
@@ -374,14 +483,34 @@ export class BookAgentService {
     (globalThis as any).__bookAgentApiKey = apiKey;
     (globalThis as any).__bookAgentUrl = url;
 
-    const graph = buildBookAgentGraph();
+    const graph = buildBookAgentGraph(res);
+
+    let bookInfo = "";
+    try {
+      const detail = bookService.getBookDetail(bookId);
+      if (detail) {
+        bookInfo =
+          `书籍标题: ${detail.title}\n` +
+          `作者: ${detail.author || "佚名"}\n` +
+          `简介: ${detail.description || "无"}\n` +
+          `已有章节: ${detail.chapters?.length || 0}章\n` +
+          (detail.chapters?.length
+            ? detail.chapters.map((c) => `  - ${c.title} (${c.wordCount}字)`).join("\n")
+            : "");
+      } else {
+        bookInfo = `未找到书籍 (ID: ${bookId})`;
+      }
+    } catch (e: any) {
+      bookInfo = `获取书籍信息失败: ${e.message}`;
+    }
 
     const initMessages: BaseMessage[] = [
       new HumanMessage(
         `## 项目任务\n\n` +
           `书籍ID: ${bookId}\n\n` +
+          `${bookInfo}\n\n` +
           `用户需求: ${userMessage}\n\n` +
-          `请先调用 get_book_info 工具获取书籍信息，然后制定创作计划。`,
+          `请根据以上信息制定创作计划，并调度各Agent执行。`,
       ),
     ];
 
@@ -393,13 +522,14 @@ export class BookAgentService {
           bookId,
           chapterOrder: 1,
           phaseHistory: [],
+          stepCount: 0,
         },
-        { recursionLimit: 50, signal: abortController.signal },
+        { recursionLimit: 100, signal: abortController.signal },
       );
 
       for await (const event of stream) {
         if (abortController.signal.aborted) {
-          res.write("\n\n[任务已取消]");
+          flushWrite(res, "\n\n[任务已取消]");
           res.end();
           return false;
         }
@@ -412,52 +542,21 @@ export class BookAgentService {
                 typeof msg.content === "string"
                   ? msg.content
                   : JSON.stringify(msg.content);
-              res.write(`\n[system] ${text}\n`);
-            }
-          }
-
-          if (
-            ["orchestrator", "thinker", "writer", "editor", "consistency"].includes(node)
-          ) {
-            const agentOutput = output as {
-              messages: BaseMessage[];
-              currentPhase?: string;
-            };
-            for (const msg of agentOutput.messages || []) {
-              if (msg instanceof AIMessage) {
-                if (msg.tool_calls && msg.tool_calls.length > 0) {
-                  for (const tc of msg.tool_calls) {
-                    res.write(`\n[${node}:${tc.name}]\n`);
-                  }
-                } else if (msg.content) {
-                  const content =
-                    typeof msg.content === "string"
-                      ? msg.content
-                      : Array.isArray(msg.content)
-                        ? msg.content
-                            .filter((p: any) => p.type === "text")
-                            .map((p: any) => p.text)
-                            .join("")
-                        : "";
-                  if (content) {
-                    res.write(`\n### [${node}]\n\n${content}\n`);
-                  }
-                }
-              }
+              flushWrite(res, `\n[system] ${text}\n`);
             }
           }
         }
       }
 
-      res.write("\n\n[book-agent:done]");
+      flushWrite(res, "\n\n[book-agent:done]");
       res.end();
       return true;
     } catch (error: any) {
       if (abortController.signal.aborted || error.name === "AbortError") {
-        res.write("\n\n[任务已取消]");
+        flushWrite(res, "\n\n[任务已取消]");
       } else {
         logger.error("BookAgent 执行错误:", error);
-        res.write(`\n\n[错误] ${error.message}`);
+        flushWrite(res, `\n\n[错误] ${error.message}`);
       }
       res.end();
       return false;

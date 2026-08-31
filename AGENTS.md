@@ -1,6 +1,7 @@
 # memo — Electron + React + TypeScript 桌面应用
 
 > **重要：修改或访问后端代码前，必须先读取 `src/main/agents-end.md`**（包含数据库表结构、所有 API 接口文档）。
+> **重要：修改或访问后端代码前，必须先读取 `src/renderer/front.md`**（包含数据库表结构、所有 API 接口文档）。
 
 ## 开发命令
 
@@ -62,6 +63,7 @@ plugins/          Vite 插件（devPlugin 替换 Node 模块引用）
 - **Lexical 编辑器**：Tab 键通过 `registerCommand(KEY_TAB_COMMAND)` 插入制表符；内容按需加载（`getMetaByBookId` 不加载 content，切换章节时单独 fetch）。
 - **编辑器设置持久化**：`editorSettings` + `editorBg` 存入 localStorage（key: `writer-editor-settings`），启动时自动恢复。
 - **章节保存**：自动保存（1s debounce）/ 手动保存（按钮触发 `PUT /api/chapters/:id`）双模式；`setCurrentChapter` 先 await API 再原子更新 state，避免空内容竞态。
+- **Book Agent 流式架构**：`POST /api/book-agent` 返回 `Transfer-Encoding: chunked` 流式响应；前端 `BookAgentModal.tsx` 使用 `fetch` + `ReadableStream` 读取，通过 `agentsRef`（`useRef<Map>`）避免 React 状态闭包陷阱，`incrementallyParse` 每收到 chunk 就解析 buffer 更新 ref，再 `syncAgentsFromRef()` 触发 React 渲染；后端 LangGraph 每个节点完成后 `res.write()` 输出 `### [agentName]\n\n{content}` 格式文本，前端根据标记动态创建/更新对应 Agent 面板；`AgentPanel` 使用 `React.memo` 避免无关重渲染；完成时收到 `[book-agent:done]` 后调用 `loadBookById(bookId)` 刷新后端数据。
 
 ## 开发注意事项
 

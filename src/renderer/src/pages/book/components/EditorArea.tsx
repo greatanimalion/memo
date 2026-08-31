@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useWriterStore } from '@renderer/store/useWriterStore';
-import { Button } from 'antd';
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useWriterStore } from "@renderer/store/useWriterStore";
+import { Button } from "antd";
 import {
   BookOutlined,
   ExpandOutlined,
@@ -8,21 +8,29 @@ import {
   SaveOutlined,
   CloudOutlined,
   CloudDownloadOutlined,
-} from '@ant-design/icons';
-import useAppStore from '@renderer/store/app';
+} from "@ant-design/icons";
+import useAppStore from "@renderer/store/app";
 
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, $createParagraphNode, $createTextNode, $getSelection, $isRangeSelection, EditorState, KEY_TAB_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
-import { debounce } from '@renderer/utils';
-import { Chapter } from '@type';
-import { FontFamily } from '@renderer/types/common';
-
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+  $getRoot,
+  $createParagraphNode,
+  $createTextNode,
+  $getSelection,
+  $isRangeSelection,
+  EditorState,
+  KEY_TAB_COMMAND,
+  COMMAND_PRIORITY_LOW,
+} from "lexical";
+import { debounce } from "@renderer/utils";
+import { Chapter } from "@type";
+import { FontFamily } from "@renderer/types/common";
 
 const fontFamilyMap: Record<FontFamily, string> = {
   sans: "sans-serif",
@@ -47,7 +55,6 @@ const LexicalEditorContent: React.FC<{
       const p = $createParagraphNode();
       p.append($createTextNode(currentChapter.content));
       root.append(p);
-
     });
   }, [editor, currentChapter?.id]);
 
@@ -66,7 +73,7 @@ const LexicalEditorContent: React.FC<{
         });
         return true;
       },
-      COMMAND_PRIORITY_LOW
+      COMMAND_PRIORITY_LOW,
     );
   }, [editor]);
 
@@ -79,21 +86,19 @@ const LexicalEditorContent: React.FC<{
           updateChapterContent(currentChapter.id, text);
         }
         // 更新行列信息（供底部状态栏使用）
-        const lines = text.split('\n');
+        const lines = text.split("\n");
         setLineCount(lines.length || 1);
         setColumn(lines[lines.length - 1]?.length + 1 || 1);
       });
     }, 500),
-    [currentChapter, updateChapterContent, setLineCount, setColumn]
+    [currentChapter, updateChapterContent, setLineCount, setColumn],
   );
 
   return (
     <>
       <RichTextPlugin
         contentEditable={
-          <ContentEditable
-            className="w-full min-h-full outline-none resize-none"
-          />
+          <ContentEditable className="w-full min-h-full outline-none resize-none" />
         }
         ErrorBoundary={LexicalErrorBoundary}
       />
@@ -106,12 +111,16 @@ const LexicalEditorContent: React.FC<{
 const EditorArea: React.FC = () => {
   const [lineCount, setLineCount] = useState(1);
   const [column, setColumn] = useState(1);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const book = useWriterStore((s) => s.book);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
   const autoSave = useWriterStore((s) => s.autoSave);
   const setAutoSave = useWriterStore((s) => s.setAutoSave);
   const updateChapterContent = useWriterStore((s) => s.updateChapterContent);
+  const updateChapterTitle = useWriterStore((s) => s.updateChapterTitle);
   const currentChapter = useWriterStore((s) => s.currentChapter);
   const appStore = useAppStore();
 
@@ -122,18 +131,37 @@ const EditorArea: React.FC = () => {
     fontWeight: editorSettings.fontWeight,
   };
 
-  const isDarkBg = editorBg?.type === 'color' && ['#1e1e2e'].includes(editorBg.value);
+  const isDarkBg =
+    editorBg?.type === "color" && ["#1e1e2e"].includes(editorBg.value);
 
+  const handleStartEditTitle = () => {
+    if (!currentChapter) return;
+    setTitleValue(currentChapter.title);
+    setEditingTitle(true);
+    setTimeout(() => titleInputRef.current?.focus(), 0);
+  };
+
+  const handleSaveTitle = () => {
+    const trimmed = titleValue.trim();
+    if (trimmed && currentChapter && trimmed !== currentChapter.title) {
+      updateChapterTitle(currentChapter.id, trimmed);
+    }
+    setEditingTitle(false);
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitle(false);
+  };
 
   const initialConfig = {
-    namespace: 'BookEditor',
+    namespace: "BookEditor",
     theme: {
-      paragraph: 'editor-paragraph',
+      paragraph: "editor-paragraph",
       text: {
-        bold: 'editor-text-bold',
-        italic: 'editor-text-italic',
-        underline: 'editor-text-underline',
-        strikethrough: 'editor-text-strikethrough',
+        bold: "editor-text-bold",
+        italic: "editor-text-italic",
+        underline: "editor-text-underline",
+        strikethrough: "editor-text-strikethrough",
       },
     },
     onError: (error: Error) => console.error(error),
@@ -142,39 +170,75 @@ const EditorArea: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col min-w-0">
       {/* 顶部信息栏 */}
-      <div className={`flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-200 ${appStore.isBookScreen
-        ? isDarkBg
-          ? 'bg-theme-primary/80 border-theme backdrop-blur-sm'
-          : 'bg-theme-primary/60 border-theme-light backdrop-blur-sm'
-        : 'bg-theme-primary/80 border-theme-light backdrop-blur-sm'
-        }`}>
+      <div
+        className={`flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-200 ${appStore.isBookScreen
+            ? isDarkBg
+              ? "bg-theme-primary/80 border-theme backdrop-blur-sm"
+              : "bg-theme-primary/60 border-theme-light backdrop-blur-sm"
+            : "bg-theme-primary/80 border-theme-light backdrop-blur-sm"
+          }`}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <BookOutlined className={`text-sm ${isDarkBg ? 'text-accent-light' : 'text-accent'}`} />
-            <span className={`text-sm font-semibold ${isDarkBg ? 'text-theme-primary' : 'text-theme-primary'}`}>{book.title}</span>
-          </div>
-          <div className={`w-px h-3.5 ${isDarkBg ? 'bg-theme-border' : 'bg-theme-light'}`} />
           <div className="flex items-center gap-1.5">
-            <span className="text-[13px] text-theme-secondary">标题:《{currentChapter?.title}》</span>
+            <span className="text-[13px] text-theme-secondary">标题:</span>
+            {editingTitle ? (
+                <input
+                  ref={titleInputRef}
+                  value={titleValue}
+                  onChange={(e) => setTitleValue(e.target.value)}
+                  onBlur={handleSaveTitle}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSaveTitle();
+                    } else if (e.key === "Escape") {
+                      handleCancelEditTitle();
+                    }
+                  }}
+                  className="text-[13px] bg-transparent border-b border-accent outline-none px-0.5 text-theme-primary min-w-0"
+                />
+            ) : (
+              <span
+                onDoubleClick={handleStartEditTitle}
+                className="text-[13px] text-theme-primary cursor-pointer hover:text-accent transition-colors"
+              >
+                《{currentChapter?.title}》
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-3 text-[12px] mr-2 text-theme-muted">
-            <span>{new Date().toLocaleDateString('zh-CN')}</span>
+            <span>{new Date().toLocaleDateString("zh-CN")}</span>
             <span className="text-theme-light">·</span>
-            <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
-            <span className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg ? 'bg-theme-tertiary text-accent-light' : 'bg-accent-light text-accent'
-              }`}>
+            <span>
+              {new Date().toLocaleTimeString("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg
+                  ? "bg-theme-tertiary text-accent-light"
+                  : "bg-accent-light text-accent"
+                }`}
+            >
               {currentChapter?.wordCount} 字
             </span>
           </div>
           <Button
             size="small"
             type="text"
-            icon={autoSave ? <CloudOutlined className="text-sm text-accent" /> : <CloudDownloadOutlined className="text-sm text-theme-muted" />}
+            icon={
+              autoSave ? (
+                <CloudOutlined className="text-sm text-accent" />
+              ) : (
+                <CloudDownloadOutlined className="text-sm text-theme-muted" />
+              )
+            }
             onClick={() => setAutoSave(!autoSave)}
             className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
-            title={autoSave ? '自动保存中' : '手动保存模式'}
+            title={autoSave ? "自动保存中" : "手动保存模式"}
           />
           {!autoSave && (
             <Button
@@ -189,13 +253,20 @@ const EditorArea: React.FC = () => {
           <Button
             size="small"
             type="text"
-            icon={appStore.isBookScreen
-              ? <CompressOutlined className="text-sm text-theme-muted" />
-              : <ExpandOutlined className="text-sm text-theme-muted" />
+            icon={
+              appStore.isBookScreen ? (
+                <CompressOutlined className="text-sm text-theme-muted" />
+              ) : (
+                <ExpandOutlined className="text-sm text-theme-muted" />
+              )
             }
-            onClick={(!appStore.isBookScreen ? appStore.intoBookScreen : appStore.exitBookScreen)}
+            onClick={
+              !appStore.isBookScreen
+                ? appStore.intoBookScreen
+                : appStore.exitBookScreen
+            }
             className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
-            title={appStore.isBookScreen ? '退出全屏' : '全屏编辑 '}
+            title={appStore.isBookScreen ? "退出全屏" : "全屏编辑 "}
           />
         </div>
       </div>
@@ -203,12 +274,14 @@ const EditorArea: React.FC = () => {
       {/* 编辑区主体 */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-y-auto relative transition-colors duration-200">
-          {editorBg?.type === 'image' && (
+          {editorBg?.type === "image" && (
             <div className="absolute inset-0 bg-theme-primary/70 backdrop-blur-[1px]" />
           )}
           <LexicalComposer initialConfig={initialConfig}>
             <div
-              className={`w-full min-h-full relative z-10 ${appStore.isBookScreen ? 'px-12 py-8 max-w-4xl mx-auto' : 'px-8 py-6'
+              className={`w-full min-h-full relative z-10 ${appStore.isBookScreen
+                  ? "px-12 py-8 max-w-4xl mx-auto"
+                  : "px-8 py-6"
                 }`}
               style={textareaStyle}
             >
@@ -224,16 +297,28 @@ const EditorArea: React.FC = () => {
       </div>
 
       {/* 底部状态栏 */}
-      <div className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
-        ? 'bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm'
-        : 'bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm'
-        }`}>
+      <div
+        className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
+            ? "bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm"
+            : "bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm"
+          }`}
+      >
         <div className="flex items-center gap-3">
-          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-theme-tertiary text-theme-muted' : 'bg-theme-secondary text-theme-muted'}`}>UTF-8</span>
-          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? 'bg-theme-tertiary text-theme-muted' : 'bg-theme-secondary text-theme-muted'}`}>LF</span>
+          <span
+            className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}
+          >
+            UTF-8
+          </span>
+          <span
+            className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}
+          >
+            LF
+          </span>
         </div>
         <div className="flex items-center gap-3">
-          <span>行 {lineCount}，列 {column}</span>
+          <span>
+            行 {lineCount}，列 {column}
+          </span>
           <span className="text-theme-light">|</span>
           <span>{currentChapter?.wordCount} 字</span>
         </div>

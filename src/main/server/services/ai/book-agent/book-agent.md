@@ -59,7 +59,28 @@ Content-Type: application/json
 }
 ```
 
-SSE 流式返回，每个 Agent 的输出以 `### [agent-name]` 标记。
+流式返回格式（`Transfer-Encoding: chunked`，`Content-Type: text/plain`）：
+
+```
+### [orchestrator]
+
+Orchestrator 输出内容...
+
+### [thinker]
+
+Thinker 输出内容...
+
+[orchestrator:get_book_info]    ← 工具调用通知
+[system] 工具返回结果           ← 工具执行结果
+
+### [writer]
+
+Writer 输出内容...
+
+[book-agent:done]               ← 完成信号
+```
+
+前端 `BookAgentModal.tsx` 按 `### [agentName]` 标记动态创建/更新 Agent 面板，收到 `[book-agent:done]` 后调用 `loadBookById(bookId)` 刷新数据。
 
 ## 使用方式
 

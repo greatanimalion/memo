@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { LangGraphService } from "../services/ai/langgraph.service";
+import { BookAgentService } from "../services/ai/book-agent";
 import { logger } from "../utils/logger";
 
 const switchStreamRes = (res: Response) => {
@@ -8,32 +9,37 @@ const switchStreamRes = (res: Response) => {
   return res;
 };
 
-function getModels(type: "qwen-plus" | "glm-5.1" | "deepseek" | "openRouter") {
+function getModels(type: "qwen-plus" | "glm-5.1" | "deepseek" | "deepseek-v4-flash" | "openRouter") {
   switch (type) {
     case "qwen-plus":
       return {
         model: "qwen-plus",
-        url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
       };
     case "glm-5.1":
       return {
         model: "glm-5.1",
-        url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        url: "https://open.bigmodel.cn/api/paas/v4",
       };
     case "deepseek":
       return {
         model: "deepseek-chat",
-        url: "https://api.deepseek.com/v1",
+        url: "https://api.deepseek.com",
+      };
+    case "deepseek-v4-flash":
+      return {
+        model: "deepseek-chat",
+        url: "https://api.deepseek.com",
       };
     case "openRouter":
       return {
         model: "openai/gpt-5.2",
-        url: "https://openrouter.ai/api/v1/chat/completions",
+        url: "https://openrouter.ai/api/v1",
       };
     default:
       return {
         model: "qwen-plus",
-        url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
       };
   }
 }
@@ -45,9 +51,11 @@ const CHAT_SYSTEM_PROMPT = `你是一个中文 AI 助手。请简洁、准确地
 
 export class AIController {
   private langGraphService: LangGraphService;
+  private bookAgentService: BookAgentService;
 
   constructor() {
     this.langGraphService = new LangGraphService();
+    this.bookAgentService = new BookAgentService();
   }
 
   /**
@@ -88,7 +96,7 @@ export class AIController {
         res,
         abortController,
         systemPrompt: systemPrompt || CHAT_SYSTEM_PROMPT,
-        maxRounds: 1,
+        maxRounds: 3,
       });
 
       abortControllerMap.delete(requestId);
@@ -156,5 +164,53 @@ export class AIController {
       return res.json({ success: true, message: "请求已取消" });
     }
     return res.status(404).json({ error: "未找到对应的请求" });
+  }
+
+  /**
+   * POST /api/book-agent
+   * AI 写书助手（多 Agent 协作）
+   */
+  async bookAgent(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
+    try {
+      res = switchStreamRes(res);
+      const {
+        prompt,
+        bookId,
+        model,
+        apiKey,
+        requestId,
+      } = req.body;
+      if (!prompt || !bookId || !model || !apiKey) {
+        return res
+          .status(400)
+          .json({ error: "Missing prompt, bookId, model, or apiKey" });
+      }
+
+      const abortController = new AbortController();
+      if (requestId) {
+        abortControllerMap.set(requestId, abortController);
+      }
+
+      const config = getModels(model as any);
+      await this.bookAgentService.run({
+        userMessage: prompt,
+        bookId,
+        model: config.model,
+        apiKey,
+        url: config.url,
+        res,
+        abortController,
+      });
+
+      if (requestId) {
+        abortControllerMap.delete(requestId);
+      }
+    } catch (error) {
+      next(error);
+    }
   }
 }

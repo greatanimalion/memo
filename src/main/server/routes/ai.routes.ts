@@ -17,5 +17,9 @@ router.get(
   "/chat-cancel",
   asyncHandler(aiController.cancelChat.bind(aiController)),
 );
+router.post(
+  "/book-agent",
+  asyncHandler(aiController.bookAgent.bind(aiController)),
+);
 
 export default router;

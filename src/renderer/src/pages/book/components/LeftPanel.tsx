@@ -9,13 +9,15 @@ import {
   DeleteOutlined,
   FileTextOutlined,
   HomeOutlined,
+  BorderOuterOutlined,
 } from '@ant-design/icons';
 
 interface LeftPanelProps {
   isBookScreen: boolean;
+  onOpenBookAgent: () => void;
 }
 
-const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
+const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen, onOpenBookAgent }) => {
   const [selectedVolumeId, setSelectedVolumeId] = useState<string | null>(null);
   const [editingVolumeId, setEditingVolumeId] = useState<string | null>(null);
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
@@ -74,13 +76,23 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ isBookScreen }) => {
           />
           <span className="text-sm font-semibold text-theme-primary tracking-wide">章节管理</span>
         </div>
-        <Button
-          size="small"
-          type="text"
-          icon={<PlusOutlined className="text-xs" />}
-          onClick={() => handleAddChapter()}
-          className="text-theme-muted hover:text-accent hover:bg-accent-light rounded-lg transition-all"
-        />
+        <div className="flex items-center gap-1">
+          <Button
+            size="small"
+            type="text"
+            icon={<BorderOuterOutlined />}
+            onClick={onOpenBookAgent}
+            className="text-theme-muted hover:text-accent hover:bg-accent-light rounded-lg transition-all"
+            title="AI 写书助手"
+          />
+          <Button
+            size="small"
+            type="text"
+            icon={<PlusOutlined className="text-xs" />}
+            onClick={() => handleAddChapter()}
+            className="text-theme-muted hover:text-accent hover:bg-accent-light rounded-lg transition-all"
+          />
+        </div>
       </div>
       {/* 分卷列表 */}
       <div className="flex-1 overflow-y-auto py-2 px-2">

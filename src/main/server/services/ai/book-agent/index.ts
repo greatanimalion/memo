@@ -8,6 +8,7 @@ import {
   AIMessage,
   HumanMessage,
   SystemMessage,
+  ToolMessage,
 } from "@langchain/core/messages";
 import { MemoryService } from "@main/server/services/memory.service";
 import { BookService } from "@main/server/services/book.service";
@@ -262,7 +263,13 @@ async function executeTools(
     } catch (e: any) {
       result = `工具执行错误: ${e.message}`;
     }
-    results.push(new HumanMessage(`[tool_result:${tc.name}] ${result}`));
+    results.push(
+      new ToolMessage({
+        content: result,
+        tool_call_id: tc.id!,
+        name: tc.name,
+      }),
+    );
   }
 
   return { messages: results };

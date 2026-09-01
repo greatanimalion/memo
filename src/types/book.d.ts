@@ -44,7 +44,6 @@ export interface Chapter {
 export interface Book {
   id: string;
   title: string;
-  author: string;
   cover: string;
   tags: string[];
   description?: string;

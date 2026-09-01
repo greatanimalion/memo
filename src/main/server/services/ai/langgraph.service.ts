@@ -13,6 +13,7 @@ import {
 import { DiaryService } from "@main/server/services/diary.service";
 import { MemoryService } from "@main/server/services/memory.service";
 import { logger } from "@main/server/utils/logger";
+import { sseWrite } from "@main/server/utils/response";
 import type { Diary } from "@type";
 
 const diaryService = new DiaryService();
@@ -140,7 +141,9 @@ function createAgentGraph(llm: ChatOpenAI) {
   return workflow.compile();
 }
 
-// ──────────────────── Default system prompt ────────────────────
+// ──────────────────── Default system prompts ────────────────────
+
+const CHAT_SYSTEM_PROMPT = `你是一个中文 AI 助手。请简洁、准确地回答用户的问题。`;
 
 const DEFAULT_SYSTEM_PROMPT = `你是一个智能助手，可以调用工具来帮助用户。
 可用工具：
@@ -166,7 +169,81 @@ export interface AgentRunRequest {
 
 export class LangGraphService {
   /**
-   * 流式 Agent 执行（LangGraph + 工具调用 + 逐 token 流式输出）
+   * 简单流式聊天（不走 LangGraph，直接调用 LLM）
+   */
+  async chatStream({
+    userMessage,
+    conversationHistory,
+    model,
+    apiKey,
+    url,
+    res,
+    abortController,
+    systemPrompt,
+    temperature = 0.7,
+  }: Omit<AgentRunRequest, "maxRounds">): Promise<boolean> {
+    const llm = new ChatOpenAI({
+      modelName: model,
+      apiKey,
+      configuration: { baseURL: url },
+      temperature,
+      streaming: true,
+    });
+
+    const messages: BaseMessage[] = [
+      new SystemMessage(systemPrompt || CHAT_SYSTEM_PROMPT),
+      ...conversationHistory.map((m) =>
+        m.role === "user"
+          ? new HumanMessage(m.content)
+          : new AIMessage(m.content),
+      ),
+      new HumanMessage(userMessage),
+    ];
+
+    try {
+      const stream = await llm.stream(messages, {
+        signal: abortController.signal,
+      });
+
+      for await (const chunk of stream) {
+        if (abortController.signal.aborted) {
+          sseWrite(res, "cancel", "请求已取消");
+          sseWrite(res, "done", "[DONE]");
+          res.end();
+          return false;
+        }
+        const text =
+          typeof chunk.content === "string"
+            ? chunk.content
+            : Array.isArray(chunk.content)
+              ? chunk.content
+                  .filter((p: any) => p.type === "text")
+                  .map((p: any) => p.text)
+                  .join("")
+              : "";
+        if (text) {
+          sseWrite(res, "message", text);
+        }
+      }
+
+      sseWrite(res, "done", "[DONE]");
+      res.end();
+      return true;
+    } catch (error: any) {
+      if (abortController.signal.aborted || error.name === "AbortError") {
+        sseWrite(res, "cancel", "请求已取消");
+      } else {
+        logger.error("ChatStream 执行错误:", error);
+        sseWrite(res, "error", error.message);
+      }
+      sseWrite(res, "done", "[DONE]");
+      res.end();
+      return false;
+    }
+  }
+
+  /**
+   * Agent 流式执行（LangGraph + 工具调用）
    */
   async runAgent({
     userMessage,
@@ -208,7 +285,7 @@ export class LangGraphService {
 
       for await (const event of stream) {
         if (abortController.signal.aborted) {
-          res.write("\n\n[请求已取消]");
+          sseWrite(res, "cancel", "请求已取消");
           res.end();
           return false;
         }
@@ -219,7 +296,7 @@ export class LangGraphService {
             const toolMsgs = (output as { messages: BaseMessage[] })
               .messages;
             for (const msg of toolMsgs) {
-              res.write(`\n[tool:${msg.name}] ${msg.content}\n`);
+              sseWrite(res, "tool", JSON.stringify({ name: msg.name, result: msg.content }));
             }
           }
 
@@ -234,12 +311,9 @@ export class LangGraphService {
                   msg.tool_calls.length > 0
                 ) {
                   for (const tc of msg.tool_calls) {
-                    res.write(`\n[call:${tc.name}]\n`);
+                    sseWrite(res, "tool_call", JSON.stringify({ name: tc.name }));
                   }
                 } else if (msg.content) {
-                  // 流式输出最终回复 — 如果 LLM 已经 stream 完整回复
-                  // 对于 streaming: true 的情况，token 已通过 LLM stream 写入
-                  // 这里处理非 stream 的兜底
                   const content =
                     typeof msg.content === "string"
                       ? msg.content
@@ -252,7 +326,7 @@ export class LangGraphService {
                             .join("")
                         : "";
                   if (content) {
-                    res.write(content);
+                    sseWrite(res, "message", content);
                   }
                 }
               }
@@ -261,6 +335,7 @@ export class LangGraphService {
         }
       }
 
+      sseWrite(res, "done", "[DONE]");
       res.end();
       return true;
     } catch (error: any) {
@@ -268,11 +343,12 @@ export class LangGraphService {
         abortController.signal.aborted ||
         error.name === "AbortError"
       ) {
-        res.write("\n\n[请求已取消]");
+        sseWrite(res, "cancel", "请求已取消");
       } else {
         logger.error("Agent 执行错误:", error);
-        res.write(`\n\n[错误] ${error.message}`);
+        sseWrite(res, "error", error.message);
       }
+      sseWrite(res, "done", "[DONE]");
       res.end();
       return false;
     }

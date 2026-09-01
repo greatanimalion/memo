@@ -46,6 +46,7 @@ export class DatabaseHelper {
 
   private runMigrations(): void {
     const migrations = [
+      "ALTER TABLE books DROP COLUMN author",
       "ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'",
       "ALTER TABLE books ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'",
       "ALTER TABLE books ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",

@@ -21,7 +21,6 @@ const Bookshelf: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [bookTitle, setBookTitle] = useState('');
-  const [bookAuthor, setBookAuthor] = useState('');
 
   // 编辑弹窗状态
   const [editOpen, setEditOpen] = useState(false);
@@ -54,7 +53,6 @@ const Bookshelf: React.FC = () => {
 
   const handleOpenCreateModal = () => {
     setBookTitle('');
-    setBookAuthor('');
     setModalOpen(true);
   };
 
@@ -69,7 +67,6 @@ const Bookshelf: React.FC = () => {
       const newBook: Book = {
         id: generateUUID(),
         title,
-        author: bookAuthor.trim() || '佚名',
         cover: '',
         tags: [],
         settings: { maxChapterWords: 20000, wordCountMode: 'all' },
@@ -267,9 +264,6 @@ const Bookshelf: React.FC = () => {
                   <div className="text-sm font-semibold text-theme-primary truncate mb-1">
                     {book.title}
                   </div>
-                  <div className="text-xs text-theme-muted truncate mb-2">
-                    {book.author}
-                  </div>
                   <div className="flex items-center gap-1 text-[10px] text-theme-muted">
                     <ClockCircleOutlined />
                     <span>{relativeTime(book.updatedAt! || book.createdAt!)}</span>
@@ -309,15 +303,6 @@ const Bookshelf: React.FC = () => {
               onChange={(e) => setBookTitle(e.target.value)}
               onPressEnter={handleConfirmCreate}
               autoFocus
-            />
-          </div>
-          <div>
-            <div className="text-xs text-theme-muted mb-1">作者</div>
-            <Input
-              placeholder="请输入作者名（选填，默认佚名）"
-              value={bookAuthor}
-              onChange={(e) => setBookAuthor(e.target.value)}
-              onPressEnter={handleConfirmCreate}
             />
           </div>
         </div>

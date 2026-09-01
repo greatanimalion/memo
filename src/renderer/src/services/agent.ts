@@ -29,6 +29,7 @@ export async function deleteMyAgent(id: string): Promise<boolean> {
   return response.data.code == 200;
 }
 
+//取消聊天是否成功
 export async function cancelChat(requestId: string): Promise<boolean> {
   const response = await api.get("/api/chat-cancel?requestId=" + requestId);
   return response.data.code == 200;

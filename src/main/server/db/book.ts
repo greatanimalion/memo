@@ -30,12 +30,11 @@ export class BookDatabase extends BaseDatabase {
   public addBook(book: any): any {
     const now = Date.now();
     const stmt = this.db.prepare(`
-      INSERT INTO books (id, title, author, cover, tags, settings, description, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO books (id, title, cover, tags, settings, description, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       book.id,
       book.title,
-      book.author || "",
       book.cover || "",
       JSON.stringify(book.tags || []),
       JSON.stringify(book.settings || {}),
@@ -47,7 +46,7 @@ export class BookDatabase extends BaseDatabase {
   }
 
   public updateBook(id: string, updates: any): any | null {
-    const allowedKeys = ["title", "author", "cover", "tags", "settings", "description"];
+    const allowedKeys = ["title", "cover", "tags", "settings", "description"];
     updates.updatedAt = Date.now();
     const fields = Object.keys(updates)
       .filter((key) => allowedKeys.includes(key) || key === "updatedAt")

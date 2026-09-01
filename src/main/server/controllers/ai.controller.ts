@@ -4,10 +4,10 @@ import { BookAgentService } from "../services/ai/book-agent";
 import { logger } from "../utils/logger";
 
 const switchStreamRes = (res: Response) => {
-  res.setHeader("Content-Type", "text/plain; charset=utf-8");
-  res.setHeader("Transfer-Encoding", "chunked");
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
   return res;
 };
@@ -49,9 +49,6 @@ function getModels(type: "qwen-plus" | "glm-5.1" | "deepseek" | "deepseek-v4-fla
 
 const abortControllerMap = new Map<string, AbortController>();
 
-// 简单聊天的 system prompt（无工具）
-const CHAT_SYSTEM_PROMPT = `你是一个中文 AI 助手。请简洁、准确地回答用户的问题。`;
-
 export class AIController {
   private langGraphService: LangGraphService;
   private bookAgentService: BookAgentService;
@@ -63,7 +60,7 @@ export class AIController {
 
   /**
    * POST /api/chat-stream
-   * 简单流式聊天（不带工具，但使用 LangGraph 统一架构）
+   * 简单流式聊天（直接调用 LLM，无工具调用）
    */
   async chatStream(
     req: Request,
@@ -71,7 +68,6 @@ export class AIController {
     next: NextFunction,
   ): Promise<Response | void> {
     try {
-      res = switchStreamRes(res);
       const {
         prompt,
         history = [],
@@ -86,11 +82,13 @@ export class AIController {
           .json({ error: "Missing prompt, model, apiKey, or requestId" });
       }
 
+      res = switchStreamRes(res);
+
       const abortController = new AbortController();
       abortControllerMap.set(requestId, abortController);
 
       const config = getModels(model as any);
-      await this.langGraphService.runAgent({
+      await this.langGraphService.chatStream({
         userMessage: prompt,
         conversationHistory: history,
         model: config.model,
@@ -98,8 +96,7 @@ export class AIController {
         url: config.url,
         res,
         abortController,
-        systemPrompt: systemPrompt || CHAT_SYSTEM_PROMPT,
-        maxRounds: 3,
+        systemPrompt,
       });
 
       abortControllerMap.delete(requestId);
@@ -118,7 +115,6 @@ export class AIController {
     next: NextFunction,
   ): Promise<Response | void> {
     try {
-      res = switchStreamRes(res);
       const {
         prompt,
         history = [],
@@ -131,6 +127,8 @@ export class AIController {
           .status(400)
           .json({ error: "Missing prompt, model, or apiKey" });
       }
+
+      res = switchStreamRes(res);
 
       const abortController = new AbortController();
       const config = getModels(model as any);
@@ -179,7 +177,6 @@ export class AIController {
     next: NextFunction,
   ): Promise<Response | void> {
     try {
-      res = switchStreamRes(res);
       const {
         prompt,
         bookId,
@@ -192,6 +189,8 @@ export class AIController {
           .status(400)
           .json({ error: "Missing prompt, bookId, model, or apiKey" });
       }
+
+      res = switchStreamRes(res);
 
       const abortController = new AbortController();
       if (requestId) {

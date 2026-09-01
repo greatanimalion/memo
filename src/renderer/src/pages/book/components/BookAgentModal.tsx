@@ -14,6 +14,33 @@ import { port } from "@renderer/constants";
 
 const { TextArea } = Input;
 
+interface SSEEvent {
+  event: string;
+  data: string;
+}
+
+function parseSSEBuffer(
+  buffer: string,
+): { events: SSEEvent[]; remaining: string } {
+  const events: SSEEvent[] = [];
+  const parts = buffer.split("\n\n");
+  const remaining = parts.pop() || "";
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    let event = "message";
+    let data = "";
+    for (const line of part.split("\n")) {
+      if (line.startsWith("event: ")) {
+        event = line.slice(7);
+      } else if (line.startsWith("data: ")) {
+        data = line.slice(6);
+      }
+    }
+    events.push({ event, data });
+  }
+  return { events, remaining };
+}
+
 interface BookAgentModalProps {
   open: boolean;
   onClose: () => void;
@@ -172,68 +199,81 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
   );
 
   const parseStreamIncremental = useCallback(
-    (buffer: string, prevLen: number) => {
-      const newPart = buffer.substring(prevLen);
-      if (!newPart) return;
-
-      const sectionRegex =
-        /### \[(orchestrator|thinker|writer|editor|consistency|system)\]\n\n/g;
-      let lastEnd = 0;
-      let match: RegExpExecArray | null;
-      const matches: { agentId: string; start: number }[] = [];
-
-      sectionRegex.lastIndex = 0;
-      while ((match = sectionRegex.exec(newPart)) !== null) {
-        const agentId = match[1] === "system" ? "orchestrator" : match[1];
-        matches.push({ agentId, start: match.index + match[0].length });
-      }
-
-      if (matches.length === 0) {
-        const currentAgent =
-          agentsRef.current.size > 0
-            ? Array.from(agentsRef.current.values()).find(
-                (a) => a.status === "running",
-              )
-            : null;
-        if (currentAgent) {
-          currentAgent.content += newPart;
-          syncAgentsFromRef();
+    (newEvents: SSEEvent[]) => {
+      for (const { event, data } of newEvents) {
+        switch (event) {
+          case "agent": {
+            try {
+              const { name } = JSON.parse(data);
+              if (!agentsRef.current.has(name)) {
+                agentsRef.current.set(name, createEmptyAgent(name));
+              }
+              const agent = agentsRef.current.get(name)!;
+              agent.status = "running";
+            } catch {}
+            break;
+          }
+          case "message": {
+            const currentAgent =
+              agentsRef.current.size > 0
+                ? Array.from(agentsRef.current.values()).find(
+                    (a) => a.status === "running",
+                  )
+                : null;
+            if (currentAgent) {
+              currentAgent.content += data;
+            }
+            break;
+          }
+          case "tool_call": {
+            try {
+              const { agent: agentName, name } = JSON.parse(data);
+              const agentId = agentName || "orchestrator";
+              if (!agentsRef.current.has(agentId)) {
+                const agent = createEmptyAgent(agentId);
+                agent.status = "running";
+                agentsRef.current.set(agentId, agent);
+              }
+              const agent = agentsRef.current.get(agentId)!;
+              agent.content += `\n调用工具: ${name}\n`;
+            } catch {}
+            break;
+          }
+          case "tool": {
+            try {
+              const { name, result } = JSON.parse(data);
+              const currentAgent = Array.from(
+                agentsRef.current.values(),
+              ).find((a) => a.status === "running");
+              if (currentAgent) {
+                currentAgent.content += `\n[${name}] ${result}\n`;
+              }
+            } catch {}
+            break;
+          }
+          case "error": {
+            const agent = agentsRef.current.get("orchestrator");
+            if (agent) {
+              agent.content += `\n[错误] ${data}`;
+            }
+            break;
+          }
+          case "cancel": {
+            const agent = agentsRef.current.get("orchestrator");
+            if (agent) {
+              agent.content += "\n\n[任务已取消]";
+              agent.status = "done";
+            }
+            break;
+          }
+          case "done": {
+            agentsRef.current.forEach((agent) => {
+              agent.status = "done";
+            });
+            break;
+          }
         }
-        return;
       }
-
-      for (let i = 0; i < matches.length; i++) {
-        const { agentId, start } = matches[i];
-        const end =
-          i + 1 < matches.length
-            ? newPart.indexOf("### [", start)
-            : newPart.length;
-        const content = newPart.substring(
-          start,
-          end === -1 ? newPart.length : end,
-        );
-
-        if (!agentsRef.current.has(agentId)) {
-          agentsRef.current.set(agentId, createEmptyAgent(agentId));
-        }
-        const agent = agentsRef.current.get(agentId)!;
-        agent.content += content;
-        agent.status = "running";
-      }
-
-      const toolRegex =
-        /\[(orchestrator|thinker|writer|editor|consistency):(\w+)\]/g;
-      let tm: RegExpExecArray | null;
-      while ((tm = toolRegex.exec(newPart)) !== null) {
-        const agentId = tm[1];
-        if (!agentsRef.current.has(agentId)) {
-          const agent = createEmptyAgent(agentId);
-          agent.status = "running";
-          agent.content = `调用工具: ${tm[2]}`;
-          agentsRef.current.set(agentId, agent);
-        }
-      }
-
       syncAgentsFromRef();
     },
     [syncAgentsFromRef],
@@ -276,21 +316,25 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
       if (!reader) return;
 
       const decoder = new TextDecoder();
-      let buffer = "";
-      let prevLen = 0;
+      let sseBuffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        parseStreamIncremental(buffer, prevLen);
-        prevLen = buffer.length;
+        sseBuffer += decoder.decode(value, { stream: true });
+        const { events, remaining } = parseSSEBuffer(sseBuffer);
+        sseBuffer = remaining;
+
+        if (events.length > 0) {
+          parseStreamIncremental(events);
+        }
       }
 
-      parseStreamIncremental(buffer, prevLen);
-
-      if (buffer.includes("[book-agent:done]")) {
+      const isDone = Array.from(agentsRef.current.values()).every(
+        (a) => a.status === "done",
+      );
+      if (isDone || sseBuffer.includes("done")) {
         agentsRef.current.forEach((agent) => {
           agent.status = "done";
         });

@@ -12,6 +12,33 @@ import MessageArea from "./components/MessageArea";
 import ResumeModal from "./components/ResumeModal";
 import { getApiUrl } from "@renderer/utils";
 
+interface SSEEvent {
+  event: string;
+  data: string;
+}
+
+function parseSSEBuffer(
+  buffer: string,
+): { events: SSEEvent[]; remaining: string } {
+  const events: SSEEvent[] = [];
+  const parts = buffer.split("\n\n");
+  const remaining = parts.pop() || "";
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    let event = "message";
+    let data = "";
+    for (const line of part.split("\n")) {
+      if (line.startsWith("event: ")) {
+        event = line.slice(7);
+      } else if (line.startsWith("data: ")) {
+        data = line.slice(6);
+      }
+    }
+    events.push({ event, data });
+  }
+  return { events, remaining };
+}
+
 const ChatPage: React.FC = () => {
   const {
     sessions,
@@ -120,7 +147,7 @@ const ChatPage: React.FC = () => {
         if (prompt) {
           _prompt = `请基于以下文档内容回答问题：\n ${prompt}\n问题：${userContent}`;
         }
-        const url = getApiUrl(`/api/${openAgent?'chat-agent:':'chat-stream'}`)
+        const url = getApiUrl(`/api/${openAgent?'chat-agent':'chat-stream'}`)
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -143,6 +170,7 @@ const ChatPage: React.FC = () => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let accumulatedContent = "";
+        let sseBuffer = "";
         setTypingDate(Date.now().toString());
 
         const saveInterval = setInterval(() => {
@@ -161,9 +189,20 @@ const ChatPage: React.FC = () => {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            accumulatedContent += chunk;
-            setTypingTarget(accumulatedContent);
+            sseBuffer += decoder.decode(value, { stream: true });
+            const { events, remaining } = parseSSEBuffer(sseBuffer);
+            sseBuffer = remaining;
+
+            for (const { event, data } of events) {
+              if (event === "message") {
+                accumulatedContent += data;
+                setTypingTarget(accumulatedContent);
+              } else if (event === "error") {
+                throw new Error(data);
+              } else if (event === "cancel") {
+                throw new DOMException("请求已取消", "AbortError");
+              }
+            }
           }
           aiMessage.content = accumulatedContent;
         } finally {

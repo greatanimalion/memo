@@ -41,3 +41,16 @@ export const errorResponse = (
     error: message,
   });
 };
+
+/**
+ * 写入 Server-Sent Events 消息
+ * @param res Express Response 对象
+ * @param event 事件类型
+ * @param data 事件数据
+ */
+export function sseWrite(res: Response, event: string, data: string): void {
+  res.write(`event: ${event}\ndata: ${data}\n\n`);
+  if (typeof (res as any).flush === "function") {
+    (res as any).flush();
+  }
+}

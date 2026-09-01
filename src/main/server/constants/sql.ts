@@ -35,7 +35,6 @@ export const createTablesSql = `
       CREATE TABLE IF NOT EXISTS books (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
-        author TEXT NOT NULL,
         cover TEXT NOT NULL DEFAULT '',
         tags TEXT NOT NULL DEFAULT '[]',
         settings TEXT NOT NULL DEFAULT '{}'

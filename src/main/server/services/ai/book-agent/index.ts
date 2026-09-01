@@ -13,6 +13,7 @@ import {
 import { MemoryService } from "@main/server/services/memory.service";
 import { BookService } from "@main/server/services/book.service";
 import { logger } from "@main/server/utils/logger";
+import { sseWrite } from "@main/server/utils/response";
 
 import { ORCHESTRATOR_PROMPT } from "./orchestrator";
 import { THINKER_PROMPT } from "./thinker";
@@ -32,7 +33,6 @@ const getBookInfoTool = tool(
     return JSON.stringify(
       {
         title: detail.title,
-        author: detail.author,
         description: detail.description,
         tags: detail.tags,
         chapterCount: detail.chapters?.length || 0,
@@ -135,13 +135,6 @@ for (const t of bookAgentTools) {
   toolMap.set(t.name, t);
 }
 
-function flushWrite(res: ExpressResponse, data: string): void {
-  res.write(data);
-  if (typeof (res as any).flush === "function") {
-    (res as any).flush();
-  }
-}
-
 // ──────────────────── State 定义 ────────────────────
 
 interface BookAgentState {
@@ -211,7 +204,7 @@ function createAgentNode(
     const msgs = [new SystemMessage(systemPrompt), ...state.messages];
     const stream = await target.stream(msgs);
 
-    flushWrite(res, `\n### [${agentName}]\n\n`);
+    sseWrite(res, "agent", JSON.stringify({ name: agentName }));
 
     let fullContent = "";
     const toolCalls: { name: string; args: Record<string, any>; id?: string }[] = [];
@@ -229,7 +222,7 @@ function createAgentNode(
               : "";
         if (text) {
           fullContent += text;
-          flushWrite(res, text);
+          sseWrite(res, "message", text);
         }
       }
       if (chunk.tool_calls) {
@@ -246,7 +239,7 @@ function createAgentNode(
               id: tc.id,
             });
           }
-          flushWrite(res, `\n[${agentName}:${tc.name}]\n`);
+          sseWrite(res, "tool_call", JSON.stringify({ agent: agentName, name: tc.name }));
         }
       }
     }
@@ -491,7 +484,6 @@ export class BookAgentService {
       if (detail) {
         bookInfo =
           `书籍标题: ${detail.title}\n` +
-          `作者: ${detail.author || "佚名"}\n` +
           `简介: ${detail.description || "无"}\n` +
           `已有章节: ${detail.chapters?.length || 0}章\n` +
           (detail.chapters?.length
@@ -529,7 +521,8 @@ export class BookAgentService {
 
       for await (const event of stream) {
         if (abortController.signal.aborted) {
-          flushWrite(res, "\n\n[任务已取消]");
+          sseWrite(res, "cancel", "任务已取消");
+          sseWrite(res, "done", "[DONE]");
           res.end();
           return false;
         }
@@ -542,22 +535,23 @@ export class BookAgentService {
                 typeof msg.content === "string"
                   ? msg.content
                   : JSON.stringify(msg.content);
-              flushWrite(res, `\n[system] ${text}\n`);
+              sseWrite(res, "tool", JSON.stringify({ name: msg.name, result: text }));
             }
           }
         }
       }
 
-      flushWrite(res, "\n\n[book-agent:done]");
+      sseWrite(res, "done", "[DONE]");
       res.end();
       return true;
     } catch (error: any) {
       if (abortController.signal.aborted || error.name === "AbortError") {
-        flushWrite(res, "\n\n[任务已取消]");
+        sseWrite(res, "cancel", "任务已取消");
       } else {
         logger.error("BookAgent 执行错误:", error);
-        flushWrite(res, `\n\n[错误] ${error.message}`);
+        sseWrite(res, "error", error.message);
       }
+      sseWrite(res, "done", "[DONE]");
       res.end();
       return false;
     }

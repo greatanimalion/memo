@@ -73,7 +73,6 @@ function createDefaultBook(): BookDetail {
   return {
     id: bookId,
     title: '未命名作品',
-    author: '佚名',
     cover: '',
     tags: [],
     chapters: [createChapterLocal(bookId, '第1章', 1)],
@@ -152,7 +151,6 @@ export const useWriterStore = create<WriterState>((set, get) => ({
     const { book } = get()
     const bookData = {
       title: book.title,
-      author: book.author,
       cover: book.cover,
       tags: book.tags,
       settings: book.settings,

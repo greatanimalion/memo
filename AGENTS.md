@@ -25,11 +25,11 @@ src/
   main/           Electron 主进程 + Express 服务器
     index.ts      主进程入口
     server/       Express API（端口 32068）
-      routes/     CRUD 路由：memory, diary, session, agent, ai, book
+      routes/     CRUD 路由：memory, diary, session, agent, ai, book, bookAgent
       controllers/
-      services/   book.service.ts, storage.service.ts, ai.service.ts, langgraph.service.ts
+      services/   book.service.ts, storage.service.ts, ai.service.ts, langgraph.service.ts, bookAgent.service.ts
       config/     ai.config.ts
-      db/         数据库层：book.ts, chapter.ts, volume.ts, index.ts（迁移+自动建表）
+      db/         数据库层：book.ts, chapter.ts, volume.ts, bookAgent.ts, index.ts（迁移+自动建表）
   preload/        预加载脚本（contextIsolation: false, nodeIntegration: true）
   renderer/       React 前端（Vite）
     src/
@@ -42,7 +42,7 @@ src/
       store/      Zustand 状态管理（useWriterStore 管理编辑器状态）
       utils/      localStore.ts, helper.ts
       routes/     React Router v7（createBrowserRouter）
-  types/          共享 TS 类型（entities: Memory, Diary, Session, MyAgent, Book/Chapter/Volume）
+  types/          共享 TS 类型（entities: Memory, Diary, Session, MyAgent, Book/Chapter/Volume/BookAgent）
 plugins/          Vite 插件（devPlugin 替换 Node 模块引用）
 ```
 

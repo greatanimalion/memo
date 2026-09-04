@@ -1,4 +1,5 @@
 import type { Response as ExpressResponse } from "express";
+import crypto from "crypto";
 import { ChatOpenAI } from "@langchain/openai";
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import { tool } from "@langchain/core/tools";
@@ -10,8 +11,8 @@ import {
   SystemMessage,
   ToolMessage,
 } from "@langchain/core/messages";
-import { MemoryService } from "@main/server/services/memory.service";
 import { BookService } from "@main/server/services/book.service";
+import { BookAgentService } from "@main/server/services/bookAgent.service";
 import { logger } from "@main/server/utils/logger";
 import { sseWrite } from "@main/server/utils/response";
 
@@ -21,8 +22,8 @@ import { WRITER_PROMPT } from "./writer";
 import { EDITOR_PROMPT } from "./editor";
 import { CONSISTENCY_PROMPT } from "./consistency";
 
-const memoryService = new MemoryService();
 const bookService = new BookService();
+const bookAgentDBService = new BookAgentService();
 
 // ──────────────────── 工具定义 ────────────────────
 
@@ -102,36 +103,34 @@ const updateChapterTool = tool(
   },
 );
 
-const saveToMemoryTool = tool(
-  async ({ key, content }) => {
-    memoryService.create({
-      id: `book-agent-${key}-${Date.now()}`,
-      isFolder: 0,
-      title: `[BookAgent] ${key}`,
-      fileUrl: "",
-      parentId: "root",
-      created: Date.now(),
-      updated: Date.now(),
-      visitedTime: Date.now(),
-      size: content.length,
-      starred: 0,
-    });
-    return `已保存到记忆: ${key}`;
+const bookAgentTools = [getBookInfoTool, saveChapterTool, updateChapterTool];
+
+// ──────────────────── 路由工具 ────────────────────
+
+let pendingRoute: string | null = null;
+
+const routeTool = tool(
+  async ({ target }) => {
+    pendingRoute = target;
+    if (target === "end") {
+      return "流程已结束，所有工作已完成。";
+    }
+    return `已切换到 ${target}，请继续执行。`;
   },
   {
-    name: "save_to_memory",
-    description: "将重要信息保存到项目记忆中",
+    name: "route",
+    description: "控制流程走向。完成所有工作后必须调用此工具结束流程。",
     schema: z.object({
-      key: z.string().describe("记忆标识/标题"),
-      content: z.string().describe("记忆内容"),
+      target: z.enum(["thinker", "writer", "editor", "consistency", "orchestrator", "end"])
+        .describe("目标阶段：thinker=构思, writer=撰写, editor=编辑, consistency=检查, orchestrator=总控, end=结束"),
     }),
   },
 );
 
-const bookAgentTools = [getBookInfoTool, saveChapterTool, updateChapterTool, saveToMemoryTool];
+const allTools = [...bookAgentTools, routeTool];
 
-const toolMap = new Map<string, (typeof bookAgentTools)[number]>();
-for (const t of bookAgentTools) {
+const toolMap = new Map<string, (typeof allTools)[number]>();
+for (const t of allTools) {
   toolMap.set(t.name, t);
 }
 
@@ -180,11 +179,34 @@ const BookAgentState = Annotation.Root({
 
 // ──────────────────── Agent 节点工厂 ────────────────────
 
+// ──────────────────── Deepseek DSML 格式解析 ────────────────────
+
+function parseDSMLToolCalls(content: string): { name: string; args: Record<string, any>; id?: string }[] {
+  const calls: { name: string; args: Record<string, any>; id?: string }[] = [];
+  // 匹配 <｜｜DSML｜｜invoke name="xxx">...<｜｜DSML｜｜parameter name="key" ...>value</｜｜DSML｜｜parameter>...</｜｜DSML｜｜invoke>
+  const invokeRegex = /<｜｜DSML｜｜invoke\s+name="([^"]+)">([\s\S]*?)<\/｜｜DSML｜｜invoke>/g;
+  let match: RegExpExecArray | null;
+  while ((match = invokeRegex.exec(content)) !== null) {
+    const name = match[1];
+    const body = match[2];
+    const args: Record<string, any> = {};
+    const paramRegex = /<｜｜DSML｜｜parameter\s+name="([^"]+)"(?:\s+string="true")?>([\s\S]*?)<\/｜｜DSML｜｜parameter>/g;
+    let pMatch: RegExpExecArray | null;
+    while ((pMatch = paramRegex.exec(body)) !== null) {
+      args[pMatch[1]] = pMatch[2];
+    }
+    calls.push({ name, args, id: `dsml_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` });
+  }
+  return calls;
+}
+
+// ──────────────────── Agent 节点工厂 ────────────────────
+
 function createAgentNode(
   systemPrompt: string,
   res: ExpressResponse,
   agentName: string,
-  tools?: typeof bookAgentTools,
+  tools: typeof allTools = allTools,
 ) {
   return async (state: typeof BookAgentState.State) => {
     const lastMsg = state.messages[state.messages.length - 1];
@@ -200,7 +222,8 @@ function createAgentNode(
       streaming: true,
     });
 
-    const target = tools ? llm.bindTools(tools) : llm;
+    // deepseek streaming 时标准 tool_calls 参数为空，始终不绑 tools，靠 DSML 解析
+    const target = llm;
     const msgs = [new SystemMessage(systemPrompt), ...state.messages];
     const stream = await target.stream(msgs);
 
@@ -231,11 +254,19 @@ function createAgentNode(
           if (existing) {
             if (tc.args && typeof tc.args === "object") {
               existing.args = { ...existing.args, ...tc.args };
+            } else if (typeof tc.args === "string") {
+              try { existing.args = { ...existing.args, ...JSON.parse(tc.args) }; } catch {}
             }
           } else {
+            let parsedArgs: Record<string, any> = {};
+            if (tc.args && typeof tc.args === "object") {
+              parsedArgs = { ...tc.args };
+            } else if (typeof tc.args === "string") {
+              try { parsedArgs = JSON.parse(tc.args); } catch { parsedArgs = {}; }
+            }
             toolCalls.push({
               name: tc.name,
-              args: tc.args && typeof tc.args === "object" ? { ...tc.args } : {},
+              args: parsedArgs,
               id: tc.id,
             });
           }
@@ -251,6 +282,23 @@ function createAgentNode(
       }
     }
 
+    // deepseek DSML 格式 tool_calls 解析
+    if (fullContent.includes('<｜｜DSML｜｜tool_calls>')) {
+      const dsmlCalls = parseDSMLToolCalls(fullContent);
+      if (dsmlCalls.length > 0) {
+        logger.info(`[${agentName}] 从 DSML 解析到 ${dsmlCalls.length} 个工具调用`);
+        for (const dc of dsmlCalls) {
+          // 去重：已有同名同参数的跳过
+          const dup = toolCalls.find((t) => t.name === dc.name && JSON.stringify(t.args) === JSON.stringify(dc.args));
+          if (!dup) {
+            toolCalls.push(dc);
+            logger.info(`[${agentName}] DSML 工具调用: ${dc.name}, args: ${JSON.stringify(dc.args)}`);
+            sseWrite(res, "tool_call", JSON.stringify({ agent: agentName, name: dc.name }));
+          }
+        }
+      }
+    }
+
     const response = new AIMessage({
       content: fullContent,
       tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
@@ -262,34 +310,39 @@ function createAgentNode(
 
 // ──────────────────── 路由逻辑 ────────────────────
 
-function shouldContinue(state: typeof BookAgentState.State): string {
+// 检查 AIMessage 是否有带有效参数的 tool_calls
+function hasValidToolCalls(state: typeof BookAgentState.State): boolean {
   const lastMsg = state.messages[state.messages.length - 1] as AIMessage;
-  if (lastMsg?.tool_calls && lastMsg.tool_calls.length > 0) {
-    logger.info(`[shouldContinue] 有 ${lastMsg.tool_calls.length} 个工具调用, 走 tools`);
-    return "tools";
-  }
-  return "route";
+  if (!lastMsg?.tool_calls?.length) return false;
+  return lastMsg.tool_calls.some((tc) => tc.args && Object.keys(tc.args).length > 0);
 }
 
 function routePhase(state: typeof BookAgentState.State): string {
   const phase = state.currentPhase;
-  const lastMsg = state.messages[state.messages.length - 1] as AIMessage;
-  const content =
-    typeof lastMsg?.content === "string" ? lastMsg.content : "";
 
   if (state.stepCount >= 20) {
     logger.info(`[route] stepCount=${state.stepCount} >= 20, 强制结束`);
     return END;
   }
 
-  let next = END;
+  // 优先使用路由工具的决策
+  if (pendingRoute) {
+    const target = pendingRoute;
+    pendingRoute = null;
+    if (target === "end") {
+      logger.info(`[route] tool route → END`);
+      return END;
+    }
+    logger.info(`[route] tool route → ${target}`);
+    return target;
+  }
+
+  // 兜底：关键词匹配
+  const lastMsg = state.messages[state.messages.length - 1] as AIMessage;
+  const content = typeof lastMsg?.content === "string" ? lastMsg.content : "";
+
+  let next = "orchestrator";
   switch (phase) {
-    case "orchestrator":
-      if (content.includes("构思") || content.includes("大纲") || content.includes("规划") || content.includes("计划")) next = "thinker";
-      else if (content.includes("撰写") || content.includes("写作") || content.includes("正文") || content.includes("执行")) next = "writer";
-      else if (content.includes("完成") || content.includes("结束") || content.includes("全部完成")) next = END;
-      else next = "thinker";
-      break;
     case "thinker":
       next = "orchestrator";
       break;
@@ -302,14 +355,14 @@ function routePhase(state: typeof BookAgentState.State): string {
     case "consistency":
       next = "orchestrator";
       break;
+    case "orchestrator":
+    default:
+      next = "thinker";
+      break;
   }
 
-  logger.info(`[route] phase=${phase}, stepCount=${state.stepCount}, next=${next}`);
+  logger.info(`[route] phase=${phase}, stepCount=${state.stepCount}, fallback next=${next}`);
   return next;
-}
-
-function routeFromTools(state: typeof BookAgentState.State): string {
-  return state.currentPhase;
 }
 
 // ──────────────────── 工具执行节点 ────────────────────
@@ -321,11 +374,17 @@ async function executeTools(
   const results: BaseMessage[] = [];
 
   for (const tc of lastMsg.tool_calls || []) {
+    // 补全 get_book_info 缺失的 bookId
+    if (tc.name === "get_book_info" && !tc.args?.bookId && state.bookId) {
+      tc.args = { ...tc.args, bookId: state.bookId };
+    }
+
+    // 空参数时跳过
     if (!tc.args || Object.keys(tc.args).length === 0) {
-      logger.warn(`[tools] 跳过空参数工具调用: ${tc.name}`);
+      logger.warn(`[tools] ${tc.name} 参数为空，跳过`);
       results.push(
         new ToolMessage({
-          content: `工具 ${tc.name} 的参数为空，已跳过。请用纯文本回复代替工具调用。`,
+          content: `工具 ${tc.name} 的参数为空，已跳过。`,
           tool_call_id: tc.id!,
           name: tc.name,
         }),
@@ -335,9 +394,6 @@ async function executeTools(
 
     let result = "";
     try {
-      if (tc.name === "get_book_info" && !tc.args.bookId && state.bookId) {
-        tc.args.bookId = state.bookId;
-      }
       logger.info(`[tools] 执行 ${tc.name}, 参数: ${JSON.stringify(tc.args)}`);
       const targetTool = toolMap.get(tc.name) as any;
       if (targetTool) {
@@ -409,43 +465,66 @@ function buildBookAgentGraph(res: ExpressResponse) {
       const result = await consistencyNode(state);
       return { ...result, currentPhase: "consistency", phaseHistory: ["consistency"], stepCount: state.stepCount + 1 };
     })
+    .addNode("tools", async (state) => {
+      const result = await executeTools(state);
+      return { ...result };
+    })
 
     .addEdge(START, "orchestrator")
-    .addConditionalEdges("orchestrator", routePhase, {
+
+    // Agent → (有有效 tool_calls?) → tools → 回到 orchestrator；否则 → routePhase
+    .addConditionalEdges("orchestrator", (state) => {
+      return hasValidToolCalls(state) ? "tools" : routePhase(state);
+    }, {
+      tools: "tools",
       thinker: "thinker",
       writer: "writer",
       editor: "editor",
       consistency: "consistency",
       [END]: END,
     })
-    .addConditionalEdges("thinker", routePhase, {
+    .addConditionalEdges("thinker", (state) => {
+      return hasValidToolCalls(state) ? "tools" : routePhase(state);
+    }, {
+      tools: "tools",
       orchestrator: "orchestrator",
       writer: "writer",
       editor: "editor",
       consistency: "consistency",
       [END]: END,
     })
-    .addConditionalEdges("writer", routePhase, {
+    .addConditionalEdges("writer", (state) => {
+      return hasValidToolCalls(state) ? "tools" : routePhase(state);
+    }, {
+      tools: "tools",
       orchestrator: "orchestrator",
       thinker: "thinker",
       editor: "editor",
       consistency: "consistency",
       [END]: END,
     })
-    .addConditionalEdges("editor", routePhase, {
+    .addConditionalEdges("editor", (state) => {
+      return hasValidToolCalls(state) ? "tools" : routePhase(state);
+    }, {
+      tools: "tools",
       orchestrator: "orchestrator",
       thinker: "thinker",
       writer: "writer",
       consistency: "consistency",
       [END]: END,
     })
-    .addConditionalEdges("consistency", routePhase, {
+    .addConditionalEdges("consistency", (state) => {
+      return hasValidToolCalls(state) ? "tools" : routePhase(state);
+    }, {
+      tools: "tools",
       orchestrator: "orchestrator",
       thinker: "thinker",
       writer: "writer",
       editor: "editor",
       [END]: END,
-    });
+    })
+    // tools 执行完后回到触发它的 Agent
+    .addEdge("tools", "orchestrator");
 
   return workflow.compile();
 }
@@ -462,7 +541,7 @@ export interface BookAgentRequest {
   abortController: AbortController;
 }
 
-export class BookAgentService {
+export class BookAgentRunner {
   async run({
     userMessage,
     bookId,
@@ -475,8 +554,22 @@ export class BookAgentService {
     (globalThis as any).__bookAgentModel = model;
     (globalThis as any).__bookAgentApiKey = apiKey;
     (globalThis as any).__bookAgentUrl = url;
+    pendingRoute = null;
 
     const graph = buildBookAgentGraph(res);
+
+    // 创建对话记录
+    const recordId = crypto.randomUUID();
+    const conversationMessages: { agent: string; role: string; content: string; timestamp: number }[] = [];
+    bookAgentDBService.create({
+      id: recordId,
+      bookId,
+      title: userMessage.slice(0, 50),
+      messages: [],
+      status: "running",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
 
     let bookInfo = "";
     try {
@@ -519,10 +612,13 @@ export class BookAgentService {
         { recursionLimit: 100, signal: abortController.signal },
       );
 
+      let currentAgent = "orchestrator";
+
       for await (const event of stream) {
         if (abortController.signal.aborted) {
           sseWrite(res, "cancel", "任务已取消");
           sseWrite(res, "done", "[DONE]");
+          bookAgentDBService.update(recordId, { status: "cancelled", messages: conversationMessages });
           res.end();
           return false;
         }
@@ -536,20 +632,45 @@ export class BookAgentService {
                   ? msg.content
                   : JSON.stringify(msg.content);
               sseWrite(res, "tool", JSON.stringify({ name: msg.name, result: text }));
+              conversationMessages.push({
+                agent: currentAgent,
+                role: "tool",
+                content: `[${msg.name}] ${text}`,
+                timestamp: Date.now(),
+              });
+            }
+          }
+
+          if (node === "orchestrator" || node === "thinker" || node === "writer" || node === "editor" || node === "consistency") {
+            currentAgent = node;
+            const agentOutput = output as { messages: BaseMessage[] };
+            for (const msg of agentOutput.messages) {
+              if (msg instanceof AIMessage && msg.content) {
+                const content = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+                conversationMessages.push({
+                  agent: node,
+                  role: "assistant",
+                  content,
+                  timestamp: Date.now(),
+                });
+              }
             }
           }
         }
       }
 
       sseWrite(res, "done", "[DONE]");
+      bookAgentDBService.update(recordId, { status: "done", messages: conversationMessages });
       res.end();
       return true;
     } catch (error: any) {
       if (abortController.signal.aborted || error.name === "AbortError") {
         sseWrite(res, "cancel", "任务已取消");
+        bookAgentDBService.update(recordId, { status: "cancelled", messages: conversationMessages });
       } else {
         logger.error("BookAgent 执行错误:", error);
         sseWrite(res, "error", error.message);
+        bookAgentDBService.update(recordId, { status: "error", messages: conversationMessages });
       }
       sseWrite(res, "done", "[DONE]");
       res.end();

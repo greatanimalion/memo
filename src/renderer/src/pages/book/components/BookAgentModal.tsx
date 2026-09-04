@@ -159,6 +159,7 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
 
   const [agents, setAgents] = useState<AgentState[]>([]);
   const agentsRef = useRef<Map<string, AgentState>>(new Map());
+  const currentAgentIdRef = useRef<string>("orchestrator");
 
   const [windowSize, setWindowSize] = useState({
     w: window.innerWidth,
@@ -175,6 +176,7 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
   useEffect(() => {
     if (!open) {
       agentsRef.current.clear();
+      currentAgentIdRef.current = "orchestrator";
       setAgents([]);
       setPrompt("");
       setIsStreaming(false);
@@ -191,8 +193,11 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
         agentsRef.current.set(agentId, createEmptyAgent(agentId));
       }
       const agent = agentsRef.current.get(agentId)!;
-      agent.content += text;
-      agent.status = "running";
+      agentsRef.current.set(agentId, {
+        ...agent,
+        content: agent.content + text,
+        status: "running",
+      });
       syncAgentsFromRef();
     },
     [syncAgentsFromRef],
@@ -209,44 +214,50 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
                 agentsRef.current.set(name, createEmptyAgent(name));
               }
               const agent = agentsRef.current.get(name)!;
-              agent.status = "running";
+              agentsRef.current.set(name, { ...agent, status: "running" });
+              currentAgentIdRef.current = name;
             } catch {}
             break;
           }
           case "message": {
-            const currentAgent =
-              agentsRef.current.size > 0
-                ? Array.from(agentsRef.current.values()).find(
-                    (a) => a.status === "running",
-                  )
-                : null;
-            if (currentAgent) {
-              currentAgent.content += data;
+            const agentId = currentAgentIdRef.current;
+            const agent = agentsRef.current.get(agentId);
+            if (agent) {
+              agentsRef.current.set(agentId, {
+                ...agent,
+                content: agent.content + data,
+              });
             }
             break;
           }
           case "tool_call": {
             try {
               const { agent: agentName, name } = JSON.parse(data);
-              const agentId = agentName || "orchestrator";
+              const agentId = agentName || currentAgentIdRef.current;
               if (!agentsRef.current.has(agentId)) {
-                const agent = createEmptyAgent(agentId);
-                agent.status = "running";
-                agentsRef.current.set(agentId, agent);
+                agentsRef.current.set(agentId, {
+                  ...createEmptyAgent(agentId),
+                  status: "running",
+                });
               }
               const agent = agentsRef.current.get(agentId)!;
-              agent.content += `\n调用工具: ${name}\n`;
+              agentsRef.current.set(agentId, {
+                ...agent,
+                content: agent.content + `\n调用工具: ${name}\n`,
+              });
             } catch {}
             break;
           }
           case "tool": {
             try {
               const { name, result } = JSON.parse(data);
-              const currentAgent = Array.from(
-                agentsRef.current.values(),
-              ).find((a) => a.status === "running");
-              if (currentAgent) {
-                currentAgent.content += `\n[${name}] ${result}\n`;
+              const agentId = currentAgentIdRef.current;
+              const agent = agentsRef.current.get(agentId);
+              if (agent) {
+                agentsRef.current.set(agentId, {
+                  ...agent,
+                  content: agent.content + `\n[${name}] ${result}\n`,
+                });
               }
             } catch {}
             break;
@@ -254,21 +265,27 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
           case "error": {
             const agent = agentsRef.current.get("orchestrator");
             if (agent) {
-              agent.content += `\n[错误] ${data}`;
+              agentsRef.current.set("orchestrator", {
+                ...agent,
+                content: agent.content + `\n[错误] ${data}`,
+              });
             }
             break;
           }
           case "cancel": {
             const agent = agentsRef.current.get("orchestrator");
             if (agent) {
-              agent.content += "\n\n[任务已取消]";
-              agent.status = "done";
+              agentsRef.current.set("orchestrator", {
+                ...agent,
+                content: agent.content + "\n\n[任务已取消]",
+                status: "done",
+              });
             }
             break;
           }
           case "done": {
-            agentsRef.current.forEach((agent) => {
-              agent.status = "done";
+            agentsRef.current.forEach((agent, id) => {
+              agentsRef.current.set(id, { ...agent, status: "done" });
             });
             break;
           }
@@ -289,10 +306,13 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
     setIsStreaming(true);
 
     agentsRef.current.clear();
+    currentAgentIdRef.current = "orchestrator";
     const starter = createEmptyAgent("orchestrator");
-    starter.content = "正在启动...";
-    starter.status = "running";
-    agentsRef.current.set("orchestrator", starter);
+    agentsRef.current.set("orchestrator", {
+      ...starter,
+      content: "正在启动...",
+      status: "running",
+    });
     syncAgentsFromRef();
 
     const abortController = new AbortController();
@@ -335,8 +355,8 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
         (a) => a.status === "done",
       );
       if (isDone || sseBuffer.includes("done")) {
-        agentsRef.current.forEach((agent) => {
-          agent.status = "done";
+        agentsRef.current.forEach((agent, id) => {
+          agentsRef.current.set(id, { ...agent, status: "done" });
         });
         syncAgentsFromRef();
         loadBookById(book.id);
@@ -345,16 +365,22 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
       if (error.name === "AbortError") {
         const agent = agentsRef.current.get("orchestrator");
         if (agent) {
-          agent.content += "\n\n[任务已取消]";
-          agent.status = "done";
+          agentsRef.current.set("orchestrator", {
+            ...agent,
+            content: agent.content + "\n\n[任务已取消]",
+            status: "done",
+          });
         }
         syncAgentsFromRef();
       } else {
         console.error("Book Agent error:", error);
         const agent = agentsRef.current.get("orchestrator");
         if (agent) {
-          agent.content = `[错误] ${error.message}`;
-          agent.status = "done";
+          agentsRef.current.set("orchestrator", {
+            ...agent,
+            content: `[错误] ${error.message}`,
+            status: "done",
+          });
         }
         syncAgentsFromRef();
       }
@@ -400,7 +426,7 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
   };
 
   const modalW = Math.round(windowSize.w * 0.8);
-  const modalH = Math.round(windowSize.h * 0.8);
+  const modalH = Math.round(windowSize.h * 0.7);
 
   return (
     <Modal

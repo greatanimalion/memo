@@ -72,4 +72,15 @@ export const createTablesSql = `
         list TEXT NOT NULL,
         createTime TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS bookAgent (
+        id TEXT PRIMARY KEY,
+        bookId TEXT NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
+        messages TEXT NOT NULL DEFAULT '[]',
+        status TEXT NOT NULL DEFAULT 'running',
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
+      );
     `;

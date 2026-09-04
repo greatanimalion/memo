@@ -29,6 +29,7 @@ src/main/server/
     book.ts             BookDatabase（含 bookUtils CRUD）
     chapter.ts          ChapterDatabase
     volume.ts           VolumeDatabase
+    bookAgent.ts        BookAgentDatabase
   routes/               Express Router 定义
   controllers/          请求处理（调用 Service，返回统一响应）
   services/             业务逻辑
@@ -37,6 +38,7 @@ src/main/server/
     session.service.ts  会话管理
     agent.service.ts    Agent 管理
     book.service.ts     书籍/章节/卷 管理
+    bookAgent.service.ts Book Agent 对话记录管理
     storage.service.ts  存储服务（数据库大小、导出）
     ai/
       langgraph.service.ts  统一 AI 服务（LangGraph StateGraph + 工具调用 + 流式输出）
@@ -124,7 +126,6 @@ src/main/server/
 |------|------|------|
 | `id` | TEXT PK | 唯一 ID |
 | `title` | TEXT | 书名 |
-| `author` | TEXT | 作者 |
 | `cover` | TEXT | 封面 URL（默认 ''） |
 | `tags` | TEXT | JSON 数组 `'[]'`，如 `["科幻","经典"]` |
 | `settings` | TEXT | JSON 对象 `'{}'`，含 `maxChapterWords`、`wordCountMode` |
@@ -168,6 +169,28 @@ src/main/server/
 | `description` | TEXT | 描述 |
 | `list` | TEXT | JSON 数组，`BookUtilsAttribute[]` |
 | `createTime` | TEXT | 创建时间 |
+
+### 9. `bookAgent` — Book Agent 对话记录
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | TEXT PK | 唯一 ID |
+| `bookId` | TEXT FK→books | 所属书籍 ID（级联删除） |
+| `title` | TEXT | 对话标题（默认 ''） |
+| `messages` | TEXT | JSON 数组，`BookAgentMessage[]`（见下方） |
+| `status` | TEXT | 状态：`running` / `done` / `error` / `cancelled` |
+| `createdAt` | INTEGER | 创建时间戳 |
+| `updatedAt` | INTEGER | 更新时间戳 |
+
+```ts
+// messages JSON 结构
+interface BookAgentMessage {
+  agent: string;           // agent 名称（orchestrator/thinker/writer/editor/consistency）
+  role: "assistant" | "system" | "tool";
+  content: string;         // 消息内容
+  timestamp: number;       // 时间戳
+}
+```
 
 ---
 
@@ -258,6 +281,17 @@ src/main/server/
 | PUT | `/volumes/:id` | 更新卷 |
 | DELETE | `/volumes/:id` | 删除卷 |
 
+### BookAgent（Book Agent 对话记录）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/books/:bookId/agents` | 获取书籍下所有对话记录（按创建时间倒序） |
+| GET | `/book-agents/:id` | 获取单个对话记录（含 messages） |
+| POST | `/book-agents` | 创建对话记录（必须提供 bookId） |
+| PUT | `/book-agents/:id` | 更新对话记录（title、messages、status） |
+| DELETE | `/book-agents/:id` | 删除对话记录 |
+| DELETE | `/books/:bookId/agents` | 删除书籍下所有对话记录 |
+
 ### 文件上传（独立路由）
 
 | 方法 | 路径 | 说明 |
@@ -282,9 +316,15 @@ src/main/server/
 
 ### Book
 - 创建书籍时若无 chapters 则自动创建"第1章"
-- 删除书籍级联删除 chapters 和 volumes
+- 删除书籍级联删除 chapters、volumes 和 bookAgent 记录
 - `getBookDetail` 返回 book + chapters(不含 content) + volumes
 - 章节按 `order` 字段排序
+
+### BookAgent
+- 记录 AI 写书 Agent 的对话内容
+- `bookId` 为必填字段，删除书籍时级联删除
+- `messages` 存储完整的 agent 对话历史（JSON 数组）
+- `status` 跟踪对话状态：running（进行中）、done（完成）、error（错误）、cancelled（取消）
 
 ### AI
 - **统一使用 LangGraph**：`langgraph.service.ts` 是唯一的 AI 服务（`ai.service.ts` 和 `ai/agent.service.ts` 已删除）

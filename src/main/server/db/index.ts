@@ -8,6 +8,7 @@ import { AgentDatabase } from "@main/server/db/agent";
 import { BookDatabase } from "@main/server/db/book";
 import { ChapterDatabase } from "@main/server/db/chapter";
 import { VolumeDatabase } from "@main/server/db/volume";
+import { BookAgentDatabase } from "@main/server/db/bookAgent";
 import { getDatabasePath } from "@main/server/utils/utils";
 import { createTablesSql } from "@main/server/constants/sql";
 import { databaseConfig } from "@main/server/config/database.config";
@@ -23,6 +24,7 @@ export class DatabaseHelper {
   public book: BookDatabase;
   public chapter: ChapterDatabase;
   public volume: VolumeDatabase;
+  public bookAgent: BookAgentDatabase;
 
   private constructor() {
     let dbPath = getDatabasePath();
@@ -42,6 +44,7 @@ export class DatabaseHelper {
     this.book = new BookDatabase(this.db);
     this.chapter = new ChapterDatabase(this.db);
     this.volume = new VolumeDatabase(this.db);
+    this.bookAgent = new BookAgentDatabase(this.db);
   }
 
   private runMigrations(): void {
@@ -93,4 +96,5 @@ export { AgentDatabase } from "@main/server/db/agent";
 export { BookDatabase } from "@main/server/db/book";
 export { ChapterDatabase } from "@main/server/db/chapter";
 export { VolumeDatabase } from "@main/server/db/volume";
+export { BookAgentDatabase } from "@main/server/db/bookAgent";
 export { BaseDatabase } from "@main/server/db/base";

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { LangGraphService } from "../services/ai/langgraph.service";
-import { BookAgentService } from "../services/ai/book-agent";
+import { BookAgentRunner } from "../services/ai/book-agent";
 import { logger } from "../utils/logger";
 
 const switchStreamRes = (res: Response) => {
@@ -51,11 +51,11 @@ const abortControllerMap = new Map<string, AbortController>();
 
 export class AIController {
   private langGraphService: LangGraphService;
-  private bookAgentService: BookAgentService;
+  private bookAgentRunner: BookAgentRunner;
 
   constructor() {
     this.langGraphService = new LangGraphService();
-    this.bookAgentService = new BookAgentService();
+    this.bookAgentRunner = new BookAgentRunner();
   }
 
   /**
@@ -198,7 +198,7 @@ export class AIController {
       }
 
       const config = getModels(model as any);
-      await this.bookAgentService.run({
+      await this.bookAgentRunner.run({
         userMessage: prompt,
         bookId,
         model: config.model,

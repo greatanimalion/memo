@@ -70,7 +70,7 @@ export class BookService {
 
   createChapter(data: Chapter): Chapter {
     const maxOrder = this.dbHelper.chapter.getMaxOrder(data.bookId);
-    return this.dbHelper.chapter.addChapter({ ...data, order: data.order || maxOrder + 1 });
+    return this.dbHelper.chapter.addChapter({ ...data, order: data.order ?? maxOrder + 1 });
   }
 
   updateChapter(id: string, data: Partial<Chapter>): Chapter | null {
@@ -93,7 +93,7 @@ export class BookService {
 
   createVolume(data: Volume): Volume {
     const maxOrder = this.dbHelper.volume.getMaxOrder(data.bookId);
-    return this.dbHelper.volume.addVolume({ ...data, order: data.order || maxOrder + 1 });
+    return this.dbHelper.volume.addVolume({ ...data, order: data.order ?? maxOrder + 1 });
   }
 
   updateVolume(id: string, data: Partial<Volume>): Volume | null {

@@ -3,17 +3,14 @@ import {
   BorderOutlined,
   CloseOutlined,
   MinusOutlined,
-  BugOutlined,
   ExpandOutlined,
 } from "@ant-design/icons";
 import { useRef } from "react";
-import { Tooltip } from "antd";
 import {
   minimizeWindow,
   maximizeWindow,
   unmaximizeWindow,
   closeWindow,
-  toggleDevTools,
 } from "../platform";
 
 const Header: React.FC = () => {
@@ -37,17 +34,6 @@ const Header: React.FC = () => {
       </div>
       {/* 右侧：工具图标 */}
       <div className="flex items-center gap-3 noDragArea">
-        <Tooltip placement="bottomRight" title={"控制台"}>
-          <button
-            className="p-2 rounded-lg transition-colors cursor-pointer"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            onClick={() => toggleDevTools()}
-          >
-            <BugOutlined className="text-lg" />
-          </button>
-        </Tooltip>
         <button
           className="p-2 rounded-lg transition-colors cursor-pointer"
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}

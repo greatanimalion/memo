@@ -114,7 +114,6 @@ const EditorArea: React.FC = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const book = useWriterStore((s) => s.book);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
   const autoSave = useWriterStore((s) => s.autoSave);

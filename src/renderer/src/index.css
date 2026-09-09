@@ -111,6 +111,23 @@ body::-webkit-scrollbar {
   -webkit-app-region: no-drag;
 }
 
+/* 修复高 DPI 下 SVG 图标模糊问题 */
+.anticon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.125em;
+  line-height: 1;
+}
+
+.anticon svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  shape-rendering: geometricPrecision;
+}
+
 /* 主题工具类 */
 .bg-theme { background-color: var(--bg-color); }
 .bg-theme-primary { background-color: var(--bg-primary); }

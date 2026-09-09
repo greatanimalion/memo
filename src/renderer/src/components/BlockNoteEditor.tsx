@@ -47,7 +47,7 @@ import {
   Html5Outlined,
   ImportOutlined,
 } from "@ant-design/icons";
-import { ipcRenderer } from "electron";
+import { exportFile as platformExportFile } from "../platform";
 import useFileStore from "@renderer/store/useFileStore";
 import axios from "axios";
 import { DOCUMENTMODEL } from "@renderer/constants";
@@ -61,10 +61,7 @@ function exportFile(editor: any, type: "md" | "html" | "json", name?: string) {
     markdownFromBlocks = editor.blocksToFullHTML(editor.document);
   else if (type == "json") markdownFromBlocks = JSON.stringify(editor.document);
   try {
-    ipcRenderer.send("exportFile", {
-      filename: (name || getCurrentTime()) + endFixed,
-      content: markdownFromBlocks,
-    });
+    platformExportFile((name || getCurrentTime()) + endFixed, markdownFromBlocks);
   } catch (error) {
     message.open({
       type: "error",

@@ -7,3 +7,11 @@ build
 *.log*
 
 .vscode
+
+# Tauri
+src-tauri/target
+src-tauri/WixTools
+src-tauri/Frameworks
+src-tauri/*.msi
+src-tauri/*.exe
+dist/renderer

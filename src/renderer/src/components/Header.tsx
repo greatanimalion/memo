@@ -6,14 +6,17 @@ import {
   BugOutlined,
   ExpandOutlined,
 } from "@ant-design/icons";
-import { ipcRenderer } from "electron";
 import { useRef } from "react";
 import { Tooltip } from "antd";
+import {
+  minimizeWindow,
+  maximizeWindow,
+  unmaximizeWindow,
+  closeWindow,
+  toggleDevTools,
+} from "../platform";
 
 const Header: React.FC = () => {
-  const handleClick = (op: string) => {
-    ipcRenderer.send(op);
-  };
   const header = useRef<HTMLDivElement>(null);
   const [maximized, setMaximized] = useState(false);
 
@@ -40,7 +43,7 @@ const Header: React.FC = () => {
             style={{ color: 'var(--text-secondary)' }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            onClick={() => handleClick("toggleDevTools")}
+            onClick={() => toggleDevTools()}
           >
             <BugOutlined className="text-lg" />
           </button>
@@ -49,7 +52,7 @@ const Header: React.FC = () => {
           className="p-2 rounded-lg transition-colors cursor-pointer"
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          onClick={() => handleClick("minimizeWindow")}
+          onClick={() => minimizeWindow()}
         >
           <MinusOutlined />
         </button>
@@ -59,7 +62,8 @@ const Header: React.FC = () => {
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
-              (setMaximized(false), handleClick("unmaximizeWindow"));
+              setMaximized(false);
+              unmaximizeWindow();
             }}
           >
             <BorderOutlined className="text-lg" style={{ color: 'var(--text-secondary)' }} />
@@ -70,7 +74,8 @@ const Header: React.FC = () => {
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
-              (setMaximized(true), handleClick("maxmizeWindow"));
+              setMaximized(true);
+              maximizeWindow();
             }}
           >
             <ExpandOutlined className="text-lg" />
@@ -86,7 +91,7 @@ const Header: React.FC = () => {
             style={{ color: 'var(--text-secondary)' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--error-color)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-            onClick={() => handleClick("closeWindow")}
+            onClick={() => closeWindow()}
           />
         </button>
       </div>

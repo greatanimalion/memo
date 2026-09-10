@@ -187,10 +187,13 @@ impl Database {
         self.get_memory_by_id(id)
     }
 
-    pub fn delete_memory(&self, id: &str) -> Result<()> {
+    pub fn delete_memory(&self, id: &str) -> Result<Option<String>> {
         let conn = self.conn.lock().unwrap();
+        let file_url: Option<String> = conn.query_row(
+            "SELECT fileUrl FROM memorys WHERE id = ?1", params![id], |row| row.get(0)
+        )?;
         conn.execute("DELETE FROM memorys WHERE id = ?1", params![id])?;
-        Ok(())
+        Ok(file_url)
     }
 
     pub fn toggle_star(&self, id: &str) -> Result<Memory> {

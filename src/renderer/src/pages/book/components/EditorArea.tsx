@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useWriterStore } from "@renderer/store/useWriterStore";
 import { Button } from "antd";
 import {
-  BookOutlined,
   ExpandOutlined,
   CompressOutlined,
   SaveOutlined,

@@ -5,7 +5,7 @@ use super::{AppState, ok, created, err};
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/agents", get(list_agents).post(create_agent))
-        .route("/api/agents/{id}", put(update_agent).delete(delete_agent))
+        .route("/api/agents/:id", put(update_agent).delete(delete_agent))
 }
 
 async fn list_agents(State(s): State<Arc<AppState>>) -> impl IntoResponse {

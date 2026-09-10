@@ -4,7 +4,7 @@ use super::{AppState, ok, err};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/diarys/{id}", get(get_diary).put(upsert_diary))
+        .route("/api/diarys/:id", get(get_diary).put(upsert_diary))
 }
 
 async fn get_diary(State(s): State<Arc<AppState>>, Path(id): Path<String>) -> impl IntoResponse {
@@ -15,8 +15,8 @@ async fn get_diary(State(s): State<Arc<AppState>>, Path(id): Path<String>) -> im
 }
 
 async fn upsert_diary(State(s): State<Arc<AppState>>, Path(id): Path<String>, Json(body): Json<serde_json::Value>) -> impl IntoResponse {
-    let month_diarys = body.get("monthDiarys").and_then(|v| v.as_str()).unwrap_or("[]");
-    match s.db.upsert_diary(&id, month_diarys) {
+    let month_diarys = body.get("monthDiarys").map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
+    match s.db.upsert_diary(&id, &month_diarys) {
         Ok(d) => ok(d),
         Err(e) => err(500, &e.to_string()),
     }

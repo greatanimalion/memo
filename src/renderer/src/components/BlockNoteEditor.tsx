@@ -300,6 +300,8 @@ const Editor = ({ selectedFile }) => {
               fontWeight: 500,
               color: "#4B5563",
               marginRight: "1.25rem",
+              zIndex:9999,
+              position:'relative'
             }}
             ellipsis={{ tooltip: selectedFile.title }}
           >

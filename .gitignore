@@ -15,3 +15,5 @@ src-tauri/Frameworks
 src-tauri/*.msi
 src-tauri/*.exe
 dist/renderer
+
+server

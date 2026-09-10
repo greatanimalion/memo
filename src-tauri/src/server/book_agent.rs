@@ -4,8 +4,8 @@ use super::{AppState, ok, created, err};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/books/{book_id}/agents", get(list_book_agents).delete(delete_all_book_agents))
-        .route("/api/book-agents/{id}", get(get_book_agent).put(update_book_agent).delete(delete_book_agent))
+        .route("/api/books/:book_id/agents", get(list_book_agents).delete(delete_all_book_agents))
+        .route("/api/book-agents/:id", get(get_book_agent).put(update_book_agent).delete(delete_book_agent))
         .route("/api/book-agents", post(create_book_agent))
 }
 

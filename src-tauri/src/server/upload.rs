@@ -3,11 +3,12 @@ use serde::Deserialize;
 use std::sync::Arc;
 use super::{AppState, ok, err};
 
-pub fn router() -> Router<Arc<AppState>> {
+pub fn router(upload_dir: &str) -> Router<Arc<AppState>> {
+    let serve_path = format!("{}/uploads", upload_dir);
     Router::new()
         .route("/upload", post(upload_file))
         .route("/deleteFile", post(delete_file).delete(delete_file))
-        .nest_service("/uploads", tower_http::services::ServeDir::new("uploads"))
+        .nest_service("/uploads", tower_http::services::ServeDir::new(&serve_path))
 }
 
 async fn upload_file(State(s): State<Arc<AppState>>, mut multipart: Multipart) -> impl IntoResponse {
@@ -47,7 +48,7 @@ struct DeleteFileRequest {
 }
 
 async fn delete_file(State(s): State<Arc<AppState>>, Json(body): Json<DeleteFileRequest>) -> impl IntoResponse {
-    let full_path = format!("{}/{}", s.upload_dir, body.file_path);
+    let full_path = format!("{}/uploads{}", s.upload_dir, body.file_path);
     if std::fs::remove_file(&full_path).is_err() {
         return err(404, "File not found");
     }

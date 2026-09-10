@@ -5,7 +5,7 @@ use super::{AppState, ok, created, err};
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/sessions", get(list_sessions).post(create_session))
-        .route("/api/sessions/{id}", get(get_session).put(update_session).delete(delete_session))
+        .route("/api/sessions/:id", get(get_session).put(update_session).delete(delete_session))
 }
 
 async fn list_sessions(State(s): State<Arc<AppState>>) -> impl IntoResponse {

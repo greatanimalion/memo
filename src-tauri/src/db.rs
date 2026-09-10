@@ -167,6 +167,7 @@ impl Database {
             "INSERT INTO memorys (id, isFolder, title, fileUrl, parentId, created, updated, visitedTime, size, starred) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
             params![m.id, m.is_folder, m.title, m.file_url, m.parent_id, m.created, m.updated, m.visited_time, m.size, m.starred.unwrap_or(0)],
         )?;
+        drop(conn);
         self.get_memory_by_id(&m.id)
     }
 
@@ -182,6 +183,7 @@ impl Database {
         if let Some(ref parent_id) = m.parent_id {
             conn.execute("UPDATE memorys SET parentId = ?1, updated = ?2 WHERE id = ?3", params![parent_id, now, id])?;
         }
+        drop(conn);
         self.get_memory_by_id(id)
     }
 
@@ -377,6 +379,9 @@ impl Database {
 
     pub fn delete_book(&self, id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM bookAgent WHERE bookId = ?1", params![id])?;
+        conn.execute("DELETE FROM chapters WHERE bookId = ?1", params![id])?;
+        conn.execute("DELETE FROM volumes WHERE bookId = ?1", params![id])?;
         conn.execute("DELETE FROM books WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -627,7 +632,7 @@ impl Database {
         if let Some(diarys) = data.get("diarys").and_then(|v| v.as_array()) {
             for d in diarys {
                 let id = d.get("id").and_then(|v| v.as_str()).unwrap_or("");
-                let month_diarys = d.get("monthDiarys").and_then(|v| v.as_str()).unwrap_or("");
+                let month_diarys = d.get("monthDiarys").map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
                 let _ = conn.execute(
                     "INSERT INTO diarys (id, monthDiarys) VALUES (?1, ?2) ON CONFLICT(id) DO UPDATE SET monthDiarys = ?2",
                     params![id, month_diarys],

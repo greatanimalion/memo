@@ -39,7 +39,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(book_agent::router())
         .merge(ai::router())
         .merge(storage::router())
-        .merge(upload::router())
+        .merge(upload::router(&state.upload_dir))
         .with_state(state)
         .layer(cors)
 }

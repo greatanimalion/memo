@@ -125,11 +125,11 @@ fn set_dpi_awareness() {}
 
 fn get_data_dir() -> String {
     // 生产环境: 系统根目录/.MemoryData
-    // 开发环境: 项目目录/src/main/data
+    // 开发环境: 项目目录/out/data
     if cfg!(debug_assertions) {
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
         let project_root = std::path::Path::new(manifest_dir).parent().unwrap();
-        project_root.join("src/main/data").to_string_lossy().to_string()
+        project_root.join("out/data").to_string_lossy().to_string()
     } else {
         let root = if cfg!(target_os = "windows") {
             std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string())

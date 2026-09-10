@@ -21,7 +21,6 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
   isBookScreen,
   onOpenBookAgent,
 }) => {
-  const [selectedVolumeId, setSelectedVolumeId] = useState<string | null>(null);
   const [editingVolumeId, setEditingVolumeId] = useState<string | null>(null);
   const [editingVolumeTitle, setEditingVolumeTitle] = useState("");
   const navigate = useNavigate();
@@ -29,6 +28,8 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
   const book = useWriterStore((s) => s.book);
   const currentChapter = useWriterStore((s) => s.currentChapter);
   const setCurrentChapter = useWriterStore((s) => s.setCurrentChapter);
+  const selectedVolumeId = useWriterStore((s) => s.selectedVolumeId);
+  const setSelectedVolumeId = useWriterStore((s) => s.setSelectedVolumeId);
   const addChapter = useWriterStore((s) => s.addChapter);
   const addVolume = useWriterStore((s) => s.addVolume);
   const deleteVolume = useWriterStore((s) => s.deleteVolume);

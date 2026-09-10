@@ -30,6 +30,8 @@ const fontOptions: { value: FontFamily; label: string }[] = [
 const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
   const book = useWriterStore((s) => s.book);
   const currentChapter = useWriterStore((s) => s.currentChapter);
+  const setCurrentChapter = useWriterStore((s) => s.setCurrentChapter);
+  const setSelectedVolumeId = useWriterStore((s) => s.setSelectedVolumeId);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const setEditorFont = useWriterStore((s) => s.setEditorFont);
   const setEditorFontSize = useWriterStore((s) => s.setEditorFontSize);
@@ -283,22 +285,55 @@ const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
             <div className="text-[12px] text-theme-muted mb-2">
               共找到 <span className="font-semibold text-accent">{searchResults.length}</span> 条结果
             </div>
-            {searchResults.map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-theme-secondary/60 rounded-lg p-3 hover:bg-theme-hover transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[12px] font-semibold text-theme-primary">{item.chapterTitle}</span>
-                  <span className="text-[10px] text-theme-muted bg-theme-tertiary px-1.5 py-0.5 rounded">
-                    位置 {item.position}
-                  </span>
+            {(() => {
+              const grouped: Record<string, SearchMatch[]> = {};
+              const volumeNames: Record<string, string> = {};
+              book.volumes?.forEach((v) => { volumeNames[v.id] = v.title; });
+              for (const item of searchResults) {
+                const key = item.volumeId || '__unGrouped__';
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+              }
+              const volumeOrder = book.volumes?.map((v) => v.id) || [];
+              const keys = Object.keys(grouped).sort((a, b) => {
+                if (a === '__unGrouped__') return 1;
+                if (b === '__unGrouped__') return -1;
+                return volumeOrder.indexOf(a) - volumeOrder.indexOf(b);
+              });
+              return keys.map((volKey) => (
+                <div key={volKey}>
+                  <div className="text-[11px] font-semibold text-accent mb-1.5 flex items-center gap-1">
+                    {volKey === '__unGrouped__' ? '未分卷' : (volumeNames[volKey] || volKey)}
+                    <span className="text-theme-muted font-normal">({grouped[volKey].length})</span>
+                  </div>
+                  <div className="space-y-2 ml-2 border-l-2 border-theme-light pl-3">
+                    {grouped[volKey].map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-theme-secondary/60 rounded-lg p-3 hover:bg-theme-hover transition-colors cursor-pointer"
+                          onClick={() => {
+                          if (item.volumeId) {
+                            setSelectedVolumeId(item.volumeId);
+                          }
+                          setCurrentChapter(item.chapterId);
+                          setSearchModalOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[12px] font-semibold text-theme-primary">{item.chapterTitle}</span>
+                          <span className="text-[10px] text-theme-muted bg-theme-tertiary px-1.5 py-0.5 rounded">
+                            位置 {item.position}
+                          </span>
+                        </div>
+                        <div className="text-[12px] text-theme-secondary leading-relaxed">
+                          ...{highlightKeyword(item.context, item.keyword)}...
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-[12px] text-theme-secondary leading-relaxed">
-                  ...{highlightKeyword(item.context, item.keyword)}...
-                </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         )}
       </Modal>

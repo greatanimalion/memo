@@ -4,6 +4,7 @@ import type { Book, BookDetail, Chapter, Volume } from "@type/book";
 // ========== Search ==========
 
 export interface SearchMatch {
+  volumeId?: string;
   chapterId: string;
   chapterTitle: string;
   keyword: string;

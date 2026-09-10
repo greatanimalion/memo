@@ -3,6 +3,19 @@ use std::path::Path;
 use std::sync::Mutex;
 use crate::models::*;
 
+fn floor_char_boundary(s: &str, index: usize) -> usize {
+    if index >= s.len() { return s.len(); }
+    let mut i = index;
+    while i > 0 && !s.is_char_boundary(i) { i -= 1; }
+    i
+}
+
+fn ceil_char_boundary(s: &str, index: usize) -> usize {
+    let mut i = index;
+    while i < s.len() && !s.is_char_boundary(i) { i += 1; }
+    i
+}
+
 pub struct Database {
     pub conn: Mutex<Connection>,
 }
@@ -174,14 +187,18 @@ impl Database {
     pub fn update_memory(&self, id: &str, m: &UpdateMemory) -> Result<Memory> {
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().timestamp_millis();
+        conn.execute("UPDATE memorys SET updated = ?1, visitedTime = ?2 WHERE id = ?3", params![now, now, id])?;
         if let Some(ref title) = m.title {
-            conn.execute("UPDATE memorys SET title = ?1, updated = ?2 WHERE id = ?3", params![title, now, id])?;
+            conn.execute("UPDATE memorys SET title = ?1 WHERE id = ?2", params![title, id])?;
         }
         if let Some(ref file_url) = m.file_url {
-            conn.execute("UPDATE memorys SET fileUrl = ?1, updated = ?2 WHERE id = ?3", params![file_url, now, id])?;
+            conn.execute("UPDATE memorys SET fileUrl = ?1 WHERE id = ?2", params![file_url, id])?;
         }
         if let Some(ref parent_id) = m.parent_id {
-            conn.execute("UPDATE memorys SET parentId = ?1, updated = ?2 WHERE id = ?3", params![parent_id, now, id])?;
+            conn.execute("UPDATE memorys SET parentId = ?1 WHERE id = ?2", params![parent_id, id])?;
+        }
+        if let Some(size) = m.size {
+            conn.execute("UPDATE memorys SET size = ?1 WHERE id = ?2", params![size, id])?;
         }
         drop(conn);
         self.get_memory_by_id(id)
@@ -294,11 +311,13 @@ impl Database {
 
     pub fn update_agent(&self, id: &str, a: &UpdateAgent) -> Result<MyAgent> {
         let conn = self.conn.lock().unwrap();
+        let exists: bool = conn.query_row("SELECT COUNT(*) > 0 FROM agents WHERE id = ?1", params![id], |row| row.get(0))?;
+        if !exists {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
         if let Some(ref name) = a.name { conn.execute("UPDATE agents SET name = ?1 WHERE id = ?2", params![name, id])?; }
         if let Some(ref desc) = a.description { conn.execute("UPDATE agents SET description = ?1 WHERE id = ?2", params![desc, id])?; }
         if let Some(ref content) = a.content { conn.execute("UPDATE agents SET content = ?1 WHERE id = ?2", params![content, id])?; }
-        drop(conn);
-        let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, name, description, content FROM agents WHERE id = ?1")?;
         stmt.query_row(params![id], |row| {
             Ok(MyAgent { id: row.get(0)?, name: row.get(1)?, description: row.get(2)?, content: row.get(3)? })
@@ -753,10 +772,11 @@ impl Database {
         for chapter in chapters {
             let content_lower = chapter.content.to_lowercase();
             if let Some(pos) = content_lower.find(&keyword_lower) {
-                let start = pos.saturating_sub(50);
-                let end = (pos + keyword.len() + 50).min(chapter.content.len());
+                let start = floor_char_boundary(&chapter.content, pos.saturating_sub(50));
+                let end = ceil_char_boundary(&chapter.content, (pos + keyword.len() + 50).min(chapter.content.len()));
                 let context = chapter.content[start..end].to_string();
                 results.push(serde_json::json!({
+                    "volumeId":chapter.volume_id,
                     "chapterId": chapter.id,
                     "chapterTitle": chapter.title,
                     "keyword": keyword,

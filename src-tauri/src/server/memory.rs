@@ -66,11 +66,13 @@ async fn create_memory(State(s): State<Arc<AppState>>, Json(body): Json<crate::m
 }
 
 async fn update_memory(State(s): State<Arc<AppState>>, Path(id): Path<String>, Json(body): Json<crate::models::UpdateMemory>) -> impl IntoResponse {
+    let mut body = body;
     if let Some(ref content) = body.content {
         if let Ok(m) = s.db.get_memory_by_id(&id) {
             if let Some(ref file_url) = m.file_url {
                 let full_path = format!("{}{}", s.upload_dir, file_url);
                 let _ = std::fs::write(&full_path, content);
+                body.size = std::fs::metadata(&full_path).ok().map(|m| m.len() as i64);
             }
         }
     }

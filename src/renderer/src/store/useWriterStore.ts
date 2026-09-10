@@ -88,6 +88,7 @@ interface WriterState {
   book: BookDetail
   currentChapter:Chapter|null
   currentVolume:Volume|null,
+  selectedVolumeId: string | null
   autoSave: boolean
   editorSettings: { fontFamily: FontFamily; fontSize: number; lineHeight: number; fontWeight: number }
   editorBg: { type: 'color'; value: string } | { type: 'image'; value: string } | null
@@ -101,6 +102,7 @@ interface WriterState {
   setAutoSave: (auto: boolean) => void
   setBookTitle: (title: string) => void
   setCurrentChapter: (id: string) => Promise<void>
+  setSelectedVolumeId: (id: string | null) => void
   addChapter: (volumeId?: string) => Promise<void>
   deleteChapter: (id: string) => Promise<void>
   reorderChapters: (chapters: Chapter[]) => void
@@ -126,6 +128,7 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   currentChapterId: null,
   currentVolume:null,
   currnetVolumeId:null,
+  selectedVolumeId: null,
   autoSave: true,
   editorSettings: loadEditorSettings()?.editorSettings ?? {
     fontFamily: 'sans' as FontFamily,
@@ -184,6 +187,8 @@ export const useWriterStore = create<WriterState>((set, get) => ({
 
   setBookTitle: (title) =>
     set((state) => ({ book: { ...state.book, title } })),
+
+  setSelectedVolumeId: (id) => set({ selectedVolumeId: id }),
 
   setCurrentChapter: async (id) => {
     try {

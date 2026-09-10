@@ -46,6 +46,7 @@ pub struct UpdateMemory {
     pub parent_id: Option<String>,
     #[allow(dead_code)]
     pub content: Option<String>,
+    pub size: Option<i64>,
 }
 
 // ========== Diary ==========

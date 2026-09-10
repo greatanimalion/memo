@@ -25,7 +25,18 @@ async fn create_agent(State(s): State<Arc<AppState>>, Json(body): Json<crate::mo
 async fn update_agent(State(s): State<Arc<AppState>>, Path(id): Path<String>, Json(body): Json<crate::models::UpdateAgent>) -> impl IntoResponse {
     match s.db.update_agent(&id, &body) {
         Ok(a) => ok(a),
-        Err(e) => err(500, &e.to_string()),
+        Err(_) => {
+            let create = crate::models::CreateAgent {
+                id: id.clone(),
+                name: body.name.unwrap_or_default(),
+                description: body.description.unwrap_or_default(),
+                content: body.content.unwrap_or_default(),
+            };
+            match s.db.create_agent(&create) {
+                Ok(a) => created(a),
+                Err(e) => err(500, &e.to_string()),
+            }
+        }
     }
 }
 

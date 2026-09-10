@@ -1,12 +1,13 @@
-use axum::{Router, Json, extract::{Path, State}, response::IntoResponse, routing::get};
+use axum::{Router, Json, extract::{Path, State}, response::IntoResponse, routing::{get, post}};
 use std::sync::Arc;
 use super::{AppState, ok, created, err};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/books", get(list_books).post(create_book))
-        .route("/api/books/{id}", get(get_book).put(update_book).delete(delete_book))
         .route("/api/books/{id}/detail", get(get_book_detail))
+        .route("/api/books/{id}", get(get_book).put(update_book).delete(delete_book))
+        .route("/api/search", post(search_book))
 }
 
 async fn list_books(State(s): State<Arc<AppState>>) -> impl IntoResponse {
@@ -47,6 +48,20 @@ async fn update_book(State(s): State<Arc<AppState>>, Path(id): Path<String>, Jso
 async fn delete_book(State(s): State<Arc<AppState>>, Path(id): Path<String>) -> impl IntoResponse {
     match s.db.delete_book(&id) {
         Ok(()) => ok(serde_json::json!(null)),
+        Err(e) => err(500, &e.to_string()),
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct SearchRequest {
+    #[serde(rename = "bookId")]
+    pub book_id: String,
+    pub keyword: String,
+}
+
+async fn search_book(State(s): State<Arc<AppState>>, Json(body): Json<SearchRequest>) -> impl IntoResponse {
+    match s.db.search_book(&body.book_id, &body.keyword) {
+        Ok(results) => ok(results),
         Err(e) => err(500, &e.to_string()),
     }
 }

@@ -34,7 +34,7 @@ pub struct CreateMemory {
     #[serde(rename = "visitedTime")]
     pub visited_time: Option<i64>,
     pub size: Option<i64>,
-    pub starred: i32,
+    pub starred: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -62,8 +62,8 @@ pub struct Session {
     pub id: String,
     pub title: String,
     #[serde(rename = "lastUpdated")]
-    pub last_updated: String,
-    pub messages: String,
+    pub last_updated: serde_json::Value,
+    pub messages: serde_json::Value,
     pub description: Option<String>,
 }
 
@@ -72,8 +72,8 @@ pub struct CreateSession {
     pub id: String,
     pub title: String,
     #[serde(rename = "lastUpdated")]
-    pub last_updated: String,
-    pub messages: String,
+    pub last_updated: serde_json::Value,
+    pub messages: serde_json::Value,
     pub description: Option<String>,
 }
 
@@ -81,8 +81,8 @@ pub struct CreateSession {
 pub struct UpdateSession {
     pub title: Option<String>,
     #[serde(rename = "lastUpdated")]
-    pub last_updated: Option<String>,
-    pub messages: Option<String>,
+    pub last_updated: Option<serde_json::Value>,
+    pub messages: Option<serde_json::Value>,
     pub description: Option<String>,
 }
 
@@ -116,8 +116,8 @@ pub struct Book {
     pub id: String,
     pub title: String,
     pub cover: String,
-    pub tags: String,
-    pub settings: String,
+    pub tags: serde_json::Value,
+    pub settings: serde_json::Value,
     pub description: String,
     #[serde(rename = "createdAt")]
     pub created_at: i64,
@@ -130,8 +130,8 @@ pub struct BookDetail {
     pub id: String,
     pub title: String,
     pub cover: String,
-    pub tags: String,
-    pub settings: String,
+    pub tags: serde_json::Value,
+    pub settings: serde_json::Value,
     pub description: String,
     #[serde(rename = "createdAt")]
     pub created_at: i64,
@@ -156,7 +156,7 @@ pub struct ChapterMeta {
     pub created_at: i64,
     #[serde(rename = "updatedAt")]
     pub updated_at: i64,
-    pub metadata: Option<String>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -164,8 +164,8 @@ pub struct CreateBook {
     pub id: String,
     pub title: String,
     pub cover: Option<String>,
-    pub tags: Option<String>,
-    pub settings: Option<String>,
+    pub tags: Option<serde_json::Value>,
+    pub settings: Option<serde_json::Value>,
     pub description: Option<String>,
 }
 
@@ -173,8 +173,8 @@ pub struct CreateBook {
 pub struct UpdateBook {
     pub title: Option<String>,
     pub cover: Option<String>,
-    pub tags: Option<String>,
-    pub settings: Option<String>,
+    pub tags: Option<serde_json::Value>,
+    pub settings: Option<serde_json::Value>,
     pub description: Option<String>,
 }
 
@@ -195,7 +195,7 @@ pub struct Chapter {
     pub created_at: i64,
     #[serde(rename = "updatedAt")]
     pub updated_at: i64,
-    pub metadata: Option<String>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -210,7 +210,7 @@ pub struct CreateChapter {
     #[serde(rename = "volumeId")]
     pub volume_id: Option<String>,
     pub order: Option<i64>,
-    pub metadata: Option<String>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -222,7 +222,7 @@ pub struct UpdateChapter {
     #[serde(rename = "volumeId")]
     pub volume_id: Option<String>,
     pub order: Option<i64>,
-    pub metadata: Option<String>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 // ========== Volume ==========
@@ -259,7 +259,7 @@ pub struct BookAgent {
     #[serde(rename = "bookId")]
     pub book_id: String,
     pub title: String,
-    pub messages: String,
+    pub messages: serde_json::Value,
     pub status: String,
     #[serde(rename = "createdAt")]
     pub created_at: i64,
@@ -273,14 +273,14 @@ pub struct CreateBookAgent {
     #[serde(rename = "bookId")]
     pub book_id: String,
     pub title: Option<String>,
-    pub messages: Option<String>,
+    pub messages: Option<serde_json::Value>,
     pub status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateBookAgent {
     pub title: Option<String>,
-    pub messages: Option<String>,
+    pub messages: Option<serde_json::Value>,
     pub status: Option<String>,
 }
 

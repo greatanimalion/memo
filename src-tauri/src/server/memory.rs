@@ -5,8 +5,8 @@ use super::{AppState, ok, created, err};
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/memorys", get(list_memories).post(create_memory))
-        .route("/api/memorys/{id}", get(get_memory).put(update_memory).delete(delete_memory))
         .route("/api/memorys/get_children/{id}", get(get_memory_children))
+        .route("/api/memorys/{id}", get(get_memory).put(update_memory).delete(delete_memory))
         .route("/api/memorys_recent", get(get_recent_memories))
         .route("/api/memorys_starred", get(get_starred_memories))
         .route("/api/memory/star/{id}", post(toggle_star))

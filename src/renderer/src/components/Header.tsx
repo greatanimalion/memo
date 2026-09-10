@@ -19,7 +19,7 @@ const Header: React.FC = () => {
 
   return (
     <div
-      className="h-16 flex items-center justify-between px-4 dragArea"
+      className="h-16 flex items-center justify-between px-4 dragArea relative  z-99999"
       ref={header}
       style={{ backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border-color)' }}
     >

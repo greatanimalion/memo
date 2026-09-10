@@ -1,4 +1,4 @@
-use axum::{Router, Json, extract::{State, Multipart}, response::IntoResponse, routing::{post}};
+use axum::{Router, Json, extract::{State, Multipart}, response::IntoResponse, routing::post};
 use serde::Deserialize;
 use std::sync::Arc;
 use super::{AppState, ok, err};
@@ -6,7 +6,7 @@ use super::{AppState, ok, err};
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/upload", post(upload_file))
-        .route("/deleteFile", post(delete_file))
+        .route("/deleteFile", post(delete_file).delete(delete_file))
         .nest_service("/uploads", tower_http::services::ServeDir::new("uploads"))
 }
 

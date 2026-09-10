@@ -165,7 +165,7 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "INSERT INTO memorys (id, isFolder, title, fileUrl, parentId, created, updated, visitedTime, size, starred) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
-            params![m.id, m.is_folder, m.title, m.file_url, m.parent_id, m.created, m.updated, m.visited_time, m.size, m.starred],
+            params![m.id, m.is_folder, m.title, m.file_url, m.parent_id, m.created, m.updated, m.visited_time, m.size, m.starred.unwrap_or(0)],
         )?;
         self.get_memory_by_id(&m.id)
     }
@@ -222,7 +222,11 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, title, lastUpdated, messages, description FROM sessions ORDER BY lastUpdated DESC")?;
         let rows = stmt.query_map([], |row| {
-            Ok(Session { id: row.get(0)?, title: row.get(1)?, last_updated: row.get(2)?, messages: row.get(3)?, description: row.get(4)? })
+            let last_updated_str: String = row.get(2)?;
+            let messages_str: String = row.get(3)?;
+            let last_updated: serde_json::Value = serde_json::from_str(&last_updated_str).unwrap_or(serde_json::Value::Null);
+            let messages: serde_json::Value = serde_json::from_str(&messages_str).unwrap_or(serde_json::json!([]));
+            Ok(Session { id: row.get(0)?, title: row.get(1)?, last_updated, messages, description: row.get(4)? })
         })?.collect::<Result<Vec<_>>>()?;
         Ok(rows)
     }
@@ -231,15 +235,21 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, title, lastUpdated, messages, description FROM sessions WHERE id = ?1")?;
         stmt.query_row(params![id], |row| {
-            Ok(Session { id: row.get(0)?, title: row.get(1)?, last_updated: row.get(2)?, messages: row.get(3)?, description: row.get(4)? })
+            let last_updated_str: String = row.get(2)?;
+            let messages_str: String = row.get(3)?;
+            let last_updated: serde_json::Value = serde_json::from_str(&last_updated_str).unwrap_or(serde_json::Value::Null);
+            let messages: serde_json::Value = serde_json::from_str(&messages_str).unwrap_or(serde_json::json!([]));
+            Ok(Session { id: row.get(0)?, title: row.get(1)?, last_updated, messages, description: row.get(4)? })
         })
     }
 
     pub fn create_session(&self, s: &CreateSession) -> Result<Session> {
         let conn = self.conn.lock().unwrap();
+        let last_updated_str = s.last_updated.to_string();
+        let messages_str = s.messages.to_string();
         conn.execute(
             "INSERT INTO sessions (id, title, lastUpdated, messages, description) VALUES (?1,?2,?3,?4,?5)",
-            params![s.id, s.title, s.last_updated, s.messages, s.description],
+            params![s.id, s.title, last_updated_str, messages_str, s.description],
         )?;
         drop(conn);
         self.get_session_by_id(&s.id)
@@ -248,8 +258,8 @@ impl Database {
     pub fn update_session(&self, id: &str, s: &UpdateSession) -> Result<Session> {
         let conn = self.conn.lock().unwrap();
         if let Some(ref title) = s.title { conn.execute("UPDATE sessions SET title = ?1 WHERE id = ?2", params![title, id])?; }
-        if let Some(ref lu) = s.last_updated { conn.execute("UPDATE sessions SET lastUpdated = ?1 WHERE id = ?2", params![lu, id])?; }
-        if let Some(ref msgs) = s.messages { conn.execute("UPDATE sessions SET messages = ?1 WHERE id = ?2", params![msgs, id])?; }
+        if let Some(ref lu) = s.last_updated { conn.execute("UPDATE sessions SET lastUpdated = ?1 WHERE id = ?2", params![lu.to_string(), id])?; }
+        if let Some(ref msgs) = s.messages { conn.execute("UPDATE sessions SET messages = ?1 WHERE id = ?2", params![msgs.to_string(), id])?; }
         if let Some(ref desc) = s.description { conn.execute("UPDATE sessions SET description = ?1 WHERE id = ?2", params![desc, id])?; }
         drop(conn);
         self.get_session_by_id(id)
@@ -301,7 +311,11 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, title, cover, tags, settings, description, createdAt, updatedAt FROM books ORDER BY updatedAt DESC")?;
         let rows = stmt.query_map([], |row| {
-            Ok(Book { id: row.get(0)?, title: row.get(1)?, cover: row.get(2)?, tags: row.get(3)?, settings: row.get(4)?, description: row.get(5)?, created_at: row.get(6)?, updated_at: row.get(7)? })
+            let tags_str: String = row.get(3)?;
+            let settings_str: String = row.get(4)?;
+            let tags: serde_json::Value = serde_json::from_str(&tags_str).unwrap_or(serde_json::json!([]));
+            let settings: serde_json::Value = serde_json::from_str(&settings_str).unwrap_or(serde_json::json!({}));
+            Ok(Book { id: row.get(0)?, title: row.get(1)?, cover: row.get(2)?, tags, settings, description: row.get(5)?, created_at: row.get(6)?, updated_at: row.get(7)? })
         })?.collect::<Result<Vec<_>>>()?;
         Ok(rows)
     }
@@ -310,7 +324,11 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, title, cover, tags, settings, description, createdAt, updatedAt FROM books WHERE id = ?1")?;
         stmt.query_row(params![id], |row| {
-            Ok(Book { id: row.get(0)?, title: row.get(1)?, cover: row.get(2)?, tags: row.get(3)?, settings: row.get(4)?, description: row.get(5)?, created_at: row.get(6)?, updated_at: row.get(7)? })
+            let tags_str: String = row.get(3)?;
+            let settings_str: String = row.get(4)?;
+            let tags: serde_json::Value = serde_json::from_str(&tags_str).unwrap_or(serde_json::json!([]));
+            let settings: serde_json::Value = serde_json::from_str(&settings_str).unwrap_or(serde_json::json!({}));
+            Ok(Book { id: row.get(0)?, title: row.get(1)?, cover: row.get(2)?, tags, settings, description: row.get(5)?, created_at: row.get(6)?, updated_at: row.get(7)? })
         })
     }
 
@@ -328,8 +346,8 @@ impl Database {
     pub fn create_book(&self, b: &CreateBook) -> Result<BookDetail> {
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().timestamp_millis();
-        let tags = b.tags.as_deref().unwrap_or("[]");
-        let settings = b.settings.as_deref().unwrap_or("{}");
+        let tags = b.tags.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
+        let settings = b.settings.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "{}".to_string());
         let description = b.description.as_deref().unwrap_or("");
         conn.execute(
             "INSERT INTO books (id, title, cover, tags, settings, description, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
@@ -338,7 +356,7 @@ impl Database {
         let chapter_id = uuid::Uuid::new_v4().to_string();
         let ch_title = "第1章";
         conn.execute(
-            "INSERT INTO chapters (id, bookId, title, content, wordCount, order, createdAt, updatedAt) VALUES (?1,?2,?3,'',0,1,?4,?5)",
+            "INSERT INTO chapters (id, bookId, title, content, wordCount, `order`, createdAt, updatedAt) VALUES (?1,?2,?3,'',0,1,?4,?5)",
             params![chapter_id, b.id, ch_title, now, now],
         )?;
         drop(conn);
@@ -350,8 +368,8 @@ impl Database {
         let now = chrono::Utc::now().timestamp_millis();
         if let Some(ref title) = b.title { conn.execute("UPDATE books SET title = ?1, updatedAt = ?2 WHERE id = ?3", params![title, now, id])?; }
         if let Some(ref cover) = b.cover { conn.execute("UPDATE books SET cover = ?1, updatedAt = ?2 WHERE id = ?3", params![cover, now, id])?; }
-        if let Some(ref tags) = b.tags { conn.execute("UPDATE books SET tags = ?1, updatedAt = ?2 WHERE id = ?3", params![tags, now, id])?; }
-        if let Some(ref settings) = b.settings { conn.execute("UPDATE books SET settings = ?1, updatedAt = ?2 WHERE id = ?3", params![settings, now, id])?; }
+        if let Some(ref tags) = b.tags { conn.execute("UPDATE books SET tags = ?1, updatedAt = ?2 WHERE id = ?3", params![tags.to_string(), now, id])?; }
+        if let Some(ref settings) = b.settings { conn.execute("UPDATE books SET settings = ?1, updatedAt = ?2 WHERE id = ?3", params![settings.to_string(), now, id])?; }
         if let Some(ref desc) = b.description { conn.execute("UPDATE books SET description = ?1, updatedAt = ?2 WHERE id = ?3", params![desc, now, id])?; }
         drop(conn);
         self.get_book_by_id(id)
@@ -368,7 +386,9 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, bookId, title, content, wordCount, volumeId, `order`, createdAt, updatedAt, metadata FROM chapters WHERE bookId = ?1 ORDER BY `order` ASC")?;
         let rows = stmt.query_map(params![book_id], |row| {
-            Ok(Chapter { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, content: row.get(3)?, word_count: row.get(4)?, volume_id: row.get(5)?, order: row.get(6)?, created_at: row.get(7)?, updated_at: row.get(8)?, metadata: row.get(9)? })
+            let metadata_str: Option<String> = row.get(9)?;
+            let metadata: Option<serde_json::Value> = metadata_str.and_then(|s| serde_json::from_str(&s).ok());
+            Ok(Chapter { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, content: row.get(3)?, word_count: row.get(4)?, volume_id: row.get(5)?, order: row.get(6)?, created_at: row.get(7)?, updated_at: row.get(8)?, metadata })
         })?.collect::<Result<Vec<_>>>()?;
         Ok(rows)
     }
@@ -377,7 +397,9 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, bookId, title, content, wordCount, volumeId, `order`, createdAt, updatedAt, metadata FROM chapters WHERE id = ?1")?;
         stmt.query_row(params![id], |row| {
-            Ok(Chapter { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, content: row.get(3)?, word_count: row.get(4)?, volume_id: row.get(5)?, order: row.get(6)?, created_at: row.get(7)?, updated_at: row.get(8)?, metadata: row.get(9)? })
+            let metadata_str: Option<String> = row.get(9)?;
+            let metadata: Option<serde_json::Value> = metadata_str.and_then(|s| serde_json::from_str(&s).ok());
+            Ok(Chapter { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, content: row.get(3)?, word_count: row.get(4)?, volume_id: row.get(5)?, order: row.get(6)?, created_at: row.get(7)?, updated_at: row.get(8)?, metadata })
         })
     }
 
@@ -387,7 +409,7 @@ impl Database {
         let id = c.id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let content = c.content.as_deref().unwrap_or("");
         let word_count = c.word_count.unwrap_or(0);
-        let metadata = c.metadata.as_deref().unwrap_or("{}");
+        let metadata = c.metadata.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "{}".to_string());
         // 获取最大 order
         let max_order: i64 = conn.query_row("SELECT COALESCE(MAX(`order`), 0) FROM chapters WHERE bookId = ?1", params![c.book_id], |row| row.get(0))?;
         let order = c.order.unwrap_or(max_order + 1);
@@ -407,7 +429,7 @@ impl Database {
         if let Some(word_count) = c.word_count { conn.execute("UPDATE chapters SET wordCount = ?1, updatedAt = ?2 WHERE id = ?3", params![word_count, now, id])?; }
         if let Some(ref volume_id) = c.volume_id { conn.execute("UPDATE chapters SET volumeId = ?1, updatedAt = ?2 WHERE id = ?3", params![volume_id, now, id])?; }
         if let Some(order) = c.order { conn.execute("UPDATE chapters SET `order` = ?1, updatedAt = ?2 WHERE id = ?3", params![order, now, id])?; }
-        if let Some(ref metadata) = c.metadata { conn.execute("UPDATE chapters SET metadata = ?1, updatedAt = ?2 WHERE id = ?3", params![metadata, now, id])?; }
+        if let Some(ref metadata) = c.metadata { conn.execute("UPDATE chapters SET metadata = ?1, updatedAt = ?2 WHERE id = ?3", params![metadata.to_string(), now, id])?; }
         drop(conn);
         self.get_chapter_by_id(id)
     }
@@ -466,7 +488,9 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, bookId, title, messages, status, createdAt, updatedAt FROM bookAgent WHERE bookId = ?1 ORDER BY createdAt DESC")?;
         let rows = stmt.query_map(params![book_id], |row| {
-            Ok(BookAgent { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, messages: row.get(3)?, status: row.get(4)?, created_at: row.get(5)?, updated_at: row.get(6)? })
+            let messages_str: String = row.get(3)?;
+            let messages: serde_json::Value = serde_json::from_str(&messages_str).unwrap_or(serde_json::json!([]));
+            Ok(BookAgent { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, messages, status: row.get(4)?, created_at: row.get(5)?, updated_at: row.get(6)? })
         })?.collect::<Result<Vec<_>>>()?;
         Ok(rows)
     }
@@ -475,7 +499,9 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, bookId, title, messages, status, createdAt, updatedAt FROM bookAgent WHERE id = ?1")?;
         stmt.query_row(params![id], |row| {
-            Ok(BookAgent { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, messages: row.get(3)?, status: row.get(4)?, created_at: row.get(5)?, updated_at: row.get(6)? })
+            let messages_str: String = row.get(3)?;
+            let messages: serde_json::Value = serde_json::from_str(&messages_str).unwrap_or(serde_json::json!([]));
+            Ok(BookAgent { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, messages, status: row.get(4)?, created_at: row.get(5)?, updated_at: row.get(6)? })
         })
     }
 
@@ -483,7 +509,7 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().timestamp_millis();
         let title = a.title.as_deref().unwrap_or("");
-        let messages = a.messages.as_deref().unwrap_or("[]");
+        let messages = a.messages.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
         let status = a.status.as_deref().unwrap_or("running");
         conn.execute("INSERT INTO bookAgent (id, bookId, title, messages, status, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7)", params![a.id, a.book_id, title, messages, status, now, now])?;
         drop(conn);
@@ -494,7 +520,7 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().timestamp_millis();
         if let Some(ref title) = a.title { conn.execute("UPDATE bookAgent SET title = ?1, updatedAt = ?2 WHERE id = ?3", params![title, now, id])?; }
-        if let Some(ref messages) = a.messages { conn.execute("UPDATE bookAgent SET messages = ?1, updatedAt = ?2 WHERE id = ?3", params![messages, now, id])?; }
+        if let Some(ref messages) = a.messages { conn.execute("UPDATE bookAgent SET messages = ?1, updatedAt = ?2 WHERE id = ?3", params![messages.to_string(), now, id])?; }
         if let Some(ref status) = a.status { conn.execute("UPDATE bookAgent SET status = ?1, updatedAt = ?2 WHERE id = ?3", params![status, now, id])?; }
         drop(conn);
         self.get_book_agent_by_id(id)
@@ -515,5 +541,223 @@ impl Database {
     // ========== Storage ==========
     pub fn get_database_size(&self, db_path: &str) -> u64 {
         std::fs::metadata(db_path).map(|m| m.len()).unwrap_or(0)
+    }
+
+    pub fn export_all(&self) -> Result<serde_json::Value> {
+        let memories = self.get_all_memories()?;
+        let diarys = {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT id, monthDiarys FROM diarys")?;
+            let rows = stmt.query_map([], |row| {
+                Ok(Diary { id: row.get(0)?, month_diarys: row.get(1)? })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
+        };
+        let sessions = self.get_all_sessions()?;
+        let agents = self.get_all_agents()?;
+        let books = self.get_all_books()?;
+        let chapters = {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT id, bookId, title, content, wordCount, volumeId, `order`, createdAt, updatedAt, metadata FROM chapters ORDER BY `order` ASC")?;
+            let rows = stmt.query_map([], |row| {
+                let metadata_str: Option<String> = row.get(9)?;
+                let metadata: Option<serde_json::Value> = metadata_str.and_then(|s| serde_json::from_str(&s).ok());
+                Ok(Chapter { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, content: row.get(3)?, word_count: row.get(4)?, volume_id: row.get(5)?, order: row.get(6)?, created_at: row.get(7)?, updated_at: row.get(8)?, metadata })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
+        };
+        let volumes = {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT id, bookId, title, `order`, createdAt FROM volumes ORDER BY `order` ASC")?;
+            let rows = stmt.query_map([], |row| {
+                Ok(Volume { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, order: row.get(3)?, created_at: row.get(4)? })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
+        };
+        let book_agents = {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT id, bookId, title, messages, status, createdAt, updatedAt FROM bookAgent")?;
+            let rows = stmt.query_map([], |row| {
+                let messages_str: String = row.get(3)?;
+                let messages: serde_json::Value = serde_json::from_str(&messages_str).unwrap_or(serde_json::json!([]));
+                Ok(BookAgent { id: row.get(0)?, book_id: row.get(1)?, title: row.get(2)?, messages, status: row.get(4)?, created_at: row.get(5)?, updated_at: row.get(6)? })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
+        };
+
+        Ok(serde_json::json!({
+            "memories": memories,
+            "diarys": diarys,
+            "sessions": sessions,
+            "agents": agents,
+            "books": books,
+            "chapters": chapters,
+            "volumes": volumes,
+            "bookAgents": book_agents,
+        }))
+    }
+
+    pub fn import_all(&self, data: &serde_json::Value) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+
+        // 清空所有表
+        conn.execute_batch("DELETE FROM bookAgent; DELETE FROM volumes; DELETE FROM chapters; DELETE FROM books; DELETE FROM agents; DELETE FROM sessions; DELETE FROM diarys; DELETE FROM memorys;")?;
+
+        // 导入 memories
+        if let Some(memories) = data.get("memories").and_then(|v| v.as_array()) {
+            for m in memories {
+                let id = m.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let is_folder = m.get("isFolder").and_then(|v| v.as_i64()).unwrap_or(0);
+                let title = m.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let file_url = m.get("fileUrl").and_then(|v| v.as_str());
+                let parent_id = m.get("parentId").and_then(|v| v.as_str());
+                let created = m.get("created").and_then(|v| v.as_i64()).unwrap_or(0);
+                let updated = m.get("updated").and_then(|v| v.as_i64()).unwrap_or(0);
+                let visited_time = m.get("visitedTime").and_then(|v| v.as_i64());
+                let size = m.get("size").and_then(|v| v.as_i64());
+                let starred = m.get("starred").and_then(|v| v.as_i64()).unwrap_or(0);
+                let _ = conn.execute(
+                    "INSERT INTO memorys (id, isFolder, title, fileUrl, parentId, created, updated, visitedTime, size, starred) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+                    params![id, is_folder, title, file_url, parent_id, created, updated, visited_time, size, starred],
+                );
+            }
+        }
+
+        // 导入 diarys
+        if let Some(diarys) = data.get("diarys").and_then(|v| v.as_array()) {
+            for d in diarys {
+                let id = d.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let month_diarys = d.get("monthDiarys").and_then(|v| v.as_str()).unwrap_or("");
+                let _ = conn.execute(
+                    "INSERT INTO diarys (id, monthDiarys) VALUES (?1, ?2) ON CONFLICT(id) DO UPDATE SET monthDiarys = ?2",
+                    params![id, month_diarys],
+                );
+            }
+        }
+
+        // 导入 sessions
+        if let Some(sessions) = data.get("sessions").and_then(|v| v.as_array()) {
+            for s in sessions {
+                let id = s.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let title = s.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let last_updated = s.get("lastUpdated").map(|v| v.to_string()).unwrap_or_else(|| "null".to_string());
+                let messages = s.get("messages").map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
+                let description = s.get("description").and_then(|v| v.as_str());
+                let _ = conn.execute(
+                    "INSERT INTO sessions (id, title, lastUpdated, messages, description) VALUES (?1,?2,?3,?4,?5)",
+                    params![id, title, last_updated, messages, description],
+                );
+            }
+        }
+
+        // 导入 agents
+        if let Some(agents) = data.get("agents").and_then(|v| v.as_array()) {
+            for a in agents {
+                let id = a.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let name = a.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                let description = a.get("description").and_then(|v| v.as_str()).unwrap_or("");
+                let content = a.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                let _ = conn.execute(
+                    "INSERT INTO agents (id, name, description, content) VALUES (?1,?2,?3,?4)",
+                    params![id, name, description, content],
+                );
+            }
+        }
+
+        // 导入 books
+        if let Some(books) = data.get("books").and_then(|v| v.as_array()) {
+            for b in books {
+                let id = b.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let title = b.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let cover = b.get("cover").and_then(|v| v.as_str()).unwrap_or("");
+                let tags = b.get("tags").map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
+                let settings = b.get("settings").map(|v| v.to_string()).unwrap_or_else(|| "{}".to_string());
+                let description = b.get("description").and_then(|v| v.as_str()).unwrap_or("");
+                let created_at = b.get("createdAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let updated_at = b.get("updatedAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let _ = conn.execute(
+                    "INSERT INTO books (id, title, cover, tags, settings, description, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+                    params![id, title, cover, tags, settings, description, created_at, updated_at],
+                );
+            }
+        }
+
+        // 导入 chapters
+        if let Some(chapters) = data.get("chapters").and_then(|v| v.as_array()) {
+            for c in chapters {
+                let id = c.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let book_id = c.get("bookId").and_then(|v| v.as_str()).unwrap_or("");
+                let title = c.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let content = c.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                let word_count = c.get("wordCount").and_then(|v| v.as_i64()).unwrap_or(0);
+                let volume_id = c.get("volumeId").and_then(|v| v.as_str());
+                let order = c.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+                let created_at = c.get("createdAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let updated_at = c.get("updatedAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let metadata = c.get("metadata").map(|v| v.to_string());
+                let _ = conn.execute(
+                    "INSERT INTO chapters (id, bookId, title, content, wordCount, volumeId, `order`, createdAt, updatedAt, metadata) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+                    params![id, book_id, title, content, word_count, volume_id, order, created_at, updated_at, metadata],
+                );
+            }
+        }
+
+        // 导入 volumes
+        if let Some(volumes) = data.get("volumes").and_then(|v| v.as_array()) {
+            for v in volumes {
+                let id = v.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let book_id = v.get("bookId").and_then(|v| v.as_str()).unwrap_or("");
+                let title = v.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let order = v.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+                let created_at = v.get("createdAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let _ = conn.execute(
+                    "INSERT INTO volumes (id, bookId, title, `order`, createdAt) VALUES (?1,?2,?3,?4,?5)",
+                    params![id, book_id, title, order, created_at],
+                );
+            }
+        }
+
+        // 导入 bookAgent
+        if let Some(book_agents) = data.get("bookAgents").and_then(|v| v.as_array()) {
+            for a in book_agents {
+                let id = a.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                let book_id = a.get("bookId").and_then(|v| v.as_str()).unwrap_or("");
+                let title = a.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let messages = a.get("messages").map(|v| v.to_string()).unwrap_or_else(|| "[]".to_string());
+                let status = a.get("status").and_then(|v| v.as_str()).unwrap_or("running");
+                let created_at = a.get("createdAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let updated_at = a.get("updatedAt").and_then(|v| v.as_i64()).unwrap_or(0);
+                let _ = conn.execute(
+                    "INSERT INTO bookAgent (id, bookId, title, messages, status, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+                    params![id, book_id, title, messages, status, created_at, updated_at],
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn search_book(&self, book_id: &str, keyword: &str) -> Result<Vec<serde_json::Value>> {
+        let chapters = self.get_chapters_by_book(book_id)?;
+        let mut results = Vec::new();
+        let keyword_lower = keyword.to_lowercase();
+
+        for chapter in chapters {
+            let content_lower = chapter.content.to_lowercase();
+            if let Some(pos) = content_lower.find(&keyword_lower) {
+                let start = pos.saturating_sub(50);
+                let end = (pos + keyword.len() + 50).min(chapter.content.len());
+                let context = chapter.content[start..end].to_string();
+                results.push(serde_json::json!({
+                    "chapterId": chapter.id,
+                    "chapterTitle": chapter.title,
+                    "keyword": keyword,
+                    "context": context,
+                    "position": pos,
+                }));
+            }
+        }
+
+        Ok(results)
     }
 }

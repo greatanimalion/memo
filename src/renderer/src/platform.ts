@@ -1,6 +1,7 @@
 /**
  * 平台抽象层 — 统一 Electron / Tauri / 浏览器 的窗口管理和文件操作
  */
+declare var window: Window & {require:any};
 
 const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
 const isElectron =

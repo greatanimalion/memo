@@ -1,4 +1,4 @@
-﻿import { createBrowserRouter, Route, RouteObject, useRouteError } from "react-router-dom";
+﻿import { createBrowserRouter, RouteObject, useRouteError } from "react-router-dom";
 import MainLayout from "@renderer/layouts/MainLayout";
 import ChatPage from "@renderer/pages/chat/chat";
 import HomePage from "@renderer/pages/home/home";

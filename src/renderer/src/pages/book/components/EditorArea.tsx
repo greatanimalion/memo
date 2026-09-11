@@ -122,11 +122,23 @@ const EditorArea: React.FC = () => {
   const currentChapter = useWriterStore((s) => s.currentChapter);
   const appStore = useAppStore();
 
+  const LINE_HEIGHT_PX = editorSettings.fontSize * editorSettings.lineHeight;
+
   const textareaStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
     fontSize: `${editorSettings.fontSize}px`,
-    lineHeight: editorSettings.lineHeight,
+    lineHeight: `${LINE_HEIGHT_PX}px`,
     fontWeight: editorSettings.fontWeight,
+    backgroundImage: `repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent ${LINE_HEIGHT_PX - 1}px,
+      var(--border-light, #d0d0d0) ${LINE_HEIGHT_PX - 1}px,
+      var(--border-light, #d0d0d0) ${LINE_HEIGHT_PX}px
+    )`,
+    backgroundAttachment: "local",
+    backgroundOrigin: "content-box",
+    backgroundClip: "border-box",
   };
 
   const isDarkBg =

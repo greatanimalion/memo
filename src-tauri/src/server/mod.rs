@@ -55,3 +55,8 @@ pub fn created<T: serde::Serialize>(data: T) -> (StatusCode, Json<serde_json::Va
 pub fn err(code: u16, msg: &str) -> (StatusCode, Json<serde_json::Value>) {
     (StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(serde_json::json!({"code": code, "error": msg})))
 }
+
+//非定位式水浸 0 正常，其他异常
+// 平均值  0 正常，其他异常
+
+//默认值

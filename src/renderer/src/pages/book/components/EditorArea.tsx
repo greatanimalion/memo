@@ -123,24 +123,24 @@ const EditorArea: React.FC = () => {
   const currentChapter = useWriterStore((s) => s.currentChapter);
   const appStore = useAppStore();
 
-  const LINE_HEIGHT_PX = editorSettings.fontSize * editorSettings.lineHeight;
+  const LINE_HEIGHT_PX = Math.round(editorSettings.fontSize * editorSettings.lineHeight);
+  const LINE_COLOR = "#343434"; // 或从主题读取
 
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${LINE_HEIGHT_PX}">
+  <line x1="0" y1="${LINE_HEIGHT_PX - 0.5}" x2="100%" y2="${LINE_HEIGHT_PX - 0.5}"
+        stroke="${LINE_COLOR}" stroke-width="1" shape-rendering="crispEdges"/>
+</svg>`;
   const editorStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
     fontSize: `${editorSettings.fontSize}px`,
     lineHeight: `${LINE_HEIGHT_PX}px`,
     fontWeight: editorSettings.fontWeight,
-    backgroundImage: `repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent ${LINE_HEIGHT_PX - 1}px,
-      var(--border-light, #d0d0d0) ${LINE_HEIGHT_PX - 1}px,
-      var(--border-light, #d0d0d0) ${LINE_HEIGHT_PX}px
-    )`,
+    backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
+    backgroundSize: `100% ${LINE_HEIGHT_PX}px`,
+    backgroundRepeat: "repeat-y",
     backgroundAttachment: "local",
-    backgroundOrigin: "content-box",
-    backgroundClip: "border-box",
   };
+
 
   const isDarkBg =
     editorBg?.type === "color" && ["#1e1e2e"].includes(editorBg.value);
@@ -183,31 +183,31 @@ const EditorArea: React.FC = () => {
       {/* 顶部信息栏 */}
       <div
         className={`flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-200 ${appStore.isBookScreen
-            ? isDarkBg
-              ? "bg-theme-primary/80 border-theme backdrop-blur-sm"
-              : "bg-theme-primary/60 border-theme-light backdrop-blur-sm"
-            : "bg-theme-primary/80 border-theme-light backdrop-blur-sm"
+          ? isDarkBg
+            ? "bg-theme-primary/80 border-theme backdrop-blur-sm"
+            : "bg-theme-primary/60 border-theme-light backdrop-blur-sm"
+          : "bg-theme-primary/80 border-theme-light backdrop-blur-sm"
           }`}
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] text-theme-secondary">标题:</span>
             {editingTitle ? (
-                <input
-                  ref={titleInputRef}
-                  value={titleValue}
-                  onChange={(e) => setTitleValue(e.target.value)}
-                  onBlur={handleSaveTitle}
-                  // onKeyDown={(e) => {
-                  //   if (e.key === "Enter") {
-                  //     e.preventDefault();
-                  //     handleSaveTitle();
-                  //   } else if (e.key === "Escape") {
-                  //     handleCancelEditTitle();
-                  //   }
-                  // }}
-                  className="text-[13px] bg-transparent border-b border-accent outline-none px-0.5 text-theme-primary min-w-0"
-                />
+              <input
+                ref={titleInputRef}
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={handleSaveTitle}
+                // onKeyDown={(e) => {
+                //   if (e.key === "Enter") {
+                //     e.preventDefault();
+                //     handleSaveTitle();
+                //   } else if (e.key === "Escape") {
+                //     handleCancelEditTitle();
+                //   }
+                // }}
+                className="text-[13px] bg-transparent border-b border-accent outline-none px-0.5 text-theme-primary min-w-0"
+              />
             ) : (
               <span
                 onDoubleClick={handleStartEditTitle}
@@ -230,8 +230,8 @@ const EditorArea: React.FC = () => {
             </span>
             <span
               className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg
-                  ? "bg-theme-tertiary text-accent-light"
-                  : "bg-accent-light text-accent"
+                ? "bg-theme-tertiary text-accent-light"
+                : "bg-accent-light text-accent"
                 }`}
             >
               {currentChapter?.wordCount} 字
@@ -291,8 +291,8 @@ const EditorArea: React.FC = () => {
           <LexicalComposer initialConfig={initialConfig}>
             <div
               className={`w-full min-h-full relative z-10 ${appStore.isBookScreen
-                  ? "px-12 py-8 max-w-4xl mx-auto"
-                  : "px-8 py-6"
+                ? "px-12 py-8 max-w-4xl mx-auto"
+                : "px-8 py-6"
                 }`}
             >
               <LexicalEditorContent
@@ -310,8 +310,8 @@ const EditorArea: React.FC = () => {
       {/* 底部状态栏 */}
       <div
         className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
-            ? "bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm"
-            : "bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm"
+          ? "bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm"
+          : "bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm"
           }`}
       >
         <div className="flex items-center gap-3">

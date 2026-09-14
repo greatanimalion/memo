@@ -44,7 +44,8 @@ const LexicalEditorContent: React.FC<{
   updateChapterContent: (id: string, content: string) => void;
   setLineCount: (count: number) => void;
   setColumn: (col: number) => void;
-}> = ({ currentChapter, updateChapterContent, setLineCount, setColumn }) => {
+  editorStyle: React.CSSProperties;
+}> = ({ currentChapter, updateChapterContent, setLineCount, setColumn, editorStyle }) => {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
     if (!editor || !currentChapter) return;
@@ -97,7 +98,7 @@ const LexicalEditorContent: React.FC<{
     <>
       <RichTextPlugin
         contentEditable={
-          <ContentEditable className="w-full min-h-full outline-none resize-none" />
+          <ContentEditable className="w-full min-h-full outline-none resize-none" style={editorStyle} />
         }
         ErrorBoundary={LexicalErrorBoundary}
       />
@@ -124,7 +125,7 @@ const EditorArea: React.FC = () => {
 
   const LINE_HEIGHT_PX = editorSettings.fontSize * editorSettings.lineHeight;
 
-  const textareaStyle: React.CSSProperties = {
+  const editorStyle: React.CSSProperties = {
     fontFamily: fontFamilyMap[editorSettings.fontFamily],
     fontSize: `${editorSettings.fontSize}px`,
     lineHeight: `${LINE_HEIGHT_PX}px`,
@@ -197,14 +198,14 @@ const EditorArea: React.FC = () => {
                   value={titleValue}
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleSaveTitle}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleSaveTitle();
-                    } else if (e.key === "Escape") {
-                      handleCancelEditTitle();
-                    }
-                  }}
+                  // onKeyDown={(e) => {
+                  //   if (e.key === "Enter") {
+                  //     e.preventDefault();
+                  //     handleSaveTitle();
+                  //   } else if (e.key === "Escape") {
+                  //     handleCancelEditTitle();
+                  //   }
+                  // }}
                   className="text-[13px] bg-transparent border-b border-accent outline-none px-0.5 text-theme-primary min-w-0"
                 />
             ) : (
@@ -293,13 +294,13 @@ const EditorArea: React.FC = () => {
                   ? "px-12 py-8 max-w-4xl mx-auto"
                   : "px-8 py-6"
                 }`}
-              style={textareaStyle}
             >
               <LexicalEditorContent
                 currentChapter={currentChapter}
                 updateChapterContent={updateChapterContent}
                 setLineCount={setLineCount}
                 setColumn={setColumn}
+                editorStyle={editorStyle}
               />
             </div>
           </LexicalComposer>

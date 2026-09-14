@@ -55,9 +55,17 @@ const LexicalEditorContent: React.FC<{
     editor.update(() => {
       const root = $getRoot();
       root.clear(); // 清空当前内容
-      const p = $createParagraphNode();
-      p.append($createTextNode(currentChapter.content));
-      root.append(p);
+      // 按 \n 拆分建多个 ParagraphNode，保留段落结构
+      // （content 来自 getTextContent()，多段落以 \n 分隔）
+      // 先 trim 末尾 \n：Lexical 每段 getTextContent() 末尾都加 \n，
+      // 不 trim 会导致每次切换章节累积 1 个空行
+      const text = currentChapter.content.replace(/\n+$/, "");
+      const lines = text.split("\n");
+      for (const line of lines) {
+        const p = $createParagraphNode();
+        p.append($createTextNode(line));
+        root.append(p);
+      }
     });
   }, [editor, currentChapter?.id]);
 
@@ -129,7 +137,12 @@ const LexicalEditorContent: React.FC<{
     debounce((editorState: EditorState) => {
       editorState.read(() => {
         const root = $getRoot();
-        const text = root.getTextContent();
+        // 关键：不能用 root.getTextContent()！
+        // Lexical 的 ElementNode.getTextContent() 在非末尾块级子节点后
+        // 加 DOUBLE_LINE_BREAK（\n\n），会导致段落翻倍累积。
+        // 改为手动遍历 ParagraphNode，用单 \n join，保证段落间单换行。
+        const paragraphs = root.getChildren();
+        const text = paragraphs.map((p) => p.getTextContent()).join("\n");
         if (currentChapter?.id) {
           updateChapterContent(currentChapter.id, text);
         }
@@ -208,10 +221,6 @@ const EditorArea: React.FC = () => {
     }
     setEditingTitle(false);
   };
-
-  // const handleCancelEditTitle = () => {
-  //   setEditingTitle(false);
-  // };
 
   const initialConfig = {
     namespace: "BookEditor",
@@ -331,7 +340,7 @@ const EditorArea: React.FC = () => {
           )}
           <LexicalComposer initialConfig={initialConfig}>
             <div
-              className={`w-full min-h-full relative z-10 ${appStore.isBookScreen
+              className={`w-full min-h-full relative z-10 m-auto! ${appStore.isBookScreen
                 ? "px-12 py-8 max-w-4xl mx-auto"
                 : "px-8 py-6"
                 }`}

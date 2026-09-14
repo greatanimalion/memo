@@ -264,9 +264,3 @@ body::-webkit-scrollbar {
   --bn-shadow-medium: 0 4px 12px var(--border-light);
   --bn-shadow-light: 0 2px 6px var(--border-light);
 }
-
-/* Lexical 编辑器草稿纸横线对齐 */
-.editor-paragraph {
-  margin: 0;
-  padding: 0;
-}

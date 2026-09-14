@@ -23,8 +23,10 @@ import {
   $createTextNode,
   $getSelection,
   $isRangeSelection,
+  $isTextNode,
   EditorState,
   KEY_TAB_COMMAND,
+  KEY_ENTER_COMMAND,
   COMMAND_PRIORITY_LOW,
 } from "lexical";
 import { debounce } from "@renderer/utils";
@@ -45,7 +47,8 @@ const LexicalEditorContent: React.FC<{
   setLineCount: (count: number) => void;
   setColumn: (col: number) => void;
   editorStyle: React.CSSProperties;
-}> = ({ currentChapter, updateChapterContent, setLineCount, setColumn, editorStyle }) => {
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+}> = ({ currentChapter, updateChapterContent, setLineCount, setColumn, editorStyle, scrollContainerRef }) => {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
     if (!editor || !currentChapter) return;
@@ -76,6 +79,51 @@ const LexicalEditorContent: React.FC<{
       COMMAND_PRIORITY_LOW,
     );
   }, [editor]);
+
+  // Enter 换行时自动插入 tab 缩进，并保持滚动位置不跳
+  useEffect(() => {
+    if (!editor) return;
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event: KeyboardEvent | null) => {
+        event?.preventDefault();
+        const scrollEl = scrollContainerRef.current;
+        const savedScrollTop = scrollEl?.scrollTop ?? 0;
+
+        editor.update(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) return;
+
+          const anchorNode = selection.anchor.getNode();
+          if (!$isTextNode(anchorNode)) return;
+          const offset = selection.anchor.offset;
+
+          const textContent = anchorNode.getTextContent();
+          const textBefore = textContent.slice(0, offset);
+          const textAfter = textContent.slice(offset);
+
+          anchorNode.setTextContent(textBefore);
+
+          const parent = anchorNode.getParent();
+          if (parent) {
+            const newParagraph = $createParagraphNode();
+            const tabText = $createTextNode("\t");
+            const remainText = $createTextNode(textAfter);
+            newParagraph.append(tabText, remainText);
+            parent.insertAfter(newParagraph);
+            remainText.select(0, 0);
+          }
+        });
+
+        requestAnimationFrame(() => {
+          if (scrollEl) scrollEl.scrollTop = savedScrollTop;
+        });
+
+        return true;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor, scrollContainerRef]);
 
   const handleLexicalChange = useCallback(
     debounce((editorState: EditorState) => {
@@ -114,6 +162,7 @@ const EditorArea: React.FC = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const editorBg = useWriterStore((s) => s.editorBg);
   const autoSave = useWriterStore((s) => s.autoSave);
@@ -138,7 +187,7 @@ const EditorArea: React.FC = () => {
     backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
     backgroundSize: `100% ${LINE_HEIGHT_PX}px`,
     backgroundRepeat: "repeat-y",
-    backgroundAttachment: "local",
+    // backgroundAttachment: "local",
   };
 
 
@@ -160,9 +209,9 @@ const EditorArea: React.FC = () => {
     setEditingTitle(false);
   };
 
-  const handleCancelEditTitle = () => {
-    setEditingTitle(false);
-  };
+  // const handleCancelEditTitle = () => {
+  //   setEditingTitle(false);
+  // };
 
   const initialConfig = {
     namespace: "BookEditor",
@@ -198,14 +247,6 @@ const EditorArea: React.FC = () => {
                 value={titleValue}
                 onChange={(e) => setTitleValue(e.target.value)}
                 onBlur={handleSaveTitle}
-                // onKeyDown={(e) => {
-                //   if (e.key === "Enter") {
-                //     e.preventDefault();
-                //     handleSaveTitle();
-                //   } else if (e.key === "Escape") {
-                //     handleCancelEditTitle();
-                //   }
-                // }}
                 className="text-[13px] bg-transparent border-b border-accent outline-none px-0.5 text-theme-primary min-w-0"
               />
             ) : (
@@ -284,7 +325,7 @@ const EditorArea: React.FC = () => {
 
       {/* 编辑区主体 */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-y-auto relative transition-colors duration-200">
+        <div className="flex-1 overflow-y-auto relative transition-colors duration-200" ref={scrollContainerRef}>
           {editorBg?.type === "image" && (
             <div className="absolute inset-0 bg-theme-primary/70 backdrop-blur-[1px]" />
           )}
@@ -301,6 +342,7 @@ const EditorArea: React.FC = () => {
                 setLineCount={setLineCount}
                 setColumn={setColumn}
                 editorStyle={editorStyle}
+                scrollContainerRef={scrollContainerRef}
               />
             </div>
           </LexicalComposer>
@@ -315,11 +357,6 @@ const EditorArea: React.FC = () => {
           }`}
       >
         <div className="flex items-center gap-3">
-          <span
-            className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}
-          >
-            UTF-8
-          </span>
           <span
             className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}
           >

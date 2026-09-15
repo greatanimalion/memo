@@ -67,13 +67,19 @@ async fn create_memory(State(s): State<Arc<AppState>>, Json(body): Json<crate::m
 
 async fn update_memory(State(s): State<Arc<AppState>>, Path(id): Path<String>, Json(body): Json<crate::models::UpdateMemory>) -> impl IntoResponse {
     let mut body = body;
-    if let Some(ref content) = body.content {
-        if let Ok(m) = s.db.get_memory_by_id(&id) {
-            if let Some(ref file_url) = m.file_url {
-                let full_path = format!("{}{}", s.upload_dir, file_url);
-                let _ = std::fs::write(&full_path, content);
-                body.size = std::fs::metadata(&full_path).ok().map(|m| m.len() as i64);
-            }
+    // 对齐 TS 原版 server/services/memory.service.ts 的写入逻辑，并修复以下问题：
+    //   1. 用 body.file_url（请求体）而非 m.file_url（DB 现有值），避免换 fileUrl 时写错文件
+    //   2. 同时要求 body.content 为 Some，避免重命名等不传 content 的场景误清空文件（TS 原版的 bug）
+    //   3. 不静默吞错：写失败时返回 500，让前端感知
+    //   4. 不调用有 visitedTime 副作用的 get_memory_by_id
+    //   5. metadata 失败时保留原 size，不降级为 None
+    if let (Some(file_url), Some(content)) = (&body.file_url, &body.content) {
+        let full_path = format!("{}{}", s.upload_dir, file_url);
+        if let Err(e) = std::fs::write(&full_path, content) {
+            return err(500, &format!("Failed to write memory file: {e}"));
+        }
+        if let Ok(meta) = std::fs::metadata(&full_path) {
+            body.size = Some(meta.len() as i64);
         }
     }
     match s.db.update_memory(&id, &body) {

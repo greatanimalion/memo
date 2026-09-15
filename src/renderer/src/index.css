@@ -6,9 +6,6 @@
   }
 }
 
-*{
-  margin: 0;
-}
 
 /* 默认CSS变量（当没有主题类时使用） */
 :root {
@@ -69,12 +66,24 @@
 }
 
 /* Body样式 */
+html, body {
+  /* 字体抗锯齿：Chromium 在高 DPI 下默认无 smoothing，导致中文/小字模糊 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* 高 DPI 下提升图像缩放质量 */
+  image-rendering: -webkit-optimize-contrast;
+}
+
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: Arial, Helvetica, sans-serif;
   overflow: auto;
-  border-radius: 30px;
+  /* 注意：不要在 body 上加 border-radius！
+     圆角会强制整个 body 光栅化到圆角蒙版，破坏 GPU 合成层加速，
+     在 150%+ DPI 下导致整个页面变糊。圆角应在窗口层（Tauri decorations:false
+     时通过窗口透明区域实现）或外层容器上做。*/
 }
 
 /* 滚动条样式 */

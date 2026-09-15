@@ -116,6 +116,7 @@ const Editor = ({ selectedFile }) => {
   });
   editor.onChange((_editor, { getChanges }) => {
     const changes = getChanges()[0];
+    if(!changes||!changes.block) return;
     if (
       changes.block.type == "audio" ||
       changes.block.type == "image" ||
@@ -232,7 +233,7 @@ const Editor = ({ selectedFile }) => {
       const file = await getMemoryById(selectedFile.id);
       if (!file) return;
       const content = await axios
-        .get(getLocalUrl(file.fileUrl!))//////////////////////////////////////
+        .get(getLocalUrl(file.fileUrl!)+'?t='+Date())//////////////////////////////////////
         .then((res) => res.data)
         .catch((err) => {
           messageApi.open({
@@ -325,9 +326,7 @@ const Editor = ({ selectedFile }) => {
             }}
           >
             <div className="flex gap-1 items-center">
-              {" "}
-              <X size={16} />
-              退出{" "}
+              <X size={16} />退出
             </div>
           </Button>
         </div>

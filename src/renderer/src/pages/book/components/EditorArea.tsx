@@ -94,9 +94,18 @@ const LexicalEditorContent: React.FC<{
     return editor.registerCommand(
       KEY_ENTER_COMMAND,
       (event: KeyboardEvent | null) => {
+
+        let ok = false;
+        editor.getEditorState().read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            const anchor = selection.anchor.getNode();
+            if ($isTextNode(anchor)) ok = true;
+          }
+        });
+        if (!ok) return false;
+
         event?.preventDefault();
-        const scrollEl = scrollContainerRef.current;
-        const savedScrollTop = scrollEl?.scrollTop ?? 0;
 
         editor.update(() => {
           const selection = $getSelection();
@@ -123,9 +132,6 @@ const LexicalEditorContent: React.FC<{
           }
         });
 
-        requestAnimationFrame(() => {
-          if (scrollEl) scrollEl.scrollTop = savedScrollTop;
-        });
 
         return true;
       },
@@ -200,7 +206,6 @@ const EditorArea: React.FC = () => {
     backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
     backgroundSize: `100% ${LINE_HEIGHT_PX}px`,
     backgroundRepeat: "repeat-y",
-    // backgroundAttachment: "local",
   };
 
 
@@ -340,10 +345,7 @@ const EditorArea: React.FC = () => {
           )}
           <LexicalComposer initialConfig={initialConfig}>
             <div
-              className={`w-full min-h-full relative z-10 m-auto! ${appStore.isBookScreen
-                ? "px-12 py-8 max-w-4xl mx-auto"
-                : "px-8 py-6"
-                }`}
+              className={`w-full min-h-full relative z-10 m-auto! px-5 py-6 ${appStore.isBookScreen? "max-w-4xl mx-auto": ""}`}
             >
               <LexicalEditorContent
                 currentChapter={currentChapter}
@@ -363,12 +365,9 @@ const EditorArea: React.FC = () => {
         className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
           ? "bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm"
           : "bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm"
-          }`}
-      >
+          }`}>
         <div className="flex items-center gap-3">
-          <span
-            className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}
-          >
+          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}>
             LF
           </span>
         </div>

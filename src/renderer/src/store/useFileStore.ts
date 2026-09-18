@@ -60,7 +60,10 @@ const useFileStore = create<FileStoreState>((set) => ({
     useFileStore.getState().setCurrentFolderItemsArr(newChildFile);
   },
   setSelectedFile: (selectedFile) => set({ selectedFile }),
-  clearSelectedFile: () => set({ selectedFile: null }),
+  clearSelectedFile: () => {
+    set({ selectedFile: null })
+    useFileStore.getState().refreshCurrentFolderItemsArr()
+  },
   setViewMode: (viewMode) => set({ viewMode }),
   setSortBy: (sortBy) => set({ sortBy }),
   setShowEditor: (showEditor) => set({ showEditor }),

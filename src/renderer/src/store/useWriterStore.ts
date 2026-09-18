@@ -1,6 +1,6 @@
 ﻿import { create } from 'zustand'
 import { FontFamily, Chapter, Volume, BookDetail } from '@renderer/types/common'
-import {generateUUID} from '@renderer/utils/helper'
+import { generateUUID } from '@renderer/utils/helper'
 import {
   getBookDetail,
   getChapterById,
@@ -14,7 +14,7 @@ import {
   deleteVolume as apiDeleteVolume,
 } from '@renderer/services/book'
 
-function countWords(text: string, mode: 'chinese' | 'english'|'all' = 'chinese'): number {
+function countWords(text: string, mode: 'chinese' | 'english' | 'all' = 'chinese'): number {
   if (mode === 'chinese') {
     const chineseChars = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length
     const englishWords = text
@@ -22,7 +22,7 @@ function countWords(text: string, mode: 'chinese' | 'english'|'all' = 'chinese')
       .split(/\s+/)
       .filter(Boolean).length
     return chineseChars + englishWords
-  }else if(mode==='english'){
+  } else if (mode === 'english') {
     return text.split(/\s+/).filter(Boolean).length
   }
   return text.length
@@ -64,7 +64,7 @@ function loadEditorSettings() {
   try {
     const raw = localStorage.getItem(EDITOR_STORAGE_KEY)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch { }
   return null
 }
 
@@ -86,8 +86,9 @@ function createDefaultBook(): BookDetail {
 
 interface WriterState {
   book: BookDetail
-  currentChapter:Chapter|null
-  currentVolume:Volume|null,
+  currentChapter: Chapter | null
+  currentVolume: Volume | null,
+  selectedVolumeId: string | null
   autoSave: boolean
   editorSettings: { fontFamily: FontFamily; fontSize: number; lineHeight: number; fontWeight: number }
   editorBg: { type: 'color'; value: string } | { type: 'image'; value: string } | null
@@ -101,6 +102,7 @@ interface WriterState {
   setAutoSave: (auto: boolean) => void
   setBookTitle: (title: string) => void
   setCurrentChapter: (id: string) => Promise<void>
+  setSelectedVolumeId: (id: string | null) => void
   addChapter: (volumeId?: string) => Promise<void>
   deleteChapter: (id: string) => Promise<void>
   reorderChapters: (chapters: Chapter[]) => void
@@ -122,10 +124,11 @@ interface WriterState {
 export const useWriterStore = create<WriterState>((set, get) => ({
   book: createDefaultBook(),
   bookId: null,
-  currentChapter:null,
+  currentChapter: null,
   currentChapterId: null,
-  currentVolume:null,
-  currnetVolumeId:null,
+  currentVolume: null,
+  currnetVolumeId: null,
+  selectedVolumeId: null,
   autoSave: true,
   editorSettings: loadEditorSettings()?.editorSettings ?? {
     fontFamily: 'sans' as FontFamily,
@@ -160,7 +163,7 @@ export const useWriterStore = create<WriterState>((set, get) => ({
         await updateBook(book.id, bookData)
       } else {
         const created = await createBook(book)
-        set({ book:created })
+        set({ book: created })
       }
     } catch {
       console.error('保存作品失败')
@@ -170,12 +173,12 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   setAutoSave: (auto) => set({ autoSave: auto }),
 
   saveCurrentChapter: async () => {
-    const {currentChapter } = get()
+    const { currentChapter } = get()
     if (!currentChapter) return
     if (!currentChapter) return
     try {
       // const wordCount = countWords(currentChapter.content, book.settings?.wordCountMode || 'chinese')
-      const wordCount=currentChapter.content.length
+      const wordCount = currentChapter.content.length
       await apiUpdateChapter(currentChapter.id, { content: currentChapter.content, wordCount })
     } catch {
       console.error('保存章节失败')
@@ -185,11 +188,13 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   setBookTitle: (title) =>
     set((state) => ({ book: { ...state.book, title } })),
 
+  setSelectedVolumeId: (id) => set({ selectedVolumeId: id }),
+
   setCurrentChapter: async (id) => {
     try {
       const chapter = await getChapterById(id)
       set({
-        currentChapter:chapter,
+        currentChapter: chapter,
       })
     } catch {
       console.error('加载章节内容失败')
@@ -309,11 +314,6 @@ export const useWriterStore = create<WriterState>((set, get) => ({
     set((state) => ({ book: { ...state.book, chapters } })),
 
   updateChapterTitle: async (id, title) => {
-    try {
-      await apiUpdateChapter(id, { title })
-    } catch {
-      console.error('更新章节标题失败')
-    }
     set((state) => ({
       book: {
         ...state.book,
@@ -321,11 +321,20 @@ export const useWriterStore = create<WriterState>((set, get) => ({
           c.id === id ? { ...c, title, updatedAt: Date.now() } : c
         ),
       },
+      currentChapter: {
+        ...state.currentChapter!, title: title!
+      }
     }))
+    try {
+      await apiUpdateChapter(id, { title })
+    } catch {
+      console.error('更新章节标题失败')
+    }
   },
 
   updateChapterContent: (id, content) => {
-    const wordCount = countWords(content, get().book.settings?.wordCountMode || 'all')
+    // const wordCount = countWords(content, get().book.settings?.wordCountMode || 'chinese')
+    const wordCount = countWords(content, 'chinese')
     if (get().autoSave) {
       apiUpdateChapter(id, { content, wordCount }).catch(() => {
         console.error('保存章节内容失败')
@@ -337,14 +346,16 @@ export const useWriterStore = create<WriterState>((set, get) => ({
         chapters: state.book.chapters.map((c) =>
           c.id === id
             ? {
-                ...c,
-                content,
-                wordCount,
-                updatedAt: Date.now(),
-              }
+              ...c,
+              content,
+              wordCount,
+              updatedAt: Date.now(),
+            }
             : c
         ),
-      },
+      }, currentChapter: {
+        ...state.currentChapter!, wordCount: wordCount
+      }
     }))
   },
 

@@ -24,7 +24,8 @@ export const useDiary = () => {
     if (!res) {
       setDiaryData({});
     } else {
-      setDiaryData(res.monthDiarys);
+      const monthDiarys = typeof res.monthDiarys === 'string' ? JSON.parse(res.monthDiarys) : res.monthDiarys;
+      setDiaryData(monthDiarys || {});
     }
   };
   // 加载日记数据

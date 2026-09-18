@@ -1,6 +1,25 @@
 import api from ".";
 import type { Book, BookDetail, Chapter, Volume } from "@type/book";
 
+// ========== Search ==========
+
+export interface SearchMatch {
+  volumeId?: string;
+  chapterId: string;
+  chapterTitle: string;
+  keyword: string;
+  context: string;
+  position: number;
+}
+
+export async function searchBook(
+  bookId: string,
+  keyword: string,
+): Promise<SearchMatch[]> {
+  const res = await api.post("/api/search", { bookId, keyword });
+  return res.data.data || [];
+}
+
 // ========== Book ==========
 
 export async function getBooks(): Promise<Book[]> {

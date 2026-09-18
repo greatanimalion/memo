@@ -3,16 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <title>Memo</title>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
-      connect-src http://localhost:32068/ *;
+      connect-src http://localhost:32068/ http://localhost:5173/ ws://localhost:5173/ *;
       default-src 'self';
-      script-src 'self'; 
+      script-src 'self' 'unsafe-inline' 'unsafe-eval';
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: blob: file: http: https: *;
-      media-src 'self' blob:;"
+      media-src 'self' blob:;
+      font-src 'self' data:;
+      object-src 'self';
+    "
     />
   </head>
 

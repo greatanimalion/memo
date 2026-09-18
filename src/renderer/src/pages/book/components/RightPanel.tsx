@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useWriterStore } from '@renderer/store/useWriterStore';
-import { Select, Slider } from 'antd';
+import { Select, Slider, Input, Modal, Empty } from 'antd';
 import {
   FontSizeOutlined,
   ColumnHeightOutlined,
@@ -10,8 +10,10 @@ import {
   SettingOutlined,
   InfoCircleOutlined,
   FileTextOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { FontFamily } from '@renderer/types/common';
+import { searchBook, SearchMatch } from '@renderer/services/book';
 
 interface RightPanelProps {
   isBookScreen: boolean;
@@ -28,11 +30,49 @@ const fontOptions: { value: FontFamily; label: string }[] = [
 const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
   const book = useWriterStore((s) => s.book);
   const currentChapter = useWriterStore((s) => s.currentChapter);
+  const setCurrentChapter = useWriterStore((s) => s.setCurrentChapter);
+  const setSelectedVolumeId = useWriterStore((s) => s.setSelectedVolumeId);
   const editorSettings = useWriterStore((s) => s.editorSettings);
   const setEditorFont = useWriterStore((s) => s.setEditorFont);
   const setEditorFontSize = useWriterStore((s) => s.setEditorFontSize);
   const setEditorLineHeight = useWriterStore((s) => s.setEditorLineHeight);
   const setEditorFontWeight = useWriterStore((s) => s.setEditorFontWeight);
+
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchMatch[]>([]);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+
+  const handleSearch = async () => {
+    const kw = searchKeyword.trim();
+    if (!kw || !book.id) return;
+    setSearching(true);
+    try {
+      console.log('[Search] book.id=', book.id, 'keyword=', kw);
+      const results = await searchBook(book.id, kw);
+      console.log('[Search] results=', results);
+      setSearchResults(results);
+      setSearchModalOpen(true);
+    } catch (e) {
+      console.error('[Search] error', e);
+      setSearchResults([]);
+      setSearchModalOpen(true);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const highlightKeyword = (text: string, keyword: string) => {
+    if (!keyword) return text;
+    const parts = text.split(new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === keyword.toLowerCase() ? (
+        <span key={i} className="bg-yellow-300/40 text-yellow-600 dark:text-yellow-400 rounded px-0.5">{part}</span>
+      ) : (
+        part
+      ),
+    );
+  };
 
   const content = currentChapter?.content || '';
 
@@ -51,6 +91,22 @@ const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
 
   return (
     <div className="w-64 shrink-0 border-l border-theme-light bg-theme-primary/70 backdrop-blur-sm overflow-y-auto max-lg:w-0 transition-all duration-300">
+      {/* 全文检索 */}
+      <div className="p-4 border-b border-theme-light">
+        <div className="flex items-center gap-2 mb-3">
+          <SearchOutlined className="text-accent text-sm" />
+          <span className="text-sm font-semibold text-theme-primary">全文检索</span>
+        </div>
+        <Input.Search
+          size="small"
+          placeholder="输入关键词搜索..."
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          onSearch={handleSearch}
+          loading={searching}
+        />
+      </div>
+
       {/* 字体设置 */}
       <div className="p-4 border-b border-theme-light">
         <div className="flex items-center gap-2 mb-4">
@@ -212,6 +268,75 @@ const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
           </div>
         )}
       </div>
+
+      {/* 搜索结果弹窗 */}
+      <Modal
+        title={`搜索结果 — "${searchKeyword}"`}
+        open={searchModalOpen}
+        onCancel={() => setSearchModalOpen(false)}
+        footer={null}
+        width={520}
+        styles={{ body: { maxHeight: 400, overflowY: 'auto' } }}
+      >
+        {searchResults.length === 0 ? (
+          <Empty description="未找到匹配内容" />
+        ) : (
+          <div className="space-y-3">
+            <div className="text-[12px] text-theme-muted mb-2">
+              共找到 <span className="font-semibold text-accent">{searchResults.length}</span> 条结果
+            </div>
+            {(() => {
+              const grouped: Record<string, SearchMatch[]> = {};
+              const volumeNames: Record<string, string> = {};
+              book.volumes?.forEach((v) => { volumeNames[v.id] = v.title; });
+              for (const item of searchResults) {
+                const key = item.volumeId || '__unGrouped__';
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+              }
+              const volumeOrder = book.volumes?.map((v) => v.id) || [];
+              const keys = Object.keys(grouped).sort((a, b) => {
+                if (a === '__unGrouped__') return 1;
+                if (b === '__unGrouped__') return -1;
+                return volumeOrder.indexOf(a) - volumeOrder.indexOf(b);
+              });
+              return keys.map((volKey) => (
+                <div key={volKey}>
+                  <div className="text-[11px] font-semibold text-accent mb-1.5 flex items-center gap-1">
+                    {volKey === '__unGrouped__' ? '未分卷' : (volumeNames[volKey] || volKey)}
+                    <span className="text-theme-muted font-normal">({grouped[volKey].length})</span>
+                  </div>
+                  <div className="space-y-2 ml-2 border-l-2 border-theme-light pl-3">
+                    {grouped[volKey].map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-theme-secondary/60 rounded-lg p-3 hover:bg-theme-hover transition-colors cursor-pointer"
+                          onClick={() => {
+                          if (item.volumeId) {
+                            setSelectedVolumeId(item.volumeId);
+                          }
+                          setCurrentChapter(item.chapterId);
+                          setSearchModalOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[12px] font-semibold text-theme-primary">{item.chapterTitle}</span>
+                          <span className="text-[10px] text-theme-muted bg-theme-tertiary px-1.5 py-0.5 rounded">
+                            位置 {item.position}
+                          </span>
+                        </div>
+                        <div className="text-[12px] text-theme-secondary leading-relaxed">
+                          ...{highlightKeyword(item.context, item.keyword)}...
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

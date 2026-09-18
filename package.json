@@ -59,6 +59,7 @@
     "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.1.18",
     "vite-plugin-optimizer": "^1.4.3",
+    "zod": "^4.6.5",
     "zustand": "^5.0.13"
   },
   "devDependencies": {

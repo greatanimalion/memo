@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^2.0.37
-        version: 2.0.70(zod@4.4.3)
+        version: 2.0.70(zod@4.6.5)
       '@ant-design/icons':
         specifier: ^6.3.2
         version: 6.3.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -31,7 +31,7 @@ importers:
         version: 0.47.3(@floating-ui/dom@1.8.0)(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)
       '@blocknote/xl-ai':
         specifier: ^0.47.3
-        version: 0.47.3(@floating-ui/dom@1.8.0)(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@mantine/hooks@8.3.18(react@19.2.8))(@mantine/utils@6.0.22(react@19.2.8))(@tiptap/pm@3.30.2)(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)(y-protocols@1.0.7(yjs@13.6.32))(yjs@13.6.32)(zod@4.4.3)
+        version: 0.47.3(@floating-ui/dom@1.8.0)(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@mantine/hooks@8.3.18(react@19.2.8))(@mantine/utils@6.0.22(react@19.2.8))(@tiptap/pm@3.30.2)(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)(y-protocols@1.0.7(yjs@13.6.32))(yjs@13.6.32)(zod@4.6.5)
       '@electron-toolkit/preload':
         specifier: ^3.0.2
         version: 3.0.2(electron@39.8.10(supports-color@7.2.0))
@@ -40,13 +40,13 @@ importers:
         version: 4.0.0(electron@39.8.10(supports-color@7.2.0))
       '@langchain/core':
         specifier: ^1.2.9
-        version: 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))
+        version: 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))
       '@langchain/langgraph':
         specifier: ^1.4.13
-        version: 1.4.13(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.4.3)
+        version: 1.4.13(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.6.5)
       '@langchain/openai':
         specifier: ^1.5.10
-        version: 1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))(undici@6.28.0)
+        version: 1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))(undici@6.28.0)
       '@lexical/react':
         specifier: ^0.49.0
         version: 0.49.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(yjs@13.6.32)
@@ -119,6 +119,9 @@ importers:
       vite-plugin-optimizer:
         specifier: ^1.4.3
         version: 1.4.3
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
       zustand:
         specifier: ^5.0.13
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))
@@ -5415,8 +5418,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.4.3:
-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
   zustand@5.0.15:
     resolution: {integrity: sha512-MpSEjRiBkA9crSYeOUH32rJC7SVqAbm0Fqcqge/bUi2PPoLcBWKOsG+C8mevmpr8TwXHBVkChbbJiyvkE+i/3A==}
@@ -5441,35 +5444,35 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@3.0.179(zod@4.4.3)':
+  '@ai-sdk/gateway@3.0.179(zod@4.6.5)':
     dependencies:
       '@ai-sdk/provider': 3.0.15
-      '@ai-sdk/provider-utils': 4.0.46(zod@4.4.3)
+      '@ai-sdk/provider-utils': 4.0.46(zod@4.6.5)
       '@vercel/oidc': 3.2.0
-      zod: 4.4.3
+      zod: 4.6.5
 
-  '@ai-sdk/openai-compatible@2.0.70(zod@4.4.3)':
+  '@ai-sdk/openai-compatible@2.0.70(zod@4.6.5)':
     dependencies:
       '@ai-sdk/provider': 3.0.15
-      '@ai-sdk/provider-utils': 4.0.46(zod@4.4.3)
-      zod: 4.4.3
+      '@ai-sdk/provider-utils': 4.0.46(zod@4.6.5)
+      zod: 4.6.5
 
-  '@ai-sdk/provider-utils@4.0.46(zod@4.4.3)':
+  '@ai-sdk/provider-utils@4.0.46(zod@4.6.5)':
     dependencies:
       '@ai-sdk/provider': 3.0.15
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
       undici: 6.28.0
-      zod: 4.4.3
+      zod: 4.6.5
 
   '@ai-sdk/provider@3.0.15':
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@3.0.267(react@19.2.8)(zod@4.4.3)':
+  '@ai-sdk/react@3.0.267(react@19.2.8)(zod@4.6.5)':
     dependencies:
-      '@ai-sdk/provider-utils': 4.0.46(zod@4.4.3)
-      ai: 6.0.264(zod@4.4.3)
+      '@ai-sdk/provider-utils': 4.0.46(zod@4.6.5)
+      ai: 6.0.264(zod@4.6.5)
       react: 19.2.8
       swr: 2.5.1(react@19.2.8)
       throttleit: 2.1.0
@@ -5778,17 +5781,17 @@ snapshots:
       - sugar-high
       - supports-color
 
-  '@blocknote/xl-ai@0.47.3(@floating-ui/dom@1.8.0)(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@mantine/hooks@8.3.18(react@19.2.8))(@mantine/utils@6.0.22(react@19.2.8))(@tiptap/pm@3.30.2)(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)(y-protocols@1.0.7(yjs@13.6.32))(yjs@13.6.32)(zod@4.4.3)':
+  '@blocknote/xl-ai@0.47.3(@floating-ui/dom@1.8.0)(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@mantine/hooks@8.3.18(react@19.2.8))(@mantine/utils@6.0.22(react@19.2.8))(@tiptap/pm@3.30.2)(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)(y-protocols@1.0.7(yjs@13.6.32))(yjs@13.6.32)(zod@4.6.5)':
     dependencies:
-      '@ai-sdk/provider-utils': 4.0.46(zod@4.4.3)
-      '@ai-sdk/react': 3.0.267(react@19.2.8)(zod@4.4.3)
+      '@ai-sdk/provider-utils': 4.0.46(zod@4.6.5)
+      '@ai-sdk/react': 3.0.267(react@19.2.8)(zod@4.6.5)
       '@blocknote/core': 0.47.3(@types/hast@3.0.5)(refractor@5.0.0)(supports-color@7.2.0)
       '@blocknote/mantine': 0.47.3(@floating-ui/dom@1.8.0)(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@mantine/hooks@8.3.18(react@19.2.8))(@mantine/utils@6.0.22(react@19.2.8))(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)
       '@blocknote/react': 0.47.3(@floating-ui/dom@1.8.0)(@types/hast@3.0.5)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(refractor@5.0.0)(supports-color@7.2.0)
       '@floating-ui/react': 0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@handlewithcare/prosemirror-suggest-changes': 0.1.8(prosemirror-model@1.25.11)(prosemirror-state@1.4.4)(prosemirror-transform@1.12.0)(prosemirror-view@1.42.2)
       '@tiptap/core': 3.30.2(@tiptap/pm@3.30.2)
-      ai: 6.0.264(zod@4.4.3)
+      ai: 6.0.264(zod@4.6.5)
       lodash.isequal: 4.5.0
       lodash.merge: 4.6.2
       prosemirror-changeset: 2.4.2
@@ -6248,15 +6251,15 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))':
+  '@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
       js-tiktoken: 1.0.21
-      langsmith: 0.9.0(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))
+      langsmith: 0.9.0(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))
       mustache: 4.2.0
       p-queue: 6.6.2
-      zod: 4.4.3
+      zod: 4.6.5
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'
@@ -6264,13 +6267,13 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/langgraph-checkpoint@1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))':
+  '@langchain/langgraph-checkpoint@1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))
+      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))
 
-  '@langchain/langgraph-sdk@1.10.0(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@langchain/langgraph-sdk@1.10.0(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))
+      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))
       '@langchain/protocol': 0.0.19
       '@types/json-schema': 7.0.15
       p-queue: 9.3.3
@@ -6279,24 +6282,24 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
-  '@langchain/langgraph@1.4.13(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.4.3)':
+  '@langchain/langgraph@1.4.13(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.6.5)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))
-      '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))
-      '@langchain/langgraph-sdk': 1.10.0(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))
+      '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))
+      '@langchain/langgraph-sdk': 1.10.0(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@langchain/protocol': 0.0.18
       '@standard-schema/spec': 1.1.0
-      zod: 4.4.3
+      zod: 4.6.5
     transitivePeerDependencies:
       - react
       - react-dom
 
-  '@langchain/openai@1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)))(undici@6.28.0)':
+  '@langchain/openai@1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)))(undici@6.28.0)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3))
+      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5))
       js-tiktoken: 1.0.21
-      openai: 7.7.0(undici@6.28.0)(zod@4.4.3)
-      zod: 4.4.3
+      openai: 7.7.0(undici@6.28.0)(zod@4.6.5)
+      zod: 4.6.5
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-node'
       - '@smithy/hash-node'
@@ -7682,13 +7685,13 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.264(zod@4.4.3):
+  ai@6.0.264(zod@4.6.5):
     dependencies:
-      '@ai-sdk/gateway': 3.0.179(zod@4.4.3)
+      '@ai-sdk/gateway': 3.0.179(zod@4.6.5)
       '@ai-sdk/provider': 3.0.15
-      '@ai-sdk/provider-utils': 4.0.46(zod@4.4.3)
+      '@ai-sdk/provider-utils': 4.0.46(zod@4.6.5)
       '@opentelemetry/api': 1.9.1
-      zod: 4.4.3
+      zod: 4.6.5
 
   ajv@6.15.0:
     dependencies:
@@ -8794,8 +8797,8 @@ snapshots:
       '@babel/parser': 7.29.8
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       hermes-parser: 0.25.1
-      zod: 4.4.3
-      zod-validation-error: 4.0.2(zod@4.4.3)
+      zod: 4.6.5
+      zod-validation-error: 4.0.2(zod@4.6.5)
     transitivePeerDependencies:
       - supports-color
 
@@ -9674,12 +9677,12 @@ snapshots:
 
   khroma@2.1.0: {}
 
-  langsmith@0.9.0(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.4.3)):
+  langsmith@0.9.0(@opentelemetry/api@1.9.1)(openai@7.7.0(undici@6.28.0)(zod@4.6.5)):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
-      openai: 7.7.0(undici@6.28.0)(zod@4.4.3)
+      openai: 7.7.0(undici@6.28.0)(zod@4.6.5)
 
   layout-base@1.0.2: {}
 
@@ -10302,10 +10305,10 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@7.7.0(undici@6.28.0)(zod@4.4.3):
+  openai@7.7.0(undici@6.28.0)(zod@4.6.5):
     optionalDependencies:
       undici: 6.28.0
-      zod: 4.4.3
+      zod: 4.6.5
 
   optionator@0.9.4:
     dependencies:
@@ -11619,11 +11622,11 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-validation-error@4.0.2(zod@4.4.3):
+  zod-validation-error@4.0.2(zod@4.6.5):
     dependencies:
-      zod: 4.4.3
+      zod: 4.6.5
 
-  zod@4.4.3: {}
+  zod@4.6.5: {}
 
   zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)):
     optionalDependencies:

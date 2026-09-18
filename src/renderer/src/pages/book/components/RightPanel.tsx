@@ -48,7 +48,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
     if (!kw || !book.id) return;
     setSearching(true);
     try {
-      console.log('[Search] book.id=', book.id, 'keyword=', kw);
       const results = await searchBook(book.id, kw);
       console.log('[Search] results=', results);
       setSearchResults(results);

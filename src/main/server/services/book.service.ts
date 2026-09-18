@@ -1,9 +1,20 @@
 import { DatabaseHelper } from "@main/server/db";
-import type { Book, Chapter, Volume, BookDetail } from "@type/book";
+import type { Book, Chapter, Volume, BookDetail, SearchMatch } from "@type/book";
 import crypto from "crypto";
 
 function generateUUID(): string {
   return crypto.randomUUID();
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 }
 
 export class BookService {
@@ -79,6 +90,45 @@ export class BookService {
 
   deleteChapter(id: string): boolean {
     return this.dbHelper.chapter.deleteChapter(id);
+  }
+
+  // ========== Search ==========
+
+  searchBook(bookId: string, keyword: string, contextLength = 5): SearchMatch[] {
+    if (!bookId || !keyword) return [];
+
+    const chapters = this.dbHelper.chapter.getByBookId(bookId);
+    const volumes = this.dbHelper.volume.getByBookId(bookId);
+    const volumeIds = new Set(volumes.map((v) => v.id));
+    const lowerKeyword = keyword.toLowerCase();
+    const results: SearchMatch[] = [];
+
+    for (const chapter of chapters) {
+      const text = stripHtml(chapter.content || "");
+      if (!text) continue;
+
+      const lowerText = text.toLowerCase();
+      let index = lowerText.indexOf(lowerKeyword);
+
+      while (index !== -1) {
+        const start = Math.max(0, index - contextLength);
+        const end = Math.min(text.length, index + keyword.length + contextLength);
+
+        results.push({
+          volumeId:
+            chapter.volumeId && volumeIds.has(chapter.volumeId) ? chapter.volumeId : undefined,
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          keyword,
+          context: text.slice(start, end),
+          position: index + 1,
+        });
+
+        index = lowerText.indexOf(lowerKeyword, index + keyword.length);
+      }
+    }
+
+    return results;
   }
 
   // ========== Volume ==========

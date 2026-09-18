@@ -250,6 +250,12 @@ interface BookAgentMessage {
 
 ### Book（书籍/章节/卷）
 
+#### 搜索
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/book/search` | 在书籍所有章节正文中搜索关键字，body: `{ bookId, keyword }`，返回 `SearchMatch[]`（`volumeId?` / `chapterId` / `chapterTitle` / `keyword` / `context`（前后各 5 字）/ `position`）。搜索前会剥离 HTML 标签 |
+
 #### 书籍
 
 | 方法 | 路径 | 说明 |

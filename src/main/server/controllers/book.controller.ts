@@ -112,6 +112,18 @@ export class BookController {
     successResponse(res, null, "章节删除成功");
   }
 
+  // ========== Search ==========
+
+  searchBook(req: Request, res: Response): void {
+    const { bookId, keyword } = req.body;
+    if (!bookId || !keyword) {
+      errorResponse(res, 400, "bookId 和 keyword 为必填项");
+      return;
+    }
+    const results = this.bookService.searchBook(bookId, keyword);
+    successResponse(res, results);
+  }
+
   // ========== Volume ==========
 
   getVolumes(req: Request, res: Response): void {

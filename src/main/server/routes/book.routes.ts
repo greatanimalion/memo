@@ -13,6 +13,9 @@ router.post("/books", asyncHandler(bookController.createBook.bind(bookController
 router.put("/books/:id", asyncHandler(bookController.updateBook.bind(bookController)));
 router.delete("/books/:id", asyncHandler(bookController.deleteBook.bind(bookController)));
 
+// ========== Search ==========
+router.post("/book/search", asyncHandler(bookController.searchBook.bind(bookController)));
+
 // ========== Chapter ==========
 router.get("/books/:bookId/chapters", asyncHandler(bookController.getChapters.bind(bookController)));
 router.get("/chapters/:id", asyncHandler(bookController.getChapterById.bind(bookController)));

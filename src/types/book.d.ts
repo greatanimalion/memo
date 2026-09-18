@@ -66,6 +66,16 @@ export interface BookDetail extends Book {
   volumes: Volume[];
 }
 
+// 书籍搜索匹配结果
+export interface SearchMatch {
+  volumeId?: string;
+  chapterId: string;
+  chapterTitle: string;
+  keyword: string;
+  context: string;
+  position: number;
+}
+
 // Book Agent 对话消息
 export interface BookAgentMessage {
   agent: string;

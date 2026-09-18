@@ -55,7 +55,7 @@ const CommandPanel: React.FC = () => {
     _();
   }, []);
   return (
-    <div className="w-70 bg-white border-l border-gray-200 flex flex-col overflow-y-auto max-lg:w-0 transition-width duration-300 h-full overflow-y-auto flex-shrink-0">
+    <div className="w-70 bg-white border-l border-gray-200 flex flex-col  max-lg:w-0 transition-width duration-300 h-full overflow-y-auto shrink-0">
       <div className="p-4 border-b border-gray-200">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           核心功能

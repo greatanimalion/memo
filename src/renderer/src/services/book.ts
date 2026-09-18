@@ -16,7 +16,7 @@ export async function searchBook(
   bookId: string,
   keyword: string,
 ): Promise<SearchMatch[]> {
-  const res = await api.post("/api/search", { bookId, keyword });
+  const res = await api.post("/api/book/search", { bookId, keyword });
   return res.data.data || [];
 }
 

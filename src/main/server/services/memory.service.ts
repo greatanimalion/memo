@@ -76,7 +76,7 @@ export class MemoryService {
     data: Partial<Memory>,
     content: string,
   ): Partial<Memory> | null {
-    if (data.fileUrl) {
+    if (data.fileUrl&&content) {
       const size = this.updateMemoFile(data.fileUrl, content || "");
       data.size = size;
     }

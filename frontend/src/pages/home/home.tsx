@@ -7,6 +7,7 @@ import StarredFiles from "./components/StarredFiles";
 import RecentFiles from "./components/RecentFiles";
 import QuickNav from "./components/QuickNav";
 import UsageStats from "./components/UsageStats";
+import TodayTodos from "./components/TodayTodos";
 
 const HomePage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -37,6 +38,7 @@ const HomePage: React.FC = () => {
         {/* <AIPart /> */}
         <QuickNav />
         <UsageStats />
+        <TodayTodos />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <StarredFiles files={starredFiles} />
           <RecentFiles files={recentFiles} />

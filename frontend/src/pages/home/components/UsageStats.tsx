@@ -86,6 +86,12 @@ const UsageStats: React.FC = () => {
             使用统计
           </h2>
         </div>
+         <Segmented
+          size="small"
+          options={RANGE_OPTIONS}
+          value={rangeDays}
+          onChange={(value) => setRange(value as number)}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -173,12 +179,7 @@ const UsageStats: React.FC = () => {
           使用时长
         </span>
         <span className="ml-auto">累计码字 {formatDuration(rangeTyping)}</span>
-        <Segmented
-          size="small"
-          options={RANGE_OPTIONS}
-          value={rangeDays}
-          onChange={(value) => setRange(value as number)}
-        />
+       
       </div>
 
       {rangeTyping === 0 && rangeActive === 0 ? (

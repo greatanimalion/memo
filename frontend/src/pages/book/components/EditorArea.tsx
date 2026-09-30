@@ -1,0 +1,386 @@
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useWriterStore } from "@renderer/store/useWriterStore";
+import { Button } from "antd";
+import {
+  ExpandOutlined,
+  CompressOutlined,
+  SaveOutlined,
+  CloudOutlined,
+  CloudDownloadOutlined,
+} from "@ant-design/icons";
+import useAppStore from "@renderer/store/app";
+
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+  $getRoot,
+  $createParagraphNode,
+  $createTextNode,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  EditorState,
+  KEY_TAB_COMMAND,
+  KEY_ENTER_COMMAND,
+  COMMAND_PRIORITY_LOW,
+} from "lexical";
+import { debounce } from "@renderer/utils";
+import { Chapter } from "@type";
+import { FontFamily } from "@renderer/types/common";
+
+const fontFamilyMap: Record<FontFamily, string> = {
+  sans: "sans-serif",
+  serif: "serif",
+  mono: '"Courier New", monospace',
+  kaiti: '"KaiTi", "STKaiti", serif',
+  songti: '"SimSun", "STSong", serif',
+};
+// ========== 内层组件：所有依赖 LexicalComposer Context 的逻辑 ==========
+const LexicalEditorContent: React.FC<{
+  currentChapter: Chapter | null;
+  updateChapterContent: (id: string, content: string) => void;
+  setLineCount: (count: number) => void;
+  setColumn: (col: number) => void;
+  editorStyle: React.CSSProperties;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+}> = ({ currentChapter, updateChapterContent, setLineCount, setColumn, editorStyle, scrollContainerRef }) => {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    if (!editor || !currentChapter) return;
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear(); // 清空当前内容
+      // 按 \n 拆分建多个 ParagraphNode，保留段落结构
+      // （content 来自 getTextContent()，多段落以 \n 分隔）
+      // 先 trim 末尾 \n：Lexical 每段 getTextContent() 末尾都加 \n，
+      // 不 trim 会导致每次切换章节累积 1 个空行
+      const text = currentChapter.content.replace(/\n+$/, "");
+      const lines = text.split("\n");
+      for (const line of lines) {
+        const p = $createParagraphNode();
+        p.append($createTextNode(line));
+        root.append(p);
+      }
+    });
+  }, [editor, currentChapter?.id]);
+
+  // Tab 键插入制表符
+  useEffect(() => {
+    if (!editor) return;
+    return editor.registerCommand(
+      KEY_TAB_COMMAND,
+      (event: KeyboardEvent) => {
+        event.preventDefault();
+        editor.update(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            selection.insertText("\t");
+          }
+        });
+        return true;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor]);
+
+  // Enter 换行时自动插入 tab 缩进，并保持滚动位置不跳
+  useEffect(() => {
+    if (!editor) return;
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event: KeyboardEvent | null) => {
+
+        let ok = false;
+        editor.getEditorState().read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            const anchor = selection.anchor.getNode();
+            if ($isTextNode(anchor)) ok = true;
+          }
+        });
+        if (!ok) return false;
+
+        event?.preventDefault();
+
+        editor.update(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) return;
+
+          const anchorNode = selection.anchor.getNode();
+          if (!$isTextNode(anchorNode)) return;
+          const offset = selection.anchor.offset;
+
+          const textContent = anchorNode.getTextContent();
+          const textBefore = textContent.slice(0, offset);
+          const textAfter = textContent.slice(offset);
+
+          anchorNode.setTextContent(textBefore);
+
+          const parent = anchorNode.getParent();
+          if (parent) {
+            const newParagraph = $createParagraphNode();
+            const tabText = $createTextNode("\t");
+            const remainText = $createTextNode(textAfter);
+            newParagraph.append(tabText, remainText);
+            parent.insertAfter(newParagraph);
+            remainText.select(0, 0);
+          }
+        });
+
+
+        return true;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor, scrollContainerRef]);
+
+  const handleLexicalChange = useCallback(
+    debounce((editorState: EditorState) => {
+      editorState.read(() => {
+        const root = $getRoot();
+        // 关键：不能用 root.getTextContent()！
+        // Lexical 的 ElementNode.getTextContent() 在非末尾块级子节点后
+        // 加 DOUBLE_LINE_BREAK（\n\n），会导致段落翻倍累积。
+        // 改为手动遍历 ParagraphNode，用单 \n join，保证段落间单换行。
+        const paragraphs = root.getChildren();
+        const text = paragraphs.map((p) => p.getTextContent()).join("\n");
+        if (currentChapter?.id) {
+          updateChapterContent(currentChapter.id, text);
+        }
+        // 更新行列信息（供底部状态栏使用）
+        const lines = text.split("\n");
+        setLineCount(lines.length || 1);
+        setColumn(lines[lines.length - 1]?.length + 1 || 1);
+      });
+    }, 500),
+    [currentChapter, updateChapterContent, setLineCount, setColumn],
+  );
+
+  return (
+    <>
+      <RichTextPlugin
+        contentEditable={
+          <ContentEditable className="w-full min-h-full outline-none resize-none" style={editorStyle} />
+        }
+        ErrorBoundary={LexicalErrorBoundary}
+      />
+      <HistoryPlugin />
+      <OnChangePlugin onChange={handleLexicalChange} />
+    </>
+  );
+};
+
+const EditorArea: React.FC = () => {
+  const [lineCount, setLineCount] = useState(1);
+  const [column, setColumn] = useState(1);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const editorSettings = useWriterStore((s) => s.editorSettings);
+  const editorBg = useWriterStore((s) => s.editorBg);
+  const autoSave = useWriterStore((s) => s.autoSave);
+  const setAutoSave = useWriterStore((s) => s.setAutoSave);
+  const updateChapterContent = useWriterStore((s) => s.updateChapterContent);
+  const updateChapterTitle = useWriterStore((s) => s.updateChapterTitle);
+  const currentChapter = useWriterStore((s) => s.currentChapter);
+  const appStore = useAppStore();
+  
+  const LINE_HEIGHT_PX = Math.round(editorSettings.fontSize * editorSettings.lineHeight);
+  const LINE_COLOR = "#343434"; // 或从主题读取
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${LINE_HEIGHT_PX}">
+  <line x1="0" y1="${LINE_HEIGHT_PX - 0.5}" x2="100%" y2="${LINE_HEIGHT_PX - 0.5}"
+        stroke="${LINE_COLOR}" stroke-width="1" shape-rendering="crispEdges"/>
+</svg>`;
+  const editorStyle: React.CSSProperties = {
+    fontFamily: fontFamilyMap[editorSettings.fontFamily],
+    fontSize: `${editorSettings.fontSize}px`,
+    lineHeight: `${LINE_HEIGHT_PX}px`,
+    fontWeight: editorSettings.fontWeight,
+    backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
+    backgroundSize: `100% ${LINE_HEIGHT_PX}px`,
+    backgroundRepeat: "repeat-y",
+  };
+
+
+  const isDarkBg =
+    editorBg?.type === "color" && ["#1e1e2e"].includes(editorBg.value);
+
+  const handleStartEditTitle = () => {
+    if (!currentChapter) return;
+    setTitleValue(currentChapter.title);
+    setEditingTitle(true);
+    setTimeout(() => titleInputRef.current?.focus(), 0);
+  };
+
+  const handleSaveTitle = () => {
+    const trimmed = titleValue.trim();
+    if (trimmed && currentChapter && trimmed !== currentChapter.title) {
+      updateChapterTitle(currentChapter.id, trimmed);
+    }
+    setEditingTitle(false);
+  };
+
+  const initialConfig = {
+    namespace: "BookEditor",
+    theme: {
+      paragraph: "editor-paragraph",
+      text: {
+        bold: "editor-text-bold",
+        italic: "editor-text-italic",
+        underline: "editor-text-underline",
+        strikethrough: "editor-text-strikethrough",
+      },
+    },
+    onError: (error: Error) => console.error(error),
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-w-0">
+      {/* 顶部信息栏 */}
+      <div
+        className={`flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-200 ${appStore.isBookScreen
+          ? isDarkBg
+            ? "bg-theme-primary/80 border-theme backdrop-blur-sm"
+            : "bg-theme-primary/60 border-theme-light backdrop-blur-sm"
+          : "bg-theme-primary/80 border-theme-light backdrop-blur-sm"
+          }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] text-theme-secondary">标题:</span>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={handleSaveTitle}
+                className="text-[13px] bg-transparent border-b border-accent outline-none px-0.5 text-theme-primary min-w-0"
+              />
+            ) : (
+              <span
+                onDoubleClick={handleStartEditTitle}
+                className="text-[13px] text-theme-primary cursor-pointer hover:text-accent transition-colors"
+              >
+                《{currentChapter?.title}》
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 text-[12px] mr-2 text-theme-muted">
+            <span>{new Date().toLocaleDateString("zh-CN")}</span>
+            <span className="text-theme-light">·</span>
+            <span>
+              {new Date().toLocaleTimeString("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full font-medium ${isDarkBg
+                ? "bg-theme-tertiary text-accent-light"
+                : "bg-accent-light text-accent"
+                }`}
+            >
+              {currentChapter?.wordCount} 字
+            </span>
+          </div>
+          <Button
+            size="small"
+            type="text"
+            icon={
+              autoSave ? (
+                <CloudOutlined className="text-sm text-accent" />
+              ) : (
+                <CloudDownloadOutlined className="text-sm text-theme-muted" />
+              )
+            }
+            onClick={() => setAutoSave(!autoSave)}
+            className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
+            title={autoSave ? "自动保存中" : "手动保存模式"}
+          />
+          {!autoSave && (
+            <Button
+              size="small"
+              type="text"
+              icon={<SaveOutlined className="text-sm text-theme-muted" />}
+              onClick={() => useWriterStore.getState().saveCurrentChapter()}
+              className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
+              title="保存当前章节"
+            />
+          )}
+          <Button
+            size="small"
+            type="text"
+            icon={
+              appStore.isBookScreen ? (
+                <CompressOutlined className="text-sm text-theme-muted" />
+              ) : (
+                <ExpandOutlined className="text-sm text-theme-muted" />
+              )
+            }
+            onClick={
+              !appStore.isBookScreen
+                ? appStore.intoBookScreen
+                : appStore.exitBookScreen
+            }
+            className="rounded-lg transition-all hover:bg-theme-hover hover:text-accent"
+            title={appStore.isBookScreen ? "退出全屏" : "全屏编辑 "}
+          />
+        </div>
+      </div>
+
+      {/* 编辑区主体 */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-y-auto relative transition-colors duration-200" ref={scrollContainerRef}>
+          {editorBg?.type === "image" && (
+            <div className="absolute inset-0 bg-theme-primary/70 backdrop-blur-[1px]" />
+          )}
+          <LexicalComposer initialConfig={initialConfig}>
+            <div
+              className={`w-full min-h-full relative z-10 m-auto! px-5 py-6 ${appStore.isBookScreen? "max-w-4xl mx-auto": ""}`}
+            >
+              <LexicalEditorContent
+                currentChapter={currentChapter}
+                updateChapterContent={updateChapterContent}
+                setLineCount={setLineCount}
+                setColumn={setColumn}
+                editorStyle={editorStyle}
+                scrollContainerRef={scrollContainerRef}
+              />
+            </div>
+          </LexicalComposer>
+        </div>
+      </div>
+
+      {/* 底部状态栏 */}
+      <div
+        className={`px-5 py-1.5 border-t flex items-center justify-between text-[11px] transition-colors duration-200 ${isDarkBg
+          ? "bg-theme-primary/60 border-theme text-theme-muted backdrop-blur-sm"
+          : "bg-theme-primary/60 border-theme-light text-theme-muted backdrop-blur-sm"
+          }`}>
+        <div className="flex items-center gap-3">
+          <span className={`px-1.5 py-0.5 rounded ${isDarkBg ? "bg-theme-tertiary text-theme-muted" : "bg-theme-secondary text-theme-muted"}`}>
+            LF
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span>
+            行 {lineCount}，列 {column}
+          </span>
+          <span className="text-theme-light">|</span>
+          <span>{currentChapter?.wordCount} 字</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EditorArea;

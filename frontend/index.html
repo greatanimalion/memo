@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>多功能记事本</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      connect-src http://localhost:32068/ http://localhost:34115/ ws://localhost:34115/ http://localhost:5173/ ws://localhost:5173/ *;
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: blob: file: http: https: *;
+      media-src 'self' blob:;
+      font-src 'self' data:;
+      object-src 'self';
+    "
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+
+  <body class="dark">
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

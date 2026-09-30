@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+frontend/dist/
+build/bin/
+memo-dev.exe
+*.syso
+
+# Runtime data (SQLite + uploads)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Wails generated cache
+frontend/package.json.md5
+
+# Logs / debug
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,42 @@
+.theme-deep-blue {
+  /* 基础颜色 */
+  --bg-color: #1A365D;
+  --text-color: #F5F5F5;
+  
+  /* 语义颜色 */
+  --primary-color: #63B3ED;
+  --secondary-color: #4FD1C5;
+  --accent-color: #63B3ED;
+  
+  /* 边框颜色 */
+  --border-color: #2D3748;
+  --border-light: #2A4365;
+  
+  /* 背景变体 */
+  --bg-primary: #1A365D;
+  --bg-secondary: #2A4365;
+  --bg-tertiary: #3D5A80;
+  --bg-hover: #2A4365;
+  --bg-active: #3D5A80;
+  
+  /* 文本变体 */
+  --text-primary: #F5F5F5;
+  --text-secondary: #CBD5E0;
+  --text-tertiary: #A0AEC0;
+  --text-muted: #718096;
+  
+  /* 功能颜色 */
+  --success-color: #4FD1C5;
+  --warning-color: #F6AD55;
+  --error-color: #FC8181;
+  --info-color: #63B3ED;
+  
+  /* 滚动条 */
+  --scrollbar-track: #2A4365;
+  --scrollbar-thumb: #3D5A80;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}

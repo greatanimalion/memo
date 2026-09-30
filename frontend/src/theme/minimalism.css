@@ -1,0 +1,42 @@
+.theme-minimalism {
+  /* 基础颜色 */
+  --bg-color: #FFFFFF;
+  --text-color: #333333;
+  
+  /* 语义颜色 */
+  --primary-color: #333333;
+  --secondary-color: #666666;
+  --accent-color: #6366f1;
+  
+  /* 边框颜色 */
+  --border-color: #E0E0E0;
+  --border-light: #F0F0F0;
+  
+  /* 背景变体 */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-tertiary: #F3F4F6;
+  --bg-hover: #F5F5F5;
+  --bg-active: #EEEEEE;
+  
+  /* 文本变体 */
+  --text-primary: #333333;
+  --text-secondary: #555555;
+  --text-tertiary: #777777;
+  --text-muted: #999999;
+  
+  /* 功能颜色 */
+  --success-color: #10B981;
+  --warning-color: #F59E0B;
+  --error-color: #EF4444;
+  --info-color: #3B82F6;
+  
+  /* 滚动条 */
+  --scrollbar-track: #F3F4F6;
+  --scrollbar-thumb: #D1D5DB;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}

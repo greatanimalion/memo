@@ -11,6 +11,7 @@ import SessionList from "./components/SessionList";
 import MessageArea from "./components/MessageArea";
 import ResumeModal from "./components/ResumeModal";
 import { getApiUrl } from "@renderer/utils";
+import { resolveModelConfig } from "@renderer/utils/helper";
 
 interface SSEEvent {
   event: string;
@@ -96,7 +97,8 @@ const ChatPage: React.FC = () => {
   const handleSend = useCallback(
     async (inputValue: string, isResume = false) => {
       const userContent = inputValue.trim();
-      const model = getLocalStore("selectedAI")?.value || "";
+      const model = getLocalStore<string>("selectedAI")?.value || "";
+      const config = resolveModelConfig(model);
       const api_key =
         ((getLocalStore("model")?.value as AIKey[]) || []).find(
           (c) => c.model === model,
@@ -153,7 +155,8 @@ const ChatPage: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: _prompt,
-            model,
+            model: config.model,
+            baseUrl: config.url,
             apiKey: api_key,
             history: sessionToUpdate.messages,
             requestId: currentSessionId,

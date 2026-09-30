@@ -35,6 +35,22 @@ func ResolveModel(name string) ModelConfig {
 	return ModelConfig{Model: "qwen-plus", URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"}
 }
 
+// ResolveRequest picks the endpoint for a request. A caller supplied baseURL
+// (the user's custom configuration from the APIKey page) wins over the preset
+// registry; preset aliases keep their preset model id.
+func ResolveRequest(name, baseURL string) ModelConfig {
+	cfg := ResolveModel(name)
+	base := strings.TrimSpace(baseURL)
+	if base == "" {
+		return cfg
+	}
+	cfg.URL = base
+	if _, preset := modelRegistry[name]; !preset && name != "" {
+		cfg.Model = name
+	}
+	return cfg
+}
+
 // Message follows the OpenAI chat completion shape.
 type Message struct {
 	Role       string     `json:"role"`

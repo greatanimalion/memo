@@ -54,6 +54,7 @@ type ChatRequest struct {
 	Prompt       string           `json:"prompt"`
 	History      []HistoryMessage `json:"history"`
 	Model        string           `json:"model"`
+	BaseURL      string           `json:"baseUrl"`
 	APIKey       string           `json:"apiKey"`
 	RequestID    string           `json:"requestId"`
 	SystemPrompt string           `json:"systemPrompt"`
@@ -108,7 +109,7 @@ func RunChatStream(parent context.Context, req ChatRequest, sse Emitter) {
 		defer UnregisterAbort(req.RequestID)
 	}
 
-	client := NewClient(ResolveModel(req.Model), req.APIKey, "", 0.7)
+	client := NewClient(ResolveRequest(req.Model, req.BaseURL), req.APIKey, "", 0.7)
 	messages := buildMessages(req, ChatSystemPrompt)
 
 	_, err := client.Stream(ctx, messages, nil, func(fragment string) {
@@ -150,7 +151,7 @@ func RunAgent(parent context.Context, req ChatRequest, sse Emitter) {
 		defer UnregisterAbort(req.RequestID)
 	}
 
-	client := NewClient(ResolveModel(req.Model), req.APIKey, "", 0.7)
+	client := NewClient(ResolveRequest(req.Model, req.BaseURL), req.APIKey, "", 0.7)
 	messages := buildMessages(req, DefaultSystemPrompt)
 
 	terminated := false

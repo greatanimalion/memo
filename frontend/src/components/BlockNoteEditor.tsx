@@ -40,7 +40,7 @@ import {
 import { Button, Dropdown, MenuProps, message, Typography } from "antd";
 import { fileToText, getCurrentTime, getExtension } from "@renderer/utils";
 import { getLocalStore } from "@renderer/utils/localStore";
-import { getModels } from "@renderer/utils/helper";
+import { resolveModelConfig } from "@renderer/utils/helper";
 import {
   ExportOutlined,
   FileMarkdownOutlined,
@@ -86,21 +86,22 @@ const Editor = ({ selectedFile }) => {
   const [themeMode, setThemeMode] = useState<"light" | "dark">(getThemeMode);
   const [messageApi, contextHolder] = message.useMessage();
   const { clearSelectedFile } = useFileStore();
+  const documentModel =
+    getLocalStore<string>(DOCUMENTMODEL)?.value || "";
   const getTransport = useMemo(() => {
-    let currentModelName = getLocalStore<any>(DOCUMENTMODEL)?.value;
-    const model = getModels(currentModelName);
-    let key =
+    const config = resolveModelConfig(documentModel);
+    const key =
       getLocalStore<AIKey[]>("model")?.value.find(
-        (item) => item.model === currentModelName,
+        (item) => item.model === documentModel,
       )?.key || "";
     return new ClientSideTransport({
       model: createOpenAICompatible({
         apiKey: key,
-        baseURL: model.url,
-        name: model.model,
-      })(model.model),
+        baseURL: config.url,
+        name: config.model,
+      })(config.model),
     });
-  }, []);
+  }, [documentModel]);
   const changeURL = useMemo(() => {
     return {
       addMap: new Map<string, string>(),

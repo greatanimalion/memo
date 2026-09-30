@@ -44,6 +44,14 @@ const PersonPage: React.FC = () => {
     setLocalStore("model", { value: AImodels });
   };
 
+  const handleUpdateKey = (updated: AIKey) => {
+    const AImodels = aiKeys.map((key) =>
+      key.id === updated.id ? updated : key,
+    );
+    setAiKeys(AImodels);
+    setLocalStore("model", { value: AImodels });
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8" style={{ backgroundColor: "var(--bg-secondary)" }}>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -66,6 +74,7 @@ const PersonPage: React.FC = () => {
             aiKeys={aiKeys}
             onToggleVisibility={toggleKeyVisibility}
             onDeleteKey={handleDeleteKey}
+            onUpdateKey={handleUpdateKey}
           />
           
           <AddKeyForm onAddKey={handleAddKey} />

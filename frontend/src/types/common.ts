@@ -14,6 +14,8 @@ export interface AIKey {
   id: number;
   model: string;
   key: string;
+  /** 自定义的 OpenAI 兼容接口地址（Base URL），不填则按预设模型解析 */
+  baseUrl?: string;
   provider?: string;
   masked: boolean;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useWriterStore } from "@renderer/store/useWriterStore";
-import { Button, Input, Modal } from "antd";
+import { Button, Input, Modal, message } from "antd";
 import {
   SendOutlined,
   StopOutlined,
@@ -11,6 +11,9 @@ import {
   ReconciliationOutlined,
 } from "@ant-design/icons";
 import { port } from "@renderer/constants";
+import { AIKey } from "@renderer/types/common";
+import { getLocalStore } from "@renderer/utils/localStore";
+import { resolveModelConfig } from "@renderer/utils/helper";
 
 const { TextArea } = Input;
 
@@ -299,6 +302,17 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
   const handleSend = useCallback(async () => {
     if (!prompt.trim() || !book.id) return;
 
+    // 使用用户在「APIKey管理」里配置的模型与密钥
+    const aiKeys = (getLocalStore<AIKey[]>("model")?.value || []) as AIKey[];
+    const selected = getLocalStore<string>("selectedAI")?.value || "";
+    const chosen =
+      aiKeys.find((item) => item.model === selected) || aiKeys[0];
+    if (!chosen?.model || !chosen?.key) {
+      message.warning("请先在「APIKey管理」中配置模型密钥");
+      return;
+    }
+    const config = resolveModelConfig(chosen.model);
+
     const userMessage = prompt.trim();
     const newRequestId = `book-agent-${Date.now()}`;
     setRequestId(newRequestId);
@@ -325,8 +339,9 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
         body: JSON.stringify({
           prompt: userMessage,
           bookId: book.id,
-          model: "deepseek-v4-flash",
-          apiKey: "sk-108afdf674fc46838cb861e35350da71",
+          model: config.model,
+          baseUrl: config.url,
+          apiKey: chosen.key,
           requestId: newRequestId,
         }),
         signal: abortController.signal,

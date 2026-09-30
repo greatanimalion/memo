@@ -1,3 +1,6 @@
+import type { AIKey } from "@renderer/types/common";
+import { getLocalStore } from "@renderer/utils/localStore";
+
 interface IndexConfig {
   name: string;
   keyPath?: string;
@@ -274,4 +277,69 @@ export const getModels = (
         url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
       };
   }
+};
+
+// 预设模型：value 用于在密钥列表中标识，model 是实际请求给服务商的模型 id
+export interface ModelPreset {
+  value: string;
+  label: string;
+  url: string;
+  model?: string;
+}
+
+export const MODEL_PRESETS: ModelPreset[] = [
+  {
+    value: "qwen-plus",
+    label: "QwenPlus",
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  },
+  {
+    value: "glm-5.1",
+    label: "glm-5.1",
+    url: "https://open.bigmodel.cn/api/paas/v4",
+  },
+  {
+    value: "deepseek",
+    label: "DeepSeek",
+    url: "https://api.deepseek.com",
+    model: "deepseek-chat",
+  },
+  {
+    value: "openai",
+    label: "OpenAI",
+    url: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+  },
+  {
+    value: "openRouter",
+    label: "openRouter",
+    url: "https://openrouter.ai/api/v1",
+    model: "openai/gpt-5.2",
+  },
+];
+
+export interface ModelConfig {
+  model: string;
+  url: string;
+}
+
+/**
+ * 解析模型配置：自定义 BaseURL 优先，其次预设表，最后回落旧的 getModels 规则。
+ * model 是发给服务商的模型 id，url 是 OpenAI 兼容接口地址。
+ */
+export const resolveModelConfig = (name: string): ModelConfig => {
+  const preset = MODEL_PRESETS.find((item) => item.value === name);
+  const stored = (
+    getLocalStore<AIKey[]>("model")?.value || []
+  ).find((item) => item.model === name);
+  const baseUrl = stored?.baseUrl?.trim();
+
+  if (baseUrl) {
+    return { model: preset?.model ?? name, url: baseUrl };
+  }
+  if (preset) {
+    return { model: preset.model ?? preset.value, url: preset.url };
+  }
+  const legacy = getModels(name as never);
+  return { model: legacy.model, url: legacy.url };
 };

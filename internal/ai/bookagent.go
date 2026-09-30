@@ -172,6 +172,7 @@ type BookAgentRequest struct {
 	Prompt    string `json:"prompt"`
 	BookID    string `json:"bookId"`
 	Model     string `json:"model"`
+	BaseURL   string `json:"baseUrl"`
 	APIKey    string `json:"apiKey"`
 	RequestID string `json:"requestId"`
 }
@@ -187,7 +188,7 @@ func RunBookAgent(parent context.Context, req BookAgentRequest, sse Emitter) {
 	}
 
 	run := &bookAgentRun{
-		client: NewClient(ResolveModel(req.Model), req.APIKey, "", 0.7),
+		client: NewClient(ResolveRequest(req.Model, req.BaseURL), req.APIKey, "", 0.7),
 		sse:    sse,
 		prompt: req.Prompt,
 		bookID: req.BookID,

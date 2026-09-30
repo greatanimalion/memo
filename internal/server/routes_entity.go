@@ -21,6 +21,7 @@ func registerEntityRoutes(api chi.Router) {
 	registerAgentRoutes(api)
 	registerBookRoutes(api)
 	registerBookAgentEntityRoutes(api)
+	registerUsageRoutes(api)
 }
 
 // entDecode reads a JSON body into T. An empty body yields the zero value,

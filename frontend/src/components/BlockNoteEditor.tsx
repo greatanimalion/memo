@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState, useRef } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
@@ -48,6 +48,7 @@ import {
   ImportOutlined,
 } from "@ant-design/icons";
 import useFileStore from "@renderer/store/useFileStore";
+import { markTyping } from "@renderer/store/useUsageStore";
 import axios from "axios";
 import { DOCUMENTMODEL } from "@renderer/constants";
 
@@ -106,6 +107,8 @@ const Editor = ({ selectedFile }) => {
       deleteMap: new Map<string, string>(),
     };
   }, []);
+  // 读取文件时的整体替换不计入码字时长
+  const skipChangeRef = useRef(false);
   const editor = useCreateBlockNote({
     dictionary: {
       ...zh,
@@ -128,6 +131,10 @@ const Editor = ({ selectedFile }) => {
   editor.onChange((_editor, { getChanges }) => {
     const changes = getChanges()[0];
     if(!changes)return 
+    // 加载文件时的 replaceBlocks 属于程序操作，不计入码字时长
+    if (!skipChangeRef.current && changes.source?.type !== "local") {
+      markTyping();
+    }
     if (
       changes.block.type == "audio" ||
       changes.block.type == "image" ||
@@ -254,7 +261,11 @@ const Editor = ({ selectedFile }) => {
           return "";
         });
       const blocks = editor.tryParseHTMLToBlocks(content);
+      skipChangeRef.current = true;
       editor.replaceBlocks(editor.document, blocks);
+      window.setTimeout(() => {
+        skipChangeRef.current = false;
+      }, 100);
     }
     loadInitialHTML();
     return () => {

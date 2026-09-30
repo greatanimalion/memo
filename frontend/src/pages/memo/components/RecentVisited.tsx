@@ -76,7 +76,7 @@ const RecentVisited: React.FC = () => {
               <div
                 key={file.id}
                 onClick={() => setSelectedFile(file)}
-                className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+                className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors hover:bg-(--bg-hover)"
               >
                 <FileOutlined
                   className="text-lg shrink-0"

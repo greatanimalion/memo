@@ -32,6 +32,7 @@ import {
 import { debounce } from "@renderer/utils";
 import { Chapter } from "@type";
 import { FontFamily } from "@renderer/types/common";
+import TypingDetectorPlugin from "@renderer/components/TypingDetectorPlugin";
 
 const fontFamilyMap: Record<FontFamily, string> = {
   sans: "sans-serif",
@@ -52,6 +53,7 @@ const LexicalEditorContent: React.FC<{
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
     if (!editor || !currentChapter) return;
+    // 打上 programmatic 标签，TypingDetectorPlugin 会据此跳过本次整体灌入
     editor.update(() => {
       const root = $getRoot();
       root.clear(); // 清空当前内容
@@ -66,7 +68,7 @@ const LexicalEditorContent: React.FC<{
         p.append($createTextNode(line));
         root.append(p);
       }
-    });
+    }, { tag: "programmatic" });
   }, [editor, currentChapter?.id]);
 
   // Tab 键插入制表符
@@ -171,6 +173,7 @@ const LexicalEditorContent: React.FC<{
       />
       <HistoryPlugin />
       <OnChangePlugin onChange={handleLexicalChange} />
+      <TypingDetectorPlugin />
     </>
   );
 };

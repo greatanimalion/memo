@@ -68,6 +68,11 @@ var schemaStatements = []string{
 		"createdAt INTEGER NOT NULL," +
 		"updatedAt INTEGER NOT NULL," +
 		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
+	"CREATE TABLE IF NOT EXISTS usage_stats (" +
+		"date TEXT PRIMARY KEY," +
+		"typingMs INTEGER NOT NULL DEFAULT 0," +
+		"activeMs INTEGER NOT NULL DEFAULT 0," +
+		"updatedAt INTEGER NOT NULL DEFAULT 0)",
 }
 
 // migrations mirror the best-effort ALTERs executed by the previous

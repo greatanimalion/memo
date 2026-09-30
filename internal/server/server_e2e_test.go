@@ -305,3 +305,42 @@ func TestAIValidation(t *testing.T) {
 		t.Fatalf("book-agent invalid body status=%d", status)
 	}
 }
+
+func TestUsageStats(t *testing.T) {
+	srv := httptest.NewServer(NewRouter())
+	defer srv.Close()
+
+	today := time.Now().Format("2006-01-02")
+
+	// 上报是绝对值且幂等：后一次覆盖前一次
+	for _, row := range []map[string]any{
+		{"date": today, "typingMs": 1000, "activeMs": 5000},
+		{"date": today, "typingMs": 3000, "activeMs": 7000},
+	} {
+		if status, env := do(t, srv, http.MethodPost, "/api/usage/upsert", row); status != 200 {
+			t.Fatalf("upsert status=%d (%s)", status, env.Error)
+		}
+	}
+
+	status, env := do(t, srv, http.MethodGet, "/api/usage?days=1", nil)
+	if status != 200 {
+		t.Fatalf("list status=%d (%s)", status, env.Error)
+	}
+	if !bytes.Contains(env.Data, []byte(`"date":"`+today+`"`)) ||
+		!bytes.Contains(env.Data, []byte(`"typingMs":3000`)) ||
+		!bytes.Contains(env.Data, []byte(`"activeMs":7000`)) {
+		t.Fatalf("list data=%s", env.Data)
+	}
+
+	if status, _ := do(t, srv, http.MethodGet, "/api/usage?from="+today+"&to="+today, nil); status != 200 {
+		t.Fatalf("explicit range status=%d", status)
+	}
+
+	// 校验：非法日期与负数时长
+	if status, _ := do(t, srv, http.MethodPost, "/api/usage/upsert", map[string]any{"date": "20260930", "typingMs": 1, "activeMs": 1}); status != 400 {
+		t.Fatalf("invalid date status=%d", status)
+	}
+	if status, _ := do(t, srv, http.MethodPost, "/api/usage/upsert", map[string]any{"date": today, "typingMs": -1, "activeMs": 0}); status != 400 {
+		t.Fatalf("negative typing status=%d", status)
+	}
+}

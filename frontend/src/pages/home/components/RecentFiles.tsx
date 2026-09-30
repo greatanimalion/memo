@@ -17,8 +17,8 @@ const RecentFiles: React.FC<RecentFilesProps> = ({ files }) => {
   };
 
   return (
-    <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
-      <div className="flex items-center gap-3 mb-6">
+    <div className="rounded-2xl p-4 shadow-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
+      <div className="flex items-center gap-3 mb-2.5">
         <FileTextOutlined className="text-2xl text-blue-500" />
         <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>近期文件</h2>
         <span className="ml-auto text-sm" style={{ color: "var(--text-tertiary)" }}>

@@ -58,7 +58,7 @@ export const useMemory = () => {
   };
 
   // 返回上一级
-  const handleBackClick = useCallback(async () => {
+  const handleBackClick = useCallback(() => {
     if (currentPath.length > 1) {
       const newPath = [...currentPath];
       newPath.pop();
@@ -66,10 +66,17 @@ export const useMemory = () => {
       newIds.pop();
       setCurrentPath(newPath);
       setCurrentFileIds(newIds);
-      await refreshCurrentFolderItemsArr();
+      refreshCurrentFolderItemsArr();
     }
   }, [currentPath, currentFileIds]);
-
+  const handlePathClick=(index:number)=>{
+    if(index==currentFileIds.length-1)return 
+      const newPath =currentPath.slice(0,index+1);
+      const newIds = currentFileIds.slice(0,index+1);
+      setCurrentPath(newPath);
+      setCurrentFileIds(newIds);
+      refreshCurrentFolderItemsArr();
+  }
   useEffect(() => {
     if (currentFolderItems.length == 0) {
       async function initFolderItems() {
@@ -136,5 +143,6 @@ export const useMemory = () => {
     handleToggleStar,
     createFileOrFolder,
     searchFiles,
+    handlePathClick
   };
 };

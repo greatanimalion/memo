@@ -130,10 +130,7 @@ export default function WebPage() {
           </div>
         )}
         {!!url && (
-          <webview
-            src={url}
-            style={{ width: "100%", height: "100%" }}
-          ></webview>
+          <iframe src={url} style={{width:'100%'}} ></iframe>
         )}
       </>
     </>

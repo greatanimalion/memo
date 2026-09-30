@@ -9,6 +9,8 @@ import {
 } from "@ant-design/icons";
 import { SearchProps } from "antd/es/input";
 import { useMemory } from "@renderer/hooks/useMemory";
+import { getMemoryChildById } from "@renderer/services/memeoy";
+import useFileStore from "@renderer/store/useFileStore";
 
 const FileManager: React.FC = () => {
   const {
@@ -20,6 +22,7 @@ const FileManager: React.FC = () => {
     handleBackClick,
     createFileOrFolder,
     searchFiles,
+    handlePathClick
   } = useMemory();
   const [fileName, setFileName] = useState("");
   const { Search } = Input;
@@ -27,6 +30,7 @@ const FileManager: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [isFolder, setIsFolder] = useState(0);
+  const currentFileIdsArr = useFileStore((s) => s.currentFileIdsArr);
 
   const showFileCreateModal = () => {
     setOpen(true);
@@ -48,6 +52,20 @@ const FileManager: React.FC = () => {
       return;
     }
     setConfirmLoading(true);
+    const parentId = currentFileIdsArr[currentFileIdsArr.length - 1];
+    const siblings = await getMemoryChildById(parentId);
+    const duplicated = (siblings || []).some((item) => item.title === name);
+    if (duplicated) {
+      messageApi.open({
+        type: "error",
+        content:
+          isFolder === 1
+            ? "当前文件夹下已存在同名文件夹"
+            : "当前文件夹下已存在同名文件",
+      });
+      setConfirmLoading(false);
+      return;
+    }
     const success = await createFileOrFolder(name, isFolder);
     if (!success) {
       messageApi.open({
@@ -72,7 +90,6 @@ const FileManager: React.FC = () => {
   const onSearch: SearchProps["onSearch"] = (value) => {
     searchFiles(value || "");
   };
-
   return (
     <>
       {contextHolder}
@@ -121,7 +138,7 @@ const FileManager: React.FC = () => {
           </div>
           {/* 路径导航和排序选项 */}
           <div className="flex items-center justify-between">
-            <PathNavigation onBackClick={handleBackClick} />
+            <PathNavigation onBackClick={handleBackClick} onPathClick={handlePathClick} />
             <div className="flex items-center gap-2">
               <Select
                 value={sortBy}

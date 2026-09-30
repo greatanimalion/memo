@@ -224,7 +224,7 @@ const FileList: React.FC<FileListProps> = ({ onFolderClick }) => {
           onToggleStar={onToggleStar}
         />
       ) : (
-        <div className="flex justify-center items-center w-full h-20 mt-10">
+        <div className="flex justify-center items-center w-full h-40 mt-10">
           <Empty />
         </div>
       )}

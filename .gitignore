@@ -5,7 +5,7 @@ node_modules/
 # Build output
 frontend/dist/
 build/bin/
-memo-dev.exe
+*.exe
 *.syso
 
 # Runtime data (SQLite + uploads)

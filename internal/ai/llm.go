@@ -12,43 +12,21 @@ import (
 	"time"
 )
 
-// ModelConfig maps a model name coming from the frontend to the OpenAI
-// compatible endpoint to use (mirrors the previous getModels()/ai.config.ts).
+// ModelConfig is the OpenAI compatible endpoint configuration. Both fields
+// come from the frontend: the user adds model + base URL himself in the
+// APIKey page, the backend keeps no preset list.
 type ModelConfig struct {
 	Model string `json:"model"`
 	URL   string `json:"url"`
 }
 
-var modelRegistry = map[string]ModelConfig{
-	"qwen-plus":         {Model: "qwen-plus", URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"},
-	"glm-5.1":           {Model: "glm-5.1", URL: "https://open.bigmodel.cn/api/paas/v4"},
-	"deepseek":          {Model: "deepseek-chat", URL: "https://api.deepseek.com"},
-	"deepseek-v4-flash": {Model: "deepseek-chat", URL: "https://api.deepseek.com"},
-	"openRouter":        {Model: "openai/gpt-5.2", URL: "https://openrouter.ai/api/v1"},
-}
-
-// ResolveModel returns the endpoint configuration for a frontend model name.
-func ResolveModel(name string) ModelConfig {
-	if cfg, ok := modelRegistry[name]; ok {
-		return cfg
-	}
-	return ModelConfig{Model: "qwen-plus", URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"}
-}
-
-// ResolveRequest picks the endpoint for a request. A caller supplied baseURL
-// (the user's custom configuration from the APIKey page) wins over the preset
-// registry; preset aliases keep their preset model id.
+// ResolveRequest turns the frontend supplied model id and base URL into an
+// endpoint configuration, unchanged apart from trimming spaces.
 func ResolveRequest(name, baseURL string) ModelConfig {
-	cfg := ResolveModel(name)
-	base := strings.TrimSpace(baseURL)
-	if base == "" {
-		return cfg
+	return ModelConfig{
+		Model: strings.TrimSpace(name),
+		URL:   strings.TrimSpace(baseURL),
 	}
-	cfg.URL = base
-	if _, preset := modelRegistry[name]; !preset && name != "" {
-		cfg.Model = name
-	}
-	return cfg
 }
 
 // Message follows the OpenAI chat completion shape.

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -37,6 +38,12 @@ func chatStreamHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if strings.TrimSpace(req.BaseURL) == "" {
+		response.Raw(w, http.StatusBadRequest, map[string]any{
+			"error": "Missing baseUrl",
+		})
+		return
+	}
 	ai.RunChatStream(r.Context(), req, response.StartSSE(w))
 }
 
@@ -49,6 +56,12 @@ func chatAgentHandler(w http.ResponseWriter, r *http.Request) {
 	if req.Prompt == "" || req.Model == "" || req.APIKey == "" {
 		response.Raw(w, http.StatusBadRequest, map[string]any{
 			"error": "Missing prompt, model, or apiKey",
+		})
+		return
+	}
+	if strings.TrimSpace(req.BaseURL) == "" {
+		response.Raw(w, http.StatusBadRequest, map[string]any{
+			"error": "Missing baseUrl",
 		})
 		return
 	}

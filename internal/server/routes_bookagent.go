@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -24,6 +25,10 @@ func bookAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Prompt == "" || req.BookID == "" || req.Model == "" || req.APIKey == "" {
 		response.Raw(w, http.StatusBadRequest, map[string]any{"error": "Missing prompt, bookId, model, or apiKey"})
+		return
+	}
+	if strings.TrimSpace(req.BaseURL) == "" {
+		response.Raw(w, http.StatusBadRequest, map[string]any{"error": "Missing baseUrl"})
 		return
 	}
 

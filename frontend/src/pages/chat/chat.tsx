@@ -106,11 +106,11 @@ const ChatPage: React.FC = () => {
 
       if (!userContent || !currentSession) {
         messageApi.warning("消息不能为空");
-        return;
+        return true;
       }
       if (!model || !api_key) {
         messageApi.error("请选择模型");
-        return;
+        return true;
       }
 
       setIsThinking(true);

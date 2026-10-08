@@ -100,7 +100,7 @@ const AgentInfo: {
 };
 
 const AISender: React.FC<{
-  handleSend: (v: string) => void;
+  handleSend: (v: string) => Promise<Boolean|void>;
   isThinking: boolean;
   agents: MyAgent[];
   setPrompt: (prompt: string) => void;
@@ -239,7 +239,7 @@ const AISender: React.FC<{
                       ...agents,
                       {
                         id: "",
-                        name: "未选择",
+                        name: "无",
                         description: "",
                         content: "",
                       },
@@ -259,9 +259,10 @@ const AISender: React.FC<{
           );
         }}
         suffix={false}
-        onSubmit={(v, _, _skill) => {
+        onSubmit={async (v, _, _skill) => {
           setLoading(true);
-          handleSend(v);
+          const res=await handleSend(v);
+          if(res)setLoading(false);
           senderZhRef.current?.clear?.();
         }}
         onCancel={() => {

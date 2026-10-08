@@ -221,8 +221,9 @@ func TestRunChatStreamEventFlow(t *testing.T) {
 			{Role: "user", Content: "之前的问题"},
 			{Role: "system", Content: "之前的回答"},
 		},
-		Model:  "deepseek",
-		APIKey: "key",
+		Model:   "deepseek-chat",
+		BaseURL: "https://test.local/v1",
+		APIKey:  "key",
 	}, rec)
 
 	want := "event: message\ndata: 你好\n\n" +
@@ -270,6 +271,7 @@ func TestRunChatStreamCustomSystemPrompt(t *testing.T) {
 		Prompt:       "p",
 		SystemPrompt: "自定义系统提示词",
 		Model:        "qwen-plus",
+		BaseURL:      "https://test.local/v1",
 		APIKey:       "key",
 	}, rec)
 
@@ -293,7 +295,7 @@ func TestRunChatStreamErrorEvent(t *testing.T) {
 
 	rec := &recordingEmitter{}
 	RunChatStream(context.Background(), ChatRequest{
-		Prompt: "p", Model: "qwen-plus", APIKey: "bad",
+		Prompt: "p", Model: "qwen-plus", BaseURL: "https://test.local/v1", APIKey: "bad",
 	}, rec)
 
 	want := "event: error\ndata: llm http 400: {\"error\":{\"message\":\"Invalid API key\"}}\n\n" +
@@ -320,7 +322,7 @@ func TestRunAgentToolLoop(t *testing.T) {
 
 	rec := &recordingEmitter{}
 	RunAgent(context.Background(), ChatRequest{
-		Prompt: "几点了", Model: "qwen-plus", APIKey: "key",
+		Prompt: "几点了", Model: "qwen-plus", BaseURL: "https://test.local/v1", APIKey: "key",
 	}, rec)
 
 	if calls != 2 {
@@ -392,7 +394,7 @@ func TestRunAgentWritesDiary(t *testing.T) {
 
 	rec := &recordingEmitter{}
 	RunAgent(context.Background(), ChatRequest{
-		Prompt: "记一下", Model: "qwen-plus", APIKey: "key",
+		Prompt: "记一下", Model: "qwen-plus", BaseURL: "https://test.local/v1", APIKey: "key",
 	}, rec)
 
 	if calls != 2 {
@@ -448,7 +450,7 @@ func TestRunAgentToolErrorIsFedBackToModel(t *testing.T) {
 
 	rec := &recordingEmitter{}
 	RunAgent(context.Background(), ChatRequest{
-		Prompt: "记一下", Model: "qwen-plus", APIKey: "key",
+		Prompt: "记一下", Model: "qwen-plus", BaseURL: "https://test.local/v1", APIKey: "key",
 	}, rec)
 
 	wantTool := "event: tool\ndata: {\"name\":\"write_diary\",\"result\":\"Error: date: required\\n Please fix your mistakes.\"}\n\n"
@@ -472,7 +474,7 @@ func TestRunAgentPlainText(t *testing.T) {
 
 	rec := &recordingEmitter{}
 	RunAgent(context.Background(), ChatRequest{
-		Prompt: "p", Model: "qwen-plus", APIKey: "key",
+		Prompt: "p", Model: "qwen-plus", BaseURL: "https://test.local/v1", APIKey: "key",
 	}, rec)
 
 	want := "event: message\ndata: 直接回答\n\nevent: done\ndata: [DONE]\n\n"
@@ -493,7 +495,7 @@ func TestRunAgentRecursionLimit(t *testing.T) {
 
 	rec := &recordingEmitter{}
 	RunAgent(context.Background(), ChatRequest{
-		Prompt: "p", Model: "qwen-plus", APIKey: "key",
+		Prompt: "p", Model: "qwen-plus", BaseURL: "https://test.local/v1", APIKey: "key",
 	}, rec)
 
 	if calls != maxAgentRounds {

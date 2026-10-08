@@ -71,7 +71,8 @@ func TestRunBookAgentStreamsAndFinishes(t *testing.T) {
 	RunBookAgent(context.Background(), BookAgentRequest{
 		Prompt:    "写一本书",
 		BookID:    book.ID,
-		Model:     "deepseek",
+		Model:     "deepseek-chat",
+		BaseURL:   "https://test.local/v1",
 		APIKey:    "test-key",
 		RequestID: "req-book-agent",
 	}, em)

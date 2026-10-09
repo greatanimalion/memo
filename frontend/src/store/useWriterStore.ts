@@ -101,7 +101,7 @@ interface WriterState {
 
   setAutoSave: (auto: boolean) => void
   setBookTitle: (title: string) => void
-  setCurrentChapter: (id: string) => Promise<void>
+  setCurrentChapter: (id: string|null) => Promise<void>
   setSelectedVolumeId: (id: string | null) => void
   addChapter: (volumeId?: string) => Promise<void>
   deleteChapter: (id: string) => Promise<void>
@@ -191,6 +191,7 @@ export const useWriterStore = create<WriterState>((set, get) => ({
   setSelectedVolumeId: (id) => set({ selectedVolumeId: id }),
 
   setCurrentChapter: async (id) => {
+    if(!id)return set({ currentChapter: null })
     try {
       const chapter = await getChapterById(id)
       set({

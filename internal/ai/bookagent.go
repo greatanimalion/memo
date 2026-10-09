@@ -239,21 +239,14 @@ type bookAgentRun struct {
 }
 
 func (r *bookAgentRun) run(ctx context.Context) {
-	r.recordID = db.NewID()
-	_, _ = db.CreateBookAgent(&db.BookAgent{
-		ID:       r.recordID,
-		BookID:   r.bookID,
-		Title:    jsSlice(r.prompt, 0, 50),
-		Messages: json.RawMessage("[]"),
-		Status:   "running",
-	})
+	r.initConversation()
 
-	r.messages = []Message{{
+	r.messages = append(r.buildHistoryContext(), Message{
 		Role: "user",
 		Content: fmt.Sprintf(
 			"## 项目任务\n\n书籍ID: %s\n\n%s\n\n用户需求: %s\n\n请根据以上信息制定创作计划，并调度各Agent执行。",
 			r.bookID, r.buildBookInfo(), r.prompt),
-	}}
+	})
 	r.currentPhase = "orchestrator"
 	r.currentAgent = "orchestrator"
 	r.stepCount = 0
@@ -328,6 +321,89 @@ func (r *bookAgentRun) run(ctx context.Context) {
 	r.finish(status)
 }
 
+// ──────────────────── conversation persistence ────────────────────
+
+const (
+	bookAgentHistoryMaxMessages = 40
+	bookAgentHistoryMaxChars    = 3000
+)
+
+// initConversation creates a fresh record for this user input. The user input
+// is stored in Title, agent answers are accumulated in Messages, and Status
+// tracks the outcome (done/error/cancelled).
+func (r *bookAgentRun) initConversation() {
+	r.recordID = db.NewID()
+	r.conversation = nil
+	_, _ = db.CreateBookAgent(&db.BookAgent{
+		ID:       r.recordID,
+		BookID:   r.bookID,
+		Title:    r.prompt,
+		Messages: json.RawMessage("[]"),
+		Status:   "running",
+	})
+	r.sse.Write("user_message", jsonPayload(convMessage{
+		Agent:     "user",
+		Role:      "user",
+		Content:   r.prompt,
+		Timestamp: time.Now().UnixMilli(),
+	}))
+}
+
+// buildHistoryContext flattens the book's earlier records (previous user inputs
+// + agent answers) into LLM messages so the new run continues the same context.
+func (r *bookAgentRun) buildHistoryContext() []Message {
+	records, err := db.GetBookAgentsByBookID(r.bookID) // DESC by createdAt
+	if err != nil {
+		return nil
+	}
+	history := make([]convMessage, 0)
+	for i := len(records) - 1; i >= 0; i-- {
+		rec := records[i]
+		if rec.ID == r.recordID {
+			continue
+		}
+		if rec.Title != "" {
+			history = append(history, convMessage{Agent: "user", Role: "user", Content: rec.Title})
+		}
+		var msgs []convMessage
+		if err := json.Unmarshal(rec.Messages, &msgs); err == nil {
+			history = append(history, msgs...)
+		}
+	}
+	if len(history) > bookAgentHistoryMaxMessages {
+		history = history[len(history)-bookAgentHistoryMaxMessages:]
+	}
+	out := make([]Message, 0, len(history))
+	for _, m := range history {
+		if m.Role != "user" && m.Role != "assistant" {
+			continue
+		}
+		content := m.Content
+		if len(content) > bookAgentHistoryMaxChars {
+			content = content[:bookAgentHistoryMaxChars] + "\n...(内容过长已截断)"
+		}
+		if m.Role == "assistant" && m.Agent != "" && m.Agent != "user" {
+			content = fmt.Sprintf("[%s]\n%s", m.Agent, content)
+		}
+		out = append(out, Message{Role: m.Role, Content: content})
+	}
+	return out
+}
+
+// saveMessages writes the whole conversation back to the bookAgent record.
+func (r *bookAgentRun) saveMessages() {
+	if r.recordID == "" {
+		return
+	}
+	raw, err := marshalNoHTML(r.conversation)
+	if err != nil {
+		raw = []byte("[]")
+	}
+	if _, err := db.UpdateBookAgent(r.recordID, map[string]any{"messages": string(raw)}); err != nil {
+		log.Printf("BookAgent 保存对话失败: %v", err)
+	}
+}
+
 // runAgent executes one agent node: it streams the completion and derives the
 // tool calls from the DSML / text fallbacks (tools are never bound, mirroring
 // createAgentNode).
@@ -379,6 +455,7 @@ func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, err
 			Content:   fullContent,
 			Timestamp: time.Now().UnixMilli(),
 		})
+		r.saveMessages()
 	}
 	return out, nil
 }
@@ -732,13 +809,8 @@ func (r *bookAgentRun) buildBookInfo() string {
 // ──────────────────── DB record ────────────────────
 
 func (r *bookAgentRun) finish(status string) {
-	raw, err := marshalNoHTML(r.conversation)
-	if err != nil {
-		raw = []byte("[]")
-	}
-	if _, err := db.UpdateBookAgent(r.recordID, map[string]any{"status": status, "messages": string(raw)}); err != nil {
+	r.saveMessages()
+	if _, err := db.UpdateBookAgent(r.recordID, map[string]any{"status": status}); err != nil {
 		log.Printf("BookAgent 更新记录失败: %v", err)
 	}
 }
-
-// ──────────────────── DSML / text parsing ────────────────────

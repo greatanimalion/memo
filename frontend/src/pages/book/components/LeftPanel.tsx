@@ -62,7 +62,11 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
   const handleAddChapter = (volumeId?: string) => {
     addChapter(volumeId);
   };
-
+  const backHome=()=>{
+    navigate("/book")
+    setSelectedVolumeId(null)
+    setCurrentChapter(null)
+  }
   if (isBookScreen) {
     return null;
   }
@@ -76,7 +80,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
             type="text"
             size="small"
             icon={<HomeOutlined />}
-            onClick={() => navigate("/book")}
+            onClick={backHome}
             className="text-theme-muted hover:text-accent"
           />
           <span className="text-sm font-semibold text-theme-primary tracking-wide">

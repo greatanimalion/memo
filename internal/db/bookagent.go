@@ -62,6 +62,13 @@ func GetBookAgent(id string) (*BookAgent, error) {
 	return scanBookAgent(DB().QueryRow("SELECT "+bookAgentColumns+" FROM bookAgent WHERE id = ?", id))
 }
 
+// GetFirstBookAgentByBookID returns the oldest conversation record for a book.
+// One bookId maps to exactly one conversation context.
+func GetFirstBookAgentByBookID(bookID string) (*BookAgent, error) {
+	return scanBookAgent(DB().QueryRow(
+		"SELECT "+bookAgentColumns+" FROM bookAgent WHERE bookId = ? ORDER BY createdAt ASC LIMIT 1", bookID))
+}
+
 func CreateBookAgent(a *BookAgent) (*BookAgent, error) {
 	now := time.Now().UnixMilli()
 	msgs := a.Messages

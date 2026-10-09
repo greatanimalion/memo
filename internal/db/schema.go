@@ -68,6 +68,13 @@ var schemaStatements = []string{
 		"createdAt INTEGER NOT NULL," +
 		"updatedAt INTEGER NOT NULL," +
 		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
+	"CREATE TABLE IF NOT EXISTS bookAgentState (" +
+		"bookId TEXT PRIMARY KEY," +
+		"plan TEXT NOT NULL DEFAULT ''," +
+		"progress TEXT NOT NULL DEFAULT '[]'," +
+		"issues TEXT NOT NULL DEFAULT '[]'," +
+		"updatedAt INTEGER NOT NULL DEFAULT 0," +
+		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
 	"CREATE TABLE IF NOT EXISTS usage_stats (" +
 		"date TEXT PRIMARY KEY," +
 		"typingMs INTEGER NOT NULL DEFAULT 0," +

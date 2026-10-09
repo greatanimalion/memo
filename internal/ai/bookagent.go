@@ -37,12 +37,13 @@ route({ "target": "thinker" })
 - thinker 返回大纲 → 调用 route({ "target": "writer" })
 - writer 返回正文 → 调用 route({ "target": "editor" })
 - editor 返回润色后内容 → 调用 route({ "target": "consistency" })
-- consistency 返回检查结果 → 调用 route({ "target": "end" })
+- consistency 返回检查结果 → 参考系统给出的“章节进度”：若还有未写章节，调用 route({ "target": "writer" }) 写下一章；若全部章节写完，调用 route({ "target": "end" })
 
 ## 重要
 1. 每次只调用一个 route 工具，不要同时调用其他工具
 2. 不要在回复中描述你要做什么，直接调用 route
-3. 你的回复应该简短，例如："已收到，切换到下一阶段"`
+3. 你的回复应该简短，例如："已收到，切换到下一阶段"
+4. 一本书通常有多章，consistency 通过后应继续写下一章，直到大纲中所有章节完成才 end`
 
 const bookAgentThinkerPrompt = `你是构思Agent，专门负责创作大纲。
 
@@ -169,7 +170,7 @@ var bookAgentPrompts = map[string]string{
 const (
 	bookAgentCancelText        = "任务已取消"
 	bookAgentEnd               = "__end__"
-	bookAgentMaxStepCount      = 20
+	bookAgentMaxStepCount      = 200
 	bookAgentMaxNodeExecutions = 200
 )
 
@@ -250,6 +251,12 @@ func bookAgentToolAllowed(role, tool string) bool {
 	return perms[tool]
 }
 
+// outlineChapter 是从 thinker 大纲解析出的单个章节（标题 + 概要）。
+type outlineChapter struct {
+	Title   string
+	Summary string
+}
+
 type bookAgentRun struct {
 	client *Client
 	sse    Emitter
@@ -260,9 +267,13 @@ type bookAgentRun struct {
 	currentPhase string
 	currentAgent string
 	stepCount    int
-	chapterOrder int
 
-	draftChapterID string
+	// 章节游标（方案 A：显式章节循环）
+	outlineChapters   []outlineChapter
+	completedChapters int
+	chapterID         string // 当前章节的数据库 id；新章创建后赋值，章完成后清空
+	chapterReworked   bool   // 当前章节是否已返工过
+	lastVerdict       string // 最近一次 consistency 的结论标记
 
 	pendingRoute string
 	pendingMu    sync.Mutex
@@ -288,7 +299,6 @@ type bookAgentRun struct {
 	// consistency 节点的验证门禁状态。
 	consistencyVerified bool
 	consistencyRetries  int
-	reworkCount         int
 }
 
 func (r *bookAgentRun) run(ctx context.Context) {
@@ -298,7 +308,6 @@ func (r *bookAgentRun) run(ctx context.Context) {
 	r.currentPhase = "orchestrator"
 	r.currentAgent = "orchestrator"
 	r.stepCount = 0
-	r.chapterOrder = 1
 	r.handoff = agentHandoff{From: "user", Kind: "task", Summary: r.prompt, Output: r.prompt}
 
 	node := "orchestrator"
@@ -352,11 +361,18 @@ func (r *bookAgentRun) run(ctx context.Context) {
 		r.currentPhase = node
 		// 记录结构化 handoff（上下文隔离：默认只透传摘要，正文留在本节点）。
 		r.captureHandoff(node, msg.Content)
-		if node == "writer" {
+		switch node {
+		case "thinker":
+			// 解析大纲章节目录，初始化章节游标。
+			r.loadOutline(msg.Content)
+		case "writer":
+			// 新章则创建，返工/续写则更新当前章节。
 			r.autoSaveWriter(msg.Content)
-			r.chapterOrder++
-		}
-		if node == "consistency" {
+		case "editor":
+			// 把润色后的正文写回当前章节。
+			r.updateCurrentChapter(msg.Content)
+		case "consistency":
+			r.lastVerdict = r.consistencyVerdict(msg.Content)
 			r.recordIssues(msg.Content)
 		}
 
@@ -411,13 +427,63 @@ func (r *bookAgentRun) captureHandoff(node, content string) {
 		r.persistBoard()
 	case "writer":
 		r.lastDraft = content
-		if r.handoff.From != "consistency" {
-			r.appendProgress(fmt.Sprintf("第%d章 已写", r.chapterOrder))
-		}
 	case "editor":
 		r.lastDraft = content
 	}
 	r.handoff = agentHandoff{From: node, Kind: kind, Summary: summary, Output: content}
+}
+
+// ──────────────────── 章节循环（方案 A）────────────────────
+
+// loadOutline 解析 thinker 的大纲为章节目录，并初始化章节游标。
+func (r *bookAgentRun) loadOutline(outline string) {
+	r.outlineChapters = parseOutlineChapters(outline)
+	if len(r.outlineChapters) == 0 {
+		// 解析失败时退化为单章，保证流程不中断。
+		r.outlineChapters = []outlineChapter{{Title: "第1章"}}
+	}
+	r.completedChapters = 0
+	r.chapterID = ""
+	r.chapterReworked = false
+	r.consistencyVerified = false
+	r.consistencyRetries = 0
+	r.lastVerdict = ""
+}
+
+// currentChapter 返回当前待写/正在写的章节，越界时返回兜底章节。
+func (r *bookAgentRun) currentChapter() outlineChapter {
+	idx := r.completedChapters
+	if idx >= 0 && idx < len(r.outlineChapters) {
+		return r.outlineChapters[idx]
+	}
+	return outlineChapter{Title: fmt.Sprintf("第%d章", idx+1)}
+}
+
+// hasMoreChapters 报告是否还有未完成章节。
+func (r *bookAgentRun) hasMoreChapters() bool {
+	return r.completedChapters < len(r.outlineChapters)
+}
+
+// startNextChapter 切换到下一章：清空当前章节 id 与验证状态，使下一章
+// 由 autoSaveWriter 触发 CreateChapter。
+func (r *bookAgentRun) startNextChapter() {
+	r.chapterID = ""
+	r.chapterReworked = false
+	r.consistencyVerified = false
+	r.consistencyRetries = 0
+	r.lastVerdict = ""
+}
+
+// markChapterComplete 标记当前章节完成，并推进章节游标。
+func (r *bookAgentRun) markChapterComplete() {
+	ch := r.currentChapter()
+	title := ch.Title
+	if title == "" {
+		title = fmt.Sprintf("第%d章", r.completedChapters+1)
+	}
+	r.appendProgress(fmt.Sprintf("第%d章 《%s》 完成", r.completedChapters+1, title))
+	r.completedChapters++
+	r.startNextChapter()
 }
 
 func (r *bookAgentRun) appendProgress(item string) {
@@ -544,9 +610,15 @@ func (r *bookAgentRun) buildNodeInput(node string) string {
 		r.bookID, r.buildBookInfo(), r.prompt)
 
 	if node == "orchestrator" {
+		total := len(r.outlineChapters)
+		progress := fmt.Sprintf("章节进度：已完成 %d/%d 章。", r.completedChapters, total)
+		hint := "若还有未写章节，调用 route({ \"target\": \"writer\" })；若全部章节写完，调用 route({ \"target\": \"end\" })。"
+		if total == 0 {
+			hint = "首次启动请调用 route({ \"target\": \"thinker\" }) 生成大纲。"
+		}
 		return header + fmt.Sprintf(
-			"\n\n上一环节: %s\n上一环节摘要:\n%s\n\n请根据以上信息决定下一步，并只调用 route 工具。",
-			r.handoff.From, r.handoff.Summary)
+			"\n\n上一环节: %s\n上一环节摘要:\n%s\n\n%s\n%s",
+			r.handoff.From, r.handoff.Summary, progress, hint)
 	}
 
 	// 工作者节点：接收上游完整产物（上下文隔离下正文只在需要的节点出现）。
@@ -556,15 +628,23 @@ func (r *bookAgentRun) buildNodeInput(node string) string {
 		if r.handoff.From == "consistency" && r.lastDraft != "" {
 			upstream = "## 待修订正文\n\n" + r.lastDraft +
 				"\n\n## 需要修正的一致性问题\n\n" + r.issuesText() +
-				"\n\n请根据以上问题修订正文后调用 route 切换到 editor。"
+				"\n\n请根据以上问题修订本章正文后调用 route 切换到 editor。"
 		} else {
-			upstream = "## 上游大纲（来自 thinker）\n\n" + r.handoff.Output
+			ch := r.currentChapter()
+			upstream = fmt.Sprintf(
+				"## 全书大纲\n\n%s\n\n## 本次任务\n请撰写第 %d 章《%s》",
+				r.board.Plan, r.completedChapters+1, ch.Title)
+			if ch.Summary != "" {
+				upstream += "\n本章概要：" + ch.Summary
+			}
+			upstream += "\n\n只输出本章正文（Markdown），不要输出其它章节，也不要输出调度/说明文字。完成后调用 route 切换到 editor。"
 		}
 	case "editor":
-		upstream = "## 上游正文（来自 writer）\n\n" + r.handoff.Output
+		upstream = fmt.Sprintf("## 上游正文（第 %d 章《%s》）\n\n%s\n\n请润色后输出完整章节正文，并调用 route 切换到 consistency。",
+			r.completedChapters+1, r.currentChapter().Title, r.handoff.Output)
 	case "consistency":
-		upstream = "## 上游待检查内容（来自 editor）\n\n" + r.handoff.Output +
-			"\n\n请先调用 get_book_info 获取真实章节数据，再检查一致性。"
+		upstream = fmt.Sprintf("## 上游待检查内容（第 %d 章）\n\n%s", r.completedChapters+1, r.handoff.Output) +
+			"\n\n请先调用 get_book_info 获取真实章节数据，再检查一致性并调用 route 切换到 orchestrator。"
 	case "thinker":
 		upstream = "## 用户需求\n\n" + r.prompt
 	}
@@ -783,24 +863,32 @@ func (r *bookAgentRun) routePhase() string {
 	if r.currentPhase == "consistency" {
 		if !r.consistencyVerified && r.consistencyRetries < 1 {
 			r.consistencyRetries++
-			r.pendingMu.Lock()
-			r.pendingRoute = ""
-			r.pendingMu.Unlock()
+			r.clearPendingRoute()
 			return "consistency"
 		}
-		if r.hasOpenIssues() && r.reworkCount < 1 {
-			r.reworkCount++
-			r.pendingMu.Lock()
-			r.pendingRoute = ""
-			r.pendingMu.Unlock()
+		// 结论为“不通过”且尚未返工 → 退回 writer 重写当前章。
+		if r.lastVerdict == "不通过" && !r.chapterReworked {
+			r.chapterReworked = true
+			r.clearPendingRoute()
 			return "writer"
 		}
+		// 本章通过：推进章节游标。
+		r.markChapterComplete()
 	}
 
 	r.pendingMu.Lock()
 	target := r.pendingRoute
 	r.pendingRoute = ""
 	r.pendingMu.Unlock()
+
+	if target == "writer" && r.currentPhase == "orchestrator" {
+		// orchestrator 决定写下一章：若无剩余章节则结束。
+		if !r.hasMoreChapters() {
+			return bookAgentEnd
+		}
+		r.startNextChapter()
+		return "writer"
+	}
 
 	if target != "" {
 		if target == "end" {
@@ -823,16 +911,10 @@ func (r *bookAgentRun) routePhase() string {
 	}
 }
 
-// hasOpenIssues 报告一致性检查是否在黑板上记录了未解决的问题。
-func (r *bookAgentRun) hasOpenIssues() bool {
-	if r.board == nil {
-		return false
-	}
-	var issues []string
-	if err := json.Unmarshal(r.board.Issues, &issues); err != nil {
-		return false
-	}
-	return len(issues) > 0
+func (r *bookAgentRun) clearPendingRoute() {
+	r.pendingMu.Lock()
+	r.pendingRoute = ""
+	r.pendingMu.Unlock()
 }
 
 // ──────────────────── 工具执行 ────────────────────
@@ -1029,39 +1111,76 @@ func (r *bookAgentRun) toolRoute(args map[string]any) (string, error) {
 	return fmt.Sprintf("已切换到 %s，请继续执行。", target), nil
 }
 
-// ──────────────────── 写作节点自动保存 ────────────────────
+// ──────────────────── 章节解析与保存 ────────────────────
 
 var (
-	bookAgentTitleRe = regexp.MustCompile(`(?i)#?\s*第[一二三四五六七八九十0-9]+章\s*(.+)`)
-	bookAgentPureRe  = regexp.MustCompile(`(?i)^#?\s*第[一二三四五六七八九十0-9]+章\s*.+\n+`)
+	bookAgentChapterHeadingRe = regexp.MustCompile(`^\s*#{1,4}\s*第[0-9一二三四五六七八九十百零两]+\s*[章回节][\s:：]*(.*)$`)
+	bookAgentSummaryRe        = regexp.MustCompile(`^\s*[-*]?\s*概要[\s:：]*(.*)$`)
 )
 
-func (r *bookAgentRun) autoSaveWriter(content string) {
-	isRealContent := jsLen(content) > 100 &&
+// parseOutlineChapters 从大纲文本中提取章节标题与概要。
+func parseOutlineChapters(outline string) []outlineChapter {
+	var chapters []outlineChapter
+	for _, line := range strings.Split(outline, "\n") {
+		if m := bookAgentChapterHeadingRe.FindStringSubmatch(line); m != nil {
+			chapters = append(chapters, outlineChapter{Title: strings.TrimSpace(m[1])})
+			continue
+		}
+		if len(chapters) > 0 {
+			if m := bookAgentSummaryRe.FindStringSubmatch(line); m != nil {
+				chapters[len(chapters)-1].Summary = strings.TrimSpace(m[1])
+			}
+		}
+	}
+	return chapters
+}
+
+// stripChapterHeading 去掉正文开头重复的“# 第X章 标题”行。
+func stripChapterHeading(content string) string {
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		if bookAgentChapterHeadingRe.MatchString(line) {
+			return strings.TrimSpace(strings.Join(lines[i+1:], "\n"))
+		}
+		break
+	}
+	return strings.TrimSpace(content)
+}
+
+// isRealChapterContent 粗略判断是否为真正的章节正文（而非调度/工具文本）。
+func isRealChapterContent(content string) bool {
+	return jsLen(content) > 100 &&
 		!strings.Contains(content, "route(") &&
 		!strings.Contains(content, "<｜｜DSML｜｜") &&
 		!strings.Contains(content, "已收到") &&
 		!strings.Contains(content, "现调度") &&
-		!strings.Contains(content, "调度 editor") &&
-		(strings.Contains(content, "# 第") || strings.Contains(content, "## 第") || strings.Contains(content, "\n\n"))
-	if !isRealContent {
+		!strings.Contains(content, "调度 editor")
+}
+
+// autoSaveWriter 保存 writer 产出：新章创建，返工/续写则更新当前章节。
+func (r *bookAgentRun) autoSaveWriter(content string) {
+	if !isRealChapterContent(content) {
 		return
 	}
-
-	title := fmt.Sprintf("第%d章", r.chapterOrder)
-	if m := bookAgentTitleRe.FindStringSubmatch(content); m != nil {
-		title = strings.TrimSpace(m[1])
+	ch := r.currentChapter()
+	title := strings.TrimSpace(ch.Title)
+	if title == "" {
+		title = fmt.Sprintf("第%d章", r.completedChapters+1)
 	}
-	pureContent := strings.TrimSpace(bookAgentPureRe.ReplaceAllString(content, ""))
+	pureContent := stripChapterHeading(content)
 	if jsLen(pureContent) <= 50 {
 		return
 	}
 
-	if r.draftChapterID != "" {
-		if _, err := db.UpdateChapter(r.draftChapterID, map[string]any{
+	if r.chapterID != "" {
+		// 返工或续写：更新同一条章节。
+		if _, err := db.UpdateChapter(r.chapterID, map[string]any{
 			"title": title, "content": pureContent, "wordCount": int64(jsLen(pureContent)),
 		}); err != nil {
-			log.Printf("[auto-save] 草稿章节更新失败: %v", err)
+			log.Printf("[auto-save] 章节更新失败: %v", err)
 		}
 		return
 	}
@@ -1072,14 +1191,35 @@ func (r *bookAgentRun) autoSaveWriter(content string) {
 		Title:     title,
 		Content:   pureContent,
 		WordCount: int64(jsLen(pureContent)),
-		Order:     int64(r.chapterOrder),
+		Order:     int64(r.completedChapters + 1),
 		Metadata:  json.RawMessage("{}"),
 	})
 	if err != nil {
-		log.Printf("[auto-save] 章节保存失败: %v", err)
+		log.Printf("[auto-save] 章节创建失败: %v", err)
 		return
 	}
-	r.draftChapterID = created.ID
+	r.chapterID = created.ID
+}
+
+// updateCurrentChapter 用 editor 润色后的正文更新当前章节。
+func (r *bookAgentRun) updateCurrentChapter(content string) {
+	if r.chapterID == "" {
+		return
+	}
+	pureContent := stripChapterHeading(content)
+	if jsLen(pureContent) <= 50 {
+		return
+	}
+	ch := r.currentChapter()
+	title := strings.TrimSpace(ch.Title)
+	if title == "" {
+		title = fmt.Sprintf("第%d章", r.completedChapters+1)
+	}
+	if _, err := db.UpdateChapter(r.chapterID, map[string]any{
+		"title": title, "content": pureContent, "wordCount": int64(jsLen(pureContent)),
+	}); err != nil {
+		log.Printf("[auto-save] 编辑后章节更新失败: %v", err)
+	}
 }
 
 // ──────────────────── 书籍信息头部 ────────────────────

@@ -566,7 +566,7 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
                 >
                   {statusMeta.label}
                 </span>
-                <div className="max-w-[70%] rounded-2xl rounded-br-sm bg-accent px-3 py-2 text-xs text-white whitespace-pre-wrap break-words shadow-sm">
+                <div className="max-w-[70%] rounded-2xl rounded-br-sm bg-accent px-3 py-2 text-xs text-white whitespace-pre-wrap wrap-break-word shadow-sm">
                   {turn.title}
                 </div>
               </div>

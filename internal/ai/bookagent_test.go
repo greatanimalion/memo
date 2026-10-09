@@ -200,3 +200,63 @@ func TestConsistencyVerdict(t *testing.T) {
 		}
 	}
 }
+
+func TestParseOutlineChapters(t *testing.T) {
+	outline := "# 书名\n\n## 章节目录\n\n" +
+		"### 第一章: 开端\n- 概要: 主角登场\n- 预计字数: 1000\n\n" +
+		"### 第二章：冲突\n- 概要: 矛盾升级\n"
+	chapters := parseOutlineChapters(outline)
+	if len(chapters) != 2 {
+		t.Fatalf("expected 2 chapters, got %d (%+v)", len(chapters), chapters)
+	}
+	if chapters[0].Title != "开端" || chapters[0].Summary != "主角登场" {
+		t.Fatalf("chapter 0 = %+v", chapters[0])
+	}
+	if chapters[1].Title != "冲突" || chapters[1].Summary != "矛盾升级" {
+		t.Fatalf("chapter 1 = %+v", chapters[1])
+	}
+}
+
+func TestBookAgentCreatesMultipleChapters(t *testing.T) {
+	book, err := db.CreateBook(&db.Book{ID: db.NewID(), Title: "多章节测试"})
+	if err != nil {
+		t.Fatalf("create book: %v", err)
+	}
+
+	run := &bookAgentRun{bookID: book.ID}
+	run.board = &db.BookAgentState{
+		BookID:   book.ID,
+		Progress: json.RawMessage("[]"),
+		Issues:   json.RawMessage("[]"),
+	}
+	run.loadOutline("### 第一章: 开端\n- 概要: 开始\n### 第二章: 结局\n- 概要: 结束")
+	if len(run.outlineChapters) != 2 {
+		t.Fatalf("outline parse = %+v", run.outlineChapters)
+	}
+
+	// 第一章
+	run.autoSaveWriter(strings.Repeat("这是第一章的正文内容，用于测试。", 12))
+	if run.chapterID == "" {
+		t.Fatal("chapter 1 not created")
+	}
+	firstID := run.chapterID
+	run.markChapterComplete()
+	if run.chapterID != "" {
+		t.Fatalf("chapterID should reset after completion, got %q", run.chapterID)
+	}
+
+	// 第二章
+	run.autoSaveWriter(strings.Repeat("这是第二章的正文内容，用于测试。", 12))
+	if run.chapterID == "" || run.chapterID == firstID {
+		t.Fatalf("chapter 2 not created as a new row (id=%q first=%q)", run.chapterID, firstID)
+	}
+	run.markChapterComplete()
+
+	metas, err := db.GetChapterMetaByBookID(book.ID)
+	if err != nil {
+		t.Fatalf("list chapters: %v", err)
+	}
+	if len(metas) != 2 {
+		t.Fatalf("expected 2 chapters persisted, got %d", len(metas))
+	}
+}

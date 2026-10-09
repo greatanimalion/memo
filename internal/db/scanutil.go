@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-// rowScanner is satisfied by both *sql.Row and *sql.Rows.
+// rowScanner 可由 *sql.Row 和 *sql.Rows 同时实现。
 type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-// normalizeJSON replaces an empty/NULL text column with the supplied default
-// (e.g. "[]" or "{}") so the API never returns a bare null for JSON columns.
+// normalizeJSON 用给定的默认值（如 "[]" 或 "{}"）替换空的/NULL 文本列，
+// 以确保 API 不会为 JSON 列返回裸 null。
 func normalizeJSON(raw, def string) json.RawMessage {
 	t := bytes.TrimSpace([]byte(raw))
 	if len(t) == 0 || string(t) == "null" {
@@ -21,8 +21,8 @@ func normalizeJSON(raw, def string) json.RawMessage {
 	return json.RawMessage(t)
 }
 
-// RawToString collapses a JSON scalar into the textual value stored in a TEXT
-// column: strings are unquoted, numbers/booleans keep their literal form.
+// RawToString 将 JSON 标量折叠为 TEXT 列中存储的文本值：
+// 字符串去掉引号，数字/布尔保留字面形式。
 func RawToString(raw json.RawMessage) string {
 	t := bytes.TrimSpace(raw)
 	if len(t) == 0 || string(t) == "null" {
@@ -37,8 +37,8 @@ func RawToString(raw json.RawMessage) string {
 	return string(t)
 }
 
-// RawToNullableString is RawToString but keeps JSON null as a nil pointer so
-// callers can bind SQL NULL.
+// RawToNullableString 与 RawToString 类似，但将 JSON null 保留为 nil 指针，
+// 以便调用方能够绑定 SQL NULL。
 func RawToNullableString(raw json.RawMessage) *string {
 	t := bytes.TrimSpace(raw)
 	if len(t) == 0 || string(t) == "null" {
@@ -54,7 +54,7 @@ func RawToNullableString(raw json.RawMessage) *string {
 	return &s
 }
 
-// RawToInt64 decodes a JSON number into an int64.
+// RawToInt64 将 JSON 数字解码为 int64。
 func RawToInt64(raw json.RawMessage) (int64, bool) {
 	t := bytes.TrimSpace(raw)
 	if len(t) == 0 {
@@ -73,9 +73,9 @@ func RawToInt64(raw json.RawMessage) (int64, bool) {
 	return 0, false
 }
 
-// buildQuotedUpdate is buildUpdate's sibling but back-quotes every column name
-// (needed for reserved words such as `order`). Untyped nil values are skipped;
-// typed nil pointers are kept so they bind as SQL NULL.
+// buildQuotedUpdate 是 buildUpdate 的变体，但会为每个列名加上反引号
+// （用于 `order` 等保留字）。无类型的 nil 值会被跳过；
+// 带类型的 nil 指针会保留，以便绑定为 SQL NULL。
 func buildQuotedUpdate(updates map[string]any, skip ...string) (string, []any) {
 	skipped := map[string]bool{}
 	for _, s := range skip {

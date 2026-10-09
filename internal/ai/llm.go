@@ -12,16 +12,15 @@ import (
 	"time"
 )
 
-// ModelConfig is the OpenAI compatible endpoint configuration. Both fields
-// come from the frontend: the user adds model + base URL himself in the
-// APIKey page, the backend keeps no preset list.
+// ModelConfig 是 OpenAI 兼容接口配置。两个字段均来自前端：用户在
+// APIKey 页面自行添加模型与 base URL，后端不保存预设列表。
 type ModelConfig struct {
 	Model string `json:"model"`
 	URL   string `json:"url"`
 }
 
-// ResolveRequest turns the frontend supplied model id and base URL into an
-// endpoint configuration, unchanged apart from trimming spaces.
+// ResolveRequest 将前端传入的模型 id 与 base URL 转为接口配置，
+// 除裁剪空白外不做其他改动。
 func ResolveRequest(name, baseURL string) ModelConfig {
 	return ModelConfig{
 		Model: strings.TrimSpace(name),
@@ -29,7 +28,7 @@ func ResolveRequest(name, baseURL string) ModelConfig {
 	}
 }
 
-// Message follows the OpenAI chat completion shape.
+// Message 遵循 OpenAI chat completion 的结构。
 type Message struct {
 	Role       string     `json:"role"`
 	Content    string     `json:"content"`
@@ -49,7 +48,7 @@ type ToolCallFunction struct {
 	Arguments string `json:"arguments"`
 }
 
-// Tool is an OpenAI function tool declaration.
+// Tool 是 OpenAI function 工具声明。
 type Tool struct {
 	Type     string       `json:"type"`
 	Function ToolFunction `json:"function"`
@@ -68,7 +67,7 @@ func FuncTool(name, description string, parameters map[string]any) Tool {
 	}
 }
 
-// Client talks to an OpenAI compatible /chat/completions endpoint.
+// Client 与 OpenAI 兼容的 /chat/completions 接口通信。
 type Client struct {
 	BaseURL     string
 	APIKey      string
@@ -155,7 +154,7 @@ func (c *Client) newRequest(ctx context.Context, body []byte) (*http.Request, er
 	return req, nil
 }
 
-// Chat performs a non streaming completion (used for the agent tool loop).
+// Chat 执行非流式补全（用于 Agent 工具循环）。
 func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*Message, error) {
 	body, err := c.buildBody(messages, tools, false)
 	if err != nil {
@@ -194,9 +193,8 @@ func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*M
 	return &msg, nil
 }
 
-// Stream performs a streaming completion. onDelta is invoked for every text
-// fragment. The accumulated assistant message (content + tool calls) is
-// returned.
+// Stream 执行流式补全。onDelta 对每个文本片段调用。
+// 返回累积后的 assistant 消息（内容 + 工具调用）。
 func (c *Client) Stream(ctx context.Context, messages []Message, tools []Tool, onDelta func(string)) (*Message, error) {
 	body, err := c.buildBody(messages, tools, true)
 	if err != nil {
@@ -301,8 +299,8 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
-// WithTimeout returns a context bound to the given timeout (streaming calls
-// use no timeout so long generations are not cut off).
+// WithTimeout 返回绑定指定超时的 context（流式调用不设超时，
+// 以免长内容生成被截断）。
 func WithTimeout(ctx context.Context, d time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, d)
 }

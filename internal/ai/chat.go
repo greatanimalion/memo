@@ -18,7 +18,7 @@ import (
 	_ "time/tzdata"
 )
 
-// Default system prompts, copied verbatim from langgraph.service.ts.
+// 默认 system 提示词，逐字取自 langgraph.service.ts。
 const (
 	ChatSystemPrompt = `你是一个中文 AI 助手。请简洁、准确地回答用户的问题。`
 
@@ -30,7 +30,7 @@ const (
 当用户请求相关操作时，请调用合适的工具。请用中文回复。`
 )
 
-// maxAgentRounds mirrors the previous maxRounds / recursionLimit = 10.
+// maxAgentRounds 对应此前的 maxRounds / recursionLimit = 10。
 const maxAgentRounds = 10
 
 const (
@@ -38,18 +38,18 @@ const (
 	doneEventText   = "[DONE]"
 )
 
-// Emitter is the SSE sink used by the handlers (satisfied by *response.SSE).
+// Emitter 是处理器使用的 SSE 输出接口（由 *response.SSE 实现）。
 type Emitter interface {
 	Write(event, data string)
 }
 
-// HistoryMessage is one entry of the request body `history` array.
+// HistoryMessage 是请求体 history 数组中的一项。
 type HistoryMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-// ChatRequest is the JSON body accepted by /api/chat-stream and /api/chat-agent.
+// ChatRequest 是 /api/chat-stream 和 /api/chat-agent 接受的 JSON 请求体。
 type ChatRequest struct {
 	Prompt       string           `json:"prompt"`
 	History      []HistoryMessage `json:"history"`
@@ -60,29 +60,29 @@ type ChatRequest struct {
 	SystemPrompt string           `json:"systemPrompt"`
 }
 
-// ──────────────────── Cancellation registry ────────────────────
+// ──────────────────── 取消注册表 ────────────────────
 
 var (
 	abortMu       sync.Mutex
 	abortControls = map[string]context.CancelFunc{}
 )
 
-// RegisterAbort stores the cancel function of an in flight request.
+// RegisterAbort 保存进行中请求的取消函数。
 func RegisterAbort(requestID string, cancel context.CancelFunc) {
 	abortMu.Lock()
 	defer abortMu.Unlock()
 	abortControls[requestID] = cancel
 }
 
-// UnregisterAbort drops the entry once the request finished.
+// UnregisterAbort 在请求结束后删除对应条目。
 func UnregisterAbort(requestID string) {
 	abortMu.Lock()
 	defer abortMu.Unlock()
 	delete(abortControls, requestID)
 }
 
-// AbortRequest cancels the request with the given id. It reports whether the
-// request existed (false means the caller should answer 404).
+// AbortRequest 取消指定 id 的请求。返回该请求是否存在
+// （false 表示调用方应返回 404）。
 func AbortRequest(requestID string) bool {
 	abortMu.Lock()
 	cancel, ok := abortControls[requestID]
@@ -96,11 +96,10 @@ func AbortRequest(requestID string) bool {
 	return ok
 }
 
-// ──────────────────── Streaming chat ────────────────────
+// ──────────────────── 流式对话 ────────────────────
 
-// RunChatStream mirrors LangGraphService.chatStream: a plain streaming
-// completion without tools. Every text fragment is emitted as a `message`
-// event, the run ends with `done` / `[DONE]`.
+// RunChatStream 对应 LangGraphService.chatStream：不带工具的纯流式补全。
+// 每个文本片段以 message 事件发出，运行以 done / [DONE] 结束。
 func RunChatStream(parent context.Context, req ChatRequest, sse Emitter) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
@@ -128,7 +127,7 @@ func RunChatStream(parent context.Context, req ChatRequest, sse Emitter) {
 	sse.Write("done", doneEventText)
 }
 
-// ──────────────────── Agent loop ────────────────────
+// ──────────────────── Agent 循环 ────────────────────
 
 type toolCallEvent struct {
 	Name string `json:"name"`
@@ -139,10 +138,9 @@ type toolResultEvent struct {
 	Result string `json:"result"`
 }
 
-// RunAgent mirrors LangGraphService.runAgent: a tool calling loop (at most
-// maxAgentRounds non streaming calls). Tool calls are announced with
-// `tool_call`, their results with `tool`, the final text is sent at once as a
-// single `message` event.
+// RunAgent 对应 LangGraphService.runAgent：工具调用循环（最多 maxAgentRounds
+// 次非流式调用）。工具调用以 tool_call 事件宣告，结果以 tool 事件发出，
+// 最终文本作为单个 message 事件一次性发送。
 func RunAgent(parent context.Context, req ChatRequest, sse Emitter) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
@@ -175,8 +173,8 @@ func RunAgent(parent context.Context, req ChatRequest, sse Emitter) {
 			for _, tc := range msg.ToolCalls {
 				result, toolErr := executeTool(tc.Function.Name, tc.Function.Arguments)
 				if toolErr != nil {
-					// ToolNode converts failures into an error tool result and
-					// lets the model retry (handleToolErrors defaults to true).
+					// ToolNode 将失败转换为错误工具结果并让模型重试
+					// （handleToolErrors 默认为 true）。
 					result = fmt.Sprintf("Error: %s\n Please fix your mistakes.", toolErr)
 				}
 				sse.Write("tool", jsonPayload(toolResultEvent{Name: tc.Function.Name, Result: result}))
@@ -217,9 +215,8 @@ func writeAbortOrError(sse Emitter, ctx context.Context, err error) {
 	sse.Write("error", err.Error())
 }
 
-// buildMessages assembles [system, ...history, user] the same way the previous
-// implementation did: role "user" stays a user message, every other role
-// becomes an assistant message.
+// buildMessages 按此前实现相同的方式组装 [system, ...history, user]：
+// role 为 "user" 的保持用户消息，其他角色均转为 assistant 消息。
 func buildMessages(req ChatRequest, defaultSystem string) []Message {
 	system := req.SystemPrompt
 	if system == "" {
@@ -237,8 +234,8 @@ func buildMessages(req ChatRequest, defaultSystem string) []Message {
 	return append(messages, Message{Role: "user", Content: req.Prompt})
 }
 
-// jsonPayload renders a payload exactly like JSON.stringify would: no HTML
-// escaping, no trailing newline, struct field order preserved.
+// jsonPayload 完全按照 JSON.stringify 的方式渲染载荷：不做 HTML 转义、
+// 无末尾换行、保持结构体字段顺序。
 func jsonPayload(v any) string {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -247,7 +244,7 @@ func jsonPayload(v any) string {
 	return strings.TrimRight(buf.String(), "\n")
 }
 
-// ──────────────────── Tools ────────────────────
+// ──────────────────── 工具 ────────────────────
 
 var agentTools = []Tool{
 	FuncTool("get_time", "获取当前日期和时间", map[string]any{
@@ -293,7 +290,7 @@ var agentTools = []Tool{
 	}),
 }
 
-// executeTool dispatches one tool call and returns its textual result.
+// executeTool 分发一次工具调用并返回其文本结果。
 func executeTool(name, rawArgs string) (string, error) {
 	switch name {
 	case "get_time":
@@ -331,7 +328,7 @@ type diaryDay struct {
 	Note  string          `json:"note"`
 }
 
-// writeDiary stores one day into the diary row identified by `date`.
+// writeDiary 将一天的数据写入由 date 标识的日记行。
 func writeDiary(rawArgs string) (string, error) {
 	var args writeDiaryArgs
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
@@ -364,7 +361,7 @@ type searchMemoryArgs struct {
 	Keyword string `json:"keyword"`
 }
 
-// searchMemory lists or searches non folder memories (get_memory tool).
+// searchMemory 列出或搜索非文件夹记忆（get_memory 工具）。
 func searchMemory(rawArgs string) (string, error) {
 	var args searchMemoryArgs
 	if rawArgs != "" {

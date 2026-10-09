@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Chapter mirrors the `chapters` table, including the full content.
+// Chapter 对应 `chapters` 表，包含完整正文内容。
 type Chapter struct {
 	ID        string          `json:"id"`
 	BookID    string          `json:"bookId"`
@@ -20,7 +20,7 @@ type Chapter struct {
 	Metadata  json.RawMessage `json:"metadata"`
 }
 
-// ChapterMeta is the content-less projection used by GET /books/:id/detail.
+// ChapterMeta 是 GET /books/:id/detail 使用的不含正文的投影结构。
 type ChapterMeta struct {
 	ID        string  `json:"id"`
 	BookID    string  `json:"bookId"`

@@ -14,7 +14,7 @@ import (
 	"memo/internal/db"
 )
 
-// ──────────────────── Prompts (verbatim from promot/*.ts) ────────────────────
+// ──────────────────── 提示词（逐字来自 promot/*.ts） ────────────────────
 
 const bookAgentOrchestratorPrompt = `你是一个图书项目的总调度员。
 
@@ -173,7 +173,7 @@ const (
 	bookAgentMaxNodeExecutions = 200
 )
 
-// BookAgentRequest is the JSON body accepted by POST /api/book-agent.
+// BookAgentRequest 是 POST /api/book-agent 接受的 JSON 请求体。
 type BookAgentRequest struct {
 	Prompt    string `json:"prompt"`
 	BookID    string `json:"bookId"`
@@ -183,8 +183,8 @@ type BookAgentRequest struct {
 	RequestID string `json:"requestId"`
 }
 
-// RunBookAgent mirrors BookAgentRunner.run: a multi agent writing workflow
-// driven by an explicit route tool, streaming SSE events to the client.
+// RunBookAgent 对应 BookAgentRunner.run：由显式 route 工具驱动的多 Agent
+// 写作工作流，并向客户端流式推送 SSE 事件。
 func RunBookAgent(parent context.Context, req BookAgentRequest, sse Emitter) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
@@ -202,7 +202,7 @@ func RunBookAgent(parent context.Context, req BookAgentRequest, sse Emitter) {
 	run.run(ctx)
 }
 
-// ──────────────────── run state ────────────────────
+// ──────────────────── 运行状态 ────────────────────
 
 type convMessage struct {
 	Agent     string `json:"agent"`
@@ -223,9 +223,8 @@ type toolResult struct {
 	Content string
 }
 
-// agentHandoff is the structured payload passed between agents (Trae-style
-// context isolation): only the summary is surfaced to the orchestrator, the
-// full output is handed to the downstream worker that consumes it.
+// agentHandoff 是 Agent 之间传递的结构化载荷（Trae 风格的上下文隔离）：
+// 仅摘要呈现给 orchestrator，完整产出交给下游工作 Agent 消费。
 type agentHandoff struct {
 	From    string `json:"from"`
 	Kind    string `json:"kind"`
@@ -233,8 +232,8 @@ type agentHandoff struct {
 	Output  string `json:"output"`
 }
 
-// bookAgentToolPermissions is the code level allow list per role. It replaces
-// the "do not call X" prompt-only constraints (defence in depth).
+// bookAgentToolPermissions 是代码层的按角色工具白名单，取代仅靠提示词的
+// “不要调用 X”约束（纵深防御）。
 var bookAgentToolPermissions = map[string]map[string]bool{
 	"orchestrator": {"route": true},
 	"thinker":      {"route": true, "get_book_info": true},
@@ -270,24 +269,23 @@ type bookAgentRun struct {
 
 	conversation []convMessage
 
-	// Trae-style additions ─────────────────────────────
-	// historySummary is the flattened cross-round context (previous user inputs
-	// + agent answers) injected as one system message instead of the whole
-	// shared transcript.
+	// Trae 风格扩展 ─────────────────────────────
+	// historySummary 是扁平化的跨轮上下文（此前的用户输入 + Agent 回答），
+	// 以单条 system 消息注入，而非共享完整对话记录。
 	historySummary string
-	// handoff is the structured output of the most recent agent node.
+	// handoff 是最近一次 Agent 节点的结构化产出。
 	handoff agentHandoff
-	// lastDraft keeps the latest chapter/edited content for rework.
+	// lastDraft 保留最新的章节/编辑内容，供返工使用。
 	lastDraft string
-	// board is the shared blackboard persisted per book.
+	// board 是按书籍持久化的共享黑板。
 	board *db.BookAgentState
 
-	// pendingToolMsg holds the assistant message whose tool calls are about to
-	// run; pendingToolResults are fed back to the same agent (ReAct style).
+	// pendingToolMsg 保存待执行工具调用的 assistant 消息；pendingToolResults
+	// 回传给同一个 Agent（ReAct 风格）。
 	pendingToolMsg     *Message
 	pendingToolResults []Message
 
-	// verification gate state for the consistency node.
+	// consistency 节点的验证门禁状态。
 	consistencyVerified bool
 	consistencyRetries  int
 	reworkCount         int
@@ -378,7 +376,7 @@ func (r *bookAgentRun) run(ctx context.Context) {
 	r.finish(status)
 }
 
-// loadBoard fetches (or initialises) the shared blackboard for the book.
+// loadBoard 获取（或初始化）该书籍的共享黑板。
 func (r *bookAgentRun) loadBoard() *db.BookAgentState {
 	board, err := db.GetBookAgentState(r.bookID)
 	if err != nil {
@@ -395,8 +393,8 @@ func (r *bookAgentRun) loadBoard() *db.BookAgentState {
 	return board
 }
 
-// captureHandoff records the structured result of a node. The orchestrator only
-// ever receives Summary; downstream workers receive the full Output.
+// captureHandoff 记录节点的结构化结果。orchestrator 仅接收 Summary；
+// 下游工作节点接收完整的 Output。
 func (r *bookAgentRun) captureHandoff(node, content string) {
 	kind := node
 	if node == "orchestrator" {
@@ -458,7 +456,7 @@ func (r *bookAgentRun) recordIssues(content string) {
 	r.persistBoard()
 }
 
-// consistencyVerdict extracts the "结论: 通过 / 不通过 / 待检" marker.
+// consistencyVerdict 提取“结论: 通过 / 不通过 / 待检”标记。
 func (r *bookAgentRun) consistencyVerdict(content string) string {
 	switch {
 	case strings.Contains(content, "结论: 不通过"), strings.Contains(content, "结论：不通过"):
@@ -480,7 +478,7 @@ func (r *bookAgentRun) persistBoard() {
 	}
 }
 
-// boardSummary renders the blackboard as a compact system context.
+// boardSummary 将黑板渲染为紧凑的 system 上下文。
 func (r *bookAgentRun) boardSummary() string {
 	if r.board == nil {
 		return ""
@@ -504,8 +502,8 @@ func (r *bookAgentRun) boardSummary() string {
 	return strings.TrimSpace(sb.String())
 }
 
-// buildAgentMessages builds a fresh, isolated context for one agent node:
-// system prompt + cross-round history summary + blackboard + this node's input.
+// buildAgentMessages 为单个 Agent 节点构建全新隔离的上下文：
+// system 提示词 + 跨轮历史摘要 + 黑板 + 本节点输入。
 func (r *bookAgentRun) buildAgentMessages(node string) []Message {
 	prompt, ok := bookAgentPrompts[node]
 	if !ok {
@@ -539,8 +537,8 @@ func (r *bookAgentRun) buildAgentMessages(node string) []Message {
 	return msgs
 }
 
-// buildNodeInput renders the task/handoff text for a node. Orchestrator sees
-// only summaries; workers see the upstream full output they must act on.
+// buildNodeInput 渲染节点的任务/handoff 文本。orchestrator 只看摘要；
+// 工作节点看到需要处理的上游完整产出。
 func (r *bookAgentRun) buildNodeInput(node string) string {
 	header := fmt.Sprintf("## 项目任务\n\n书籍ID: %s\n\n%s\n\n用户需求: %s",
 		r.bookID, r.buildBookInfo(), r.prompt)
@@ -584,10 +582,10 @@ func (r *bookAgentRun) issuesText() string {
 	return strings.Join(issues, "\n")
 }
 
-// buildHistoryContext flattens the book's earlier records (previous user inputs
-// + agent answers) into a single compact summary string.
+// buildHistoryContext 将该书籍更早的记录（此前的用户输入 + Agent 回答）
+// 扁平化为单个紧凑的摘要字符串。
 func (r *bookAgentRun) buildHistoryContext() string {
-	records, err := db.GetBookAgentsByBookID(r.bookID) // DESC by createdAt
+	records, err := db.GetBookAgentsByBookID(r.bookID) // 按 createdAt 倒序
 	if err != nil {
 		return ""
 	}
@@ -626,16 +624,15 @@ func (r *bookAgentRun) buildHistoryContext() string {
 	return strings.TrimSpace(sb.String())
 }
 
-// ──────────────────── conversation persistence ────────────────────
+// ──────────────────── 对话持久化 ────────────────────
 
 const (
 	bookAgentHistoryMaxMessages = 40
 	bookAgentHistoryMaxChars    = 3000
 )
 
-// initConversation creates a fresh record for this user input. The user input
-// is stored in Title, agent answers are accumulated in Messages, and Status
-// tracks the outcome (done/error/cancelled).
+// initConversation 为本次用户输入创建新记录。用户输入存于 Title，
+// Agent 回答累积在 Messages，Status 记录结果（done/error/cancelled）。
 func (r *bookAgentRun) initConversation() {
 	r.recordID = db.NewID()
 	r.conversation = nil
@@ -654,10 +651,10 @@ func (r *bookAgentRun) initConversation() {
 	}))
 }
 
-// buildHistoryContext is defined near the run loop above (returns a summary
-// string rather than a shared []Message transcript).
+// buildHistoryContext 定义在上方运行循环附近（返回摘要字符串，
+// 而非共享的 []Message 对话记录）。
 
-// saveMessages writes the whole conversation back to the bookAgent record.
+// saveMessages 将整个对话写回 bookAgent 记录。
 func (r *bookAgentRun) saveMessages() {
 	if r.recordID == "" {
 		return
@@ -671,9 +668,9 @@ func (r *bookAgentRun) saveMessages() {
 	}
 }
 
-// runAgent executes one agent node with an isolated context: the node gets its
-// own fresh message list (system prompt + history summary + blackboard + this
-// node's input) instead of the whole shared transcript (Trae-style isolation).
+// runAgent 以隔离上下文执行单个 Agent 节点：节点获得全新的消息列表
+// （system 提示词 + 历史摘要 + 黑板 + 本节点输入），而非共享完整对话记录
+// （Trae 风格隔离）。
 func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, error) {
 	msgs := r.buildAgentMessages(node)
 	// 工具回放只使用一次，避免污染下一次节点上下文。
@@ -735,8 +732,8 @@ func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, err
 	return out, nil
 }
 
-// collectToolCalls merges the standard tool calls returned by the model with
-// the DSML encoding and, as a last resort, the plain text heuristics.
+// collectToolCalls 合并模型返回的标准工具调用、DSML 编码解析结果，
+// 以及最后手段的纯文本启发式解析。
 func (r *bookAgentRun) collectToolCalls(msg *Message, fullContent string) []bookToolCall {
 	calls := make([]bookToolCall, 0, len(msg.ToolCalls)+1)
 	for _, tc := range msg.ToolCalls {
@@ -761,7 +758,7 @@ func (r *bookAgentRun) collectToolCalls(msg *Message, fullContent string) []book
 	return calls
 }
 
-// ──────────────────── routing ────────────────────
+// ──────────────────── 路由调度 ────────────────────
 
 func hasValidBookToolCalls(msg *Message) bool {
 	for _, tc := range msg.ToolCalls {
@@ -826,8 +823,7 @@ func (r *bookAgentRun) routePhase() string {
 	}
 }
 
-// hasOpenIssues reports whether the consistency check recorded unresolved
-// issues on the blackboard.
+// hasOpenIssues 报告一致性检查是否在黑板上记录了未解决的问题。
 func (r *bookAgentRun) hasOpenIssues() bool {
 	if r.board == nil {
 		return false
@@ -839,7 +835,7 @@ func (r *bookAgentRun) hasOpenIssues() bool {
 	return len(issues) > 0
 }
 
-// ──────────────────── tool execution ────────────────────
+// ──────────────────── 工具执行 ────────────────────
 
 func (r *bookAgentRun) executeTools() []toolResult {
 	if r.pendingToolMsg == nil {
@@ -1033,7 +1029,7 @@ func (r *bookAgentRun) toolRoute(args map[string]any) (string, error) {
 	return fmt.Sprintf("已切换到 %s，请继续执行。", target), nil
 }
 
-// ──────────────────── writer auto save ────────────────────
+// ──────────────────── 写作节点自动保存 ────────────────────
 
 var (
 	bookAgentTitleRe = regexp.MustCompile(`(?i)#?\s*第[一二三四五六七八九十0-9]+章\s*(.+)`)
@@ -1086,7 +1082,7 @@ func (r *bookAgentRun) autoSaveWriter(content string) {
 	r.draftChapterID = created.ID
 }
 
-// ──────────────────── book info header ────────────────────
+// ──────────────────── 书籍信息头部 ────────────────────
 
 func (r *bookAgentRun) buildBookInfo() string {
 	book, err := db.GetBook(r.bookID)
@@ -1118,7 +1114,7 @@ func (r *bookAgentRun) buildBookInfo() string {
 	return sb.String()
 }
 
-// ──────────────────── DB record ────────────────────
+// ──────────────────── 数据库记录 ────────────────────
 
 func (r *bookAgentRun) finish(status string) {
 	r.saveMessages()

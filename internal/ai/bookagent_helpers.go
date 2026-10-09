@@ -12,14 +12,14 @@ import (
 	"unicode/utf16"
 )
 
-// ──────────────────── JS compatible string helpers ────────────────────
+// ──────────────────── JS 兼容字符串辅助函数 ────────────────────
 
-// jsLen mirrors JavaScript's String#length (UTF-16 code units).
+// jsLen 对应 JavaScript 的 String#length（UTF-16 码元）。
 func jsLen(s string) int {
 	return len(utf16.Encode([]rune(s)))
 }
 
-// jsSlice mirrors String#slice using UTF-16 indexes.
+// jsSlice 使用 UTF-16 索引对应 String#slice。
 func jsSlice(s string, start, end int) string {
 	u := utf16.Encode([]rune(s))
 	if start < 0 {
@@ -61,8 +61,8 @@ func toString(v any) string {
 	}
 }
 
-// marshalNoHTML serialises JSON without escaping <, > and & (the previous
-// server stored conversation messages verbatim).
+// marshalNoHTML 序列化 JSON 时不对 <、> 和 & 转义（此前的
+// 服务端逐字存储对话消息）。
 func marshalNoHTML(v any) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -84,7 +84,7 @@ func randInt(n int) int {
 	return int(v.Int64())
 }
 
-// ──────────────────── Text fallback parsing (mirrors dsml.ts) ────────────────────
+// ──────────────────── 纯文本回退解析（对应 dsml.ts） ────────────────────
 
 var (
 	bookAgentJSONCallRe   = regexp.MustCompile(`(?i)([A-Za-z0-9_]+)\s*\(\s*(\{[^}]+\})\s*\)`)
@@ -93,7 +93,7 @@ var (
 	bookAgentTargetRe     = regexp.MustCompile(`(?i)(?:\x{76EE}\x{6807}|target)[\x{FF1A}:]\s*[\x60"']?([A-Za-z0-9_]+)`)
 )
 
-// parseTextToolCalls handles models that emit tool calls as plain text.
+// parseTextToolCalls 处理以纯文本形式输出工具调用的模型。
 func parseTextToolCalls(content string) []bookToolCall {
 	calls := []bookToolCall{}
 
@@ -119,7 +119,7 @@ func parseTextToolCalls(content string) []bookToolCall {
 	return calls
 }
 
-// inferToolArgs mirrors inferToolArgs(): nil means "cannot infer, skip".
+// inferToolArgs 对应 inferToolArgs()：nil 表示“无法推断，跳过”。
 func inferToolArgs(toolName, content string) map[string]any {
 	switch toolName {
 	case "get_book_info":

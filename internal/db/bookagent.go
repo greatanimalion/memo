@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// BookAgent mirrors the `bookAgent` table. messages is TEXT JSON that is always
-// serialised back as a JSON array.
+// BookAgent 对应 `bookAgent` 表。messages 是 TEXT JSON，序列化时始终
+// 作为 JSON 数组返回。
 type BookAgent struct {
 	ID        string          `json:"id"`
 	BookID    string          `json:"bookId"`
@@ -62,8 +62,8 @@ func GetBookAgent(id string) (*BookAgent, error) {
 	return scanBookAgent(DB().QueryRow("SELECT "+bookAgentColumns+" FROM bookAgent WHERE id = ?", id))
 }
 
-// GetFirstBookAgentByBookID returns the oldest conversation record for a book.
-// One bookId maps to exactly one conversation context.
+// GetFirstBookAgentByBookID 返回某本书最早的会话记录。
+// 一个 bookId 恰好对应一个会话上下文。
 func GetFirstBookAgentByBookID(bookID string) (*BookAgent, error) {
 	return scanBookAgent(DB().QueryRow(
 		"SELECT "+bookAgentColumns+" FROM bookAgent WHERE bookId = ? ORDER BY createdAt ASC LIMIT 1", bookID))

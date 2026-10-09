@@ -8,9 +8,8 @@ import (
 
 var identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-// buildUpdate turns a partial update map into `col = ?` fragments. Values that
-// cannot be used as SQL identifiers are skipped (defensive: the keys always
-// come from our own code, never from user input).
+// buildUpdate 将部分更新映射转换为 `col = ?` 片段。无法用作 SQL 标识符的
+// 键会被跳过（防御性处理：键始终来自自身代码，绝不来自用户输入）。
 func buildUpdate(updates map[string]any, skip ...string) ([]string, []any) {
 	skipped := map[string]bool{}
 	for _, s := range skip {
@@ -35,7 +34,7 @@ func joinFields(fields []string) string {
 	return strings.Join(fields, ", ")
 }
 
-// insertColumns builds an INSERT statement for the given column list.
+// insertColumns 为给定的列列表构建 INSERT 语句。
 func insertColumns(columns []string) string {
 	placeholders := make([]string, len(columns))
 	for i := range columns {

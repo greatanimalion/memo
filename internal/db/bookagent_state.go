@@ -6,9 +6,8 @@ import (
 	"time"
 )
 
-// BookAgentState is the shared "blackboard" for a book's agent workflow. It
-// carries the structured plan, chapter progress and pending issues across
-// agent runs and rounds, mirroring Trae's shared state layer.
+// BookAgentState 是书籍 Agent 工作流的共享"黑板"。它在多次 Agent 运行与
+// 轮次之间承载结构化计划、章节进度和待处理问题，对应 Trae 的共享状态层。
 type BookAgentState struct {
 	BookID    string          `json:"bookId"`
 	Plan      string          `json:"plan"`

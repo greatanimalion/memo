@@ -82,8 +82,8 @@ var schemaStatements = []string{
 		"updatedAt INTEGER NOT NULL DEFAULT 0)",
 }
 
-// migrations mirror the best-effort ALTERs executed by the previous
-// DatabaseHelper.runMigrations(): failures mean the column already exists.
+// migrations 对应此前 DatabaseHelper.runMigrations() 中尽力执行的 ALTER 语句：
+// 执行失败意味着该列已存在。
 var migrations = []string{
 	"ALTER TABLE books DROP COLUMN author",
 	"ALTER TABLE books ADD COLUMN volumes TEXT NOT NULL DEFAULT '[]'",

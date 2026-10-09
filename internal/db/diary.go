@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 )
 
-// Diary mirrors the `diarys` table. monthDiarys is kept as raw JSON so no
-// per-day structure is ever lost on write.
+// Diary 对应 `diarys` 表。monthDiarys 以原始 JSON 形式保存，
+// 确保写入时不丢失任何按天的结构。
 type Diary struct {
 	ID          string                     `json:"id"`
 	MonthDiarys map[string]json.RawMessage `json:"monthDiarys"`
@@ -51,8 +51,8 @@ func CreateDiary(d *Diary) (*Diary, error) {
 	return d, nil
 }
 
-// UpdateDiary upserts: the previous implementation created the row when the
-// UPDATE matched nothing.
+// UpdateDiary 执行 upsert：当 UPDATE 未匹配到任何行时会插入新行
+// （与此前实现的行为一致）。
 func UpdateDiary(id string, monthDiarys map[string]json.RawMessage) (*Diary, error) {
 	raw, err := json.Marshal(monthDiarys)
 	if err != nil {

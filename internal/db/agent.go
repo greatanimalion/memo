@@ -2,7 +2,7 @@ package db
 
 import "database/sql"
 
-// Agent mirrors the `agents` table / the frontend `MyAgent` type.
+// Agent 对应 `agents` 表 / 前端的 `MyAgent` 类型。
 type Agent struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

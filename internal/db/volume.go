@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Volume mirrors the `volumes` table.
+// Volume 对应 `volumes` 表。
 type Volume struct {
 	ID        string `json:"id"`
 	BookID    string `json:"bookId"`

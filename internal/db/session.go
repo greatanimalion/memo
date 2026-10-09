@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 )
 
-// Session mirrors the `sessions` table. messages is stored as TEXT JSON but is
-// always serialised back as a JSON array.
+// Session 对应 `sessions` 表。messages 以 TEXT JSON 存储，但序列化时
+// 始终作为 JSON 数组返回。
 type Session struct {
 	ID          string          `json:"id"`
 	Title       string          `json:"title"`

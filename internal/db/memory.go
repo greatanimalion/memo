@@ -6,7 +6,7 @@ import (
 	"memo/internal/jsonx"
 )
 
-// Memory mirrors the `memorys` table / the frontend `Memory` type.
+// Memory 对应 `memorys` 表 / 前端的 `Memory` 类型。
 type Memory struct {
 	ID          string     `json:"id"`
 	Title       string     `json:"title"`
@@ -106,8 +106,8 @@ func CreateMemory(m *Memory) error {
 	return err
 }
 
-// UpdateMemory applies a partial update; a nil/empty map returns false so the
-// caller can reproduce the previous "nothing to update" behaviour.
+// UpdateMemory 执行部分更新；若 map 为 nil/空则返回 false，
+// 使调用方能够延续此前"无内容可更新"的行为。
 func UpdateMemory(id string, updates map[string]any) (bool, error) {
 	fields, args := buildUpdate(updates, "id")
 	if len(fields) == 0 {

@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// ──────────────────── helpers ────────────────────
+// ──────────────────── 辅助工具 ────────────────────
 
 type recordingEmitter struct {
 	events []string
@@ -109,7 +109,7 @@ func decodeSent(t *testing.T, raw []byte) sentRequest {
 	return sent
 }
 
-// ──────────────────── cancellation ────────────────────
+// ──────────────────── 取消 ────────────────────
 
 func TestRunChatStreamCancelledEmitsCancelThenDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -168,7 +168,7 @@ func TestAbortRequestCancelsAndForgets(t *testing.T) {
 	}
 }
 
-// ──────────────────── message assembly ────────────────────
+// ──────────────────── 消息组装 ────────────────────
 
 func TestBuildMessages(t *testing.T) {
 	req := ChatRequest{
@@ -202,7 +202,7 @@ func TestBuildMessages(t *testing.T) {
 	}
 }
 
-// ──────────────────── chat stream ────────────────────
+// ──────────────────── 流式对话 ────────────────────
 
 func TestRunChatStreamEventFlow(t *testing.T) {
 	var modelReq []byte
@@ -305,7 +305,7 @@ func TestRunChatStreamErrorEvent(t *testing.T) {
 	}
 }
 
-// ──────────────────── agent loop ────────────────────
+// ──────────────────── Agent 循环 ────────────────────
 
 func TestRunAgentToolLoop(t *testing.T) {
 	var bodies [][]byte
@@ -510,7 +510,7 @@ func TestRunAgentRecursionLimit(t *testing.T) {
 	}
 }
 
-// ──────────────────── tools ────────────────────
+// ──────────────────── 工具 ────────────────────
 
 func TestGetTimeToolFormat(t *testing.T) {
 	got, err := executeTool("get_time", "{}")
@@ -614,7 +614,7 @@ func TestGetMemoryTool(t *testing.T) {
 	}
 }
 
-// ──────────────────── payload formatting ────────────────────
+// ──────────────────── 载荷格式化 ────────────────────
 
 func TestJSONPayloadMatchesJSONStringify(t *testing.T) {
 	got := jsonPayload(toolResultEvent{Name: "get_memory", Result: "a<b>&c\"d"})

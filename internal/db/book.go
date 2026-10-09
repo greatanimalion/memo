@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Book mirrors the `books` table. tags/settings are stored as TEXT JSON and are
-// returned as JSON arrays/objects.
+// Book 对应 `books` 表。tags/settings 以 TEXT JSON 存储，
+// 返回时为 JSON 数组/对象。
 type Book struct {
 	ID          string          `json:"id"`
 	Title       string          `json:"title"`
@@ -19,7 +19,7 @@ type Book struct {
 	UpdatedAt   int64           `json:"updatedAt"`
 }
 
-// BookDetail is the shape returned by GET /books/:id/detail.
+// BookDetail 是 GET /books/:id/detail 返回的数据结构。
 type BookDetail struct {
 	Book
 	Chapters []ChapterMeta `json:"chapters"`

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// ──────────────────── SSE payload shapes ────────────────────
+// ──────────────────── SSE 载荷结构 ────────────────────
 
 type agentEvent struct {
 	Name string `json:"name"`
@@ -20,9 +20,9 @@ type bookAgentToolCallEvent struct {
 	Name  string `json:"name"`
 }
 
-// ──────────────────── DSML parsing (mirrors dsml.ts) ────────────────────
+// ──────────────────── DSML 解析（对应 dsml.ts） ────────────────────
 
-// dsmlBar is the fullwidth vertical bar used by DeepSeek's DSML markup.
+// dsmlBar 是 DeepSeek DSML 标记使用的全角竖线。
 const dsmlBar = "\uFF5C"
 
 var (
@@ -83,7 +83,7 @@ func inferScalar(value string) any {
 	return value
 }
 
-// parseDSMLToolCalls extracts DeepSeek DSML invoke blocks from the content.
+// parseDSMLToolCalls 从内容中提取 DeepSeek DSML invoke 块。
 func parseDSMLToolCalls(content string) []bookToolCall {
 	calls := []bookToolCall{}
 	start := 0
@@ -130,8 +130,8 @@ func containsBookToolCall(calls []bookToolCall, candidate bookToolCall) bool {
 	return false
 }
 
-// parseMessageToolCalls re-reads the tool calls stored on the assistant
-// message produced by runAgent.
+// parseMessageToolCalls 重新读取 runAgent 产生的 assistant 消息上
+// 存储的工具调用。
 func parseMessageToolCalls(msg Message) []bookToolCall {
 	calls := make([]bookToolCall, 0, len(msg.ToolCalls))
 	for _, tc := range msg.ToolCalls {

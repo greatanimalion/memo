@@ -18,8 +18,8 @@ var (
 	err  error
 )
 
-// Open opens (and initialises) the SQLite database. It is safe to call it
-// multiple times: the same handle is reused.
+// Open 打开（并初始化）SQLite 数据库。可安全地多次调用：
+// 将复用同一个句柄。
 func Open() (*sql.DB, error) {
 	once.Do(func() {
 		path := config.DBPath()
@@ -40,7 +40,7 @@ func Open() (*sql.DB, error) {
 	return db, err
 }
 
-// DB returns the already opened database handle.
+// DB 返回已打开的数据库句柄。
 func DB() *sql.DB {
 	h, openErr := Open()
 	if openErr != nil {

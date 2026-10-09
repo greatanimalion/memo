@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// NewRouter builds the mux that replaces the previous Express app.
+// NewRouter 构建用于替代之前 Express 应用的路由。
 func NewRouter() http.Handler {
 	r := chi.NewRouter()
 

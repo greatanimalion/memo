@@ -2,8 +2,8 @@ package jsonx
 
 import "encoding/json"
 
-// Flag represents an SQLite 0/1 integer column that may arrive as a JSON
-// boolean, number or null.
+// Flag 表示 SQLite 的 0/1 整数列，其 JSON 输入可能为
+// 布尔值、数字或 null。
 type Flag int
 
 func (f *Flag) UnmarshalJSON(data []byte) error {

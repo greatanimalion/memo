@@ -12,10 +12,10 @@ import (
 	"memo/internal/response"
 )
 
-// usageDateRe is the YYYY-MM-DD shape the client uses as the day key.
+// usageDateRe 是客户端用作日期键的 YYYY-MM-DD 格式。
 var usageDateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
-// registerUsageRoutes mounts the per-day typing/active time endpoints.
+// registerUsageRoutes 挂载按天统计的打字/活跃时长端点。
 func registerUsageRoutes(api chi.Router) {
 	api.Get("/usage", usageList)
 	api.Post("/usage/upsert", usageUpsert)
@@ -49,8 +49,8 @@ func usageUpsert(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, row, "保存成功")
 }
 
-// usageList serves ?from=YYYY-MM-DD&to=YYYY-MM-DD, or ?days=N (default 7) as
-// a shorthand for the N days ending today.
+// usageList 支持 ?from=YYYY-MM-DD&to=YYYY-MM-DD，或用 ?days=N（默认 7）
+// 简写表示截至今天的 N 天。
 func usageList(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	now := time.Now()

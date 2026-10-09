@@ -11,8 +11,7 @@ import (
 	"memo/internal/response"
 )
 
-// registerBookAgentRoutes mounts POST /api/book-agent (multi agent streaming
-// writing assistant).
+// registerBookAgentRoutes 挂载 POST /api/book-agent（多智能体流式写作助手）。
 func registerBookAgentRoutes(api chi.Router) {
 	api.Post("/book-agent", bookAgent)
 }

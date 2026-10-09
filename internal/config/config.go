@@ -6,12 +6,12 @@ import (
 	"runtime"
 )
 
-// Port is the HTTP port used by the local API server (same port the original
-// Express server listened on, so the frontend services layer keeps working).
+// Port 是本地 API 服务器使用的 HTTP 端口（与原 Express 服务器监听的端口
+// 相同，以保证前端 services 层继续正常工作）。
 const Port = 32068
 
-// IsDev reports whether the app is running from the project directory
-// (`wails dev`) instead of an installed build.
+// IsDev 判断应用是否从项目目录内运行（`wails dev`），
+// 而不是以安装后的构建形式运行。
 func IsDev() bool {
 	if os.Getenv("MEMORY_ENV") == "production" {
 		return false
@@ -23,7 +23,7 @@ func IsDev() bool {
 		return true
 	}
 	if exe, err := os.Executable(); err == nil {
-		// During `wails dev` the binary lives in <project>/build/bin/.
+		// 在 `wails dev` 期间，二进制文件位于 <project>/build/bin/ 下。
 		if _, statErr := os.Stat(filepath.Join(filepath.Dir(exe), "..", "..", "wails.json")); statErr == nil {
 			return true
 		}
@@ -48,9 +48,9 @@ func systemRoot() string {
 	return "/"
 }
 
-// DataDir mirrors the previous layout:
-//   - development: <project>/data
-//   - production:  <system root>/.MemoryData
+// DataDir 沿用之前的目录布局：
+//   - 开发环境：<project>/data
+//   - 生产环境：<系统根目录>/.MemoryData
 func DataDir() string {
 	if v := os.Getenv("MEMORY_DATA_DIR"); v != "" {
 		return v

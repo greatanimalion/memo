@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// Success writes the envelope used by the previous Express handlers:
+// Success 写入与原 Express 处理程序一致的响应封装：
 // {"code":200,"data":...,"message":"success"}
 func Success(w http.ResponseWriter, data any, message string) {
 	if message == "" {
@@ -19,7 +19,7 @@ func Success(w http.ResponseWriter, data any, message string) {
 	})
 }
 
-// Created mirrors Express' 201 response.
+// Created 对应 Express 的 201 响应。
 func Created(w http.ResponseWriter, data any, message string) {
 	if message == "" {
 		message = "created"
@@ -31,7 +31,7 @@ func Created(w http.ResponseWriter, data any, message string) {
 	})
 }
 
-// Fail mirrors errorResponse: {"code":status,"error":message}
+// Fail 对应 errorResponse：{"code":status,"error":message}
 func Fail(w http.ResponseWriter, status int, message string) {
 	write(w, status, map[string]any{
 		"code":  status,
@@ -39,7 +39,7 @@ func Fail(w http.ResponseWriter, status int, message string) {
 	})
 }
 
-// Raw writes a plain JSON body (used by the AI endpoints' validation errors).
+// Raw 写入纯 JSON 响应体（用于 AI 接口的参数校验错误）。
 func Raw(w http.ResponseWriter, status int, body map[string]any) {
 	write(w, status, body)
 }
@@ -50,14 +50,14 @@ func write(w http.ResponseWriter, status int, body any) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
-// SSE is a Server-Sent Events writer compatible with the previous
-// `sseWrite(res, event, data)` helper.
+// SSE 是 Server-Sent Events 写入器，兼容原有的
+// `sseWrite(res, event, data)` 辅助函数。
 type SSE struct {
 	w http.ResponseWriter
 	f http.Flusher
 }
 
-// StartSSE switches the response into event-stream mode.
+// StartSSE 将响应切换为 event-stream 模式。
 func StartSSE(w http.ResponseWriter) *SSE {
 	h := w.Header()
 	h.Set("Content-Type", "text/event-stream; charset=utf-8")

@@ -11,9 +11,8 @@ import (
 	"memo/internal/response"
 )
 
-// registerEntityRoutes mounts every CRUD endpoint that the previous Express
-// app served under /api (memory, diary, session, agent, book, chapter, volume,
-// bookAgent).
+// registerEntityRoutes 挂载之前 Express 应用在 /api 下提供的所有 CRUD
+// 端点（memory、diary、session、agent、book、chapter、volume、bookAgent）。
 func registerEntityRoutes(api chi.Router) {
 	registerMemoryRoutes(api)
 	registerDiaryRoutes(api)
@@ -24,8 +23,8 @@ func registerEntityRoutes(api chi.Router) {
 	registerUsageRoutes(api)
 }
 
-// entDecode reads a JSON body into T. An empty body yields the zero value,
-// mirroring Express' json middleware which turns it into {}.
+// entDecode 将 JSON 请求体读入 T。空请求体返回零值，
+// 与 Express 的 json 中间件将其转换为 {} 的行为一致。
 func entDecode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
 	var v T
 	if r.Body == nil {

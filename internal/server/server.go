@@ -12,7 +12,7 @@ import (
 	"memo/internal/config"
 )
 
-// Server hosts the local API server that replaces the previous Express app.
+// Server 承载本地 API 服务，用于替代之前的 Express 应用。
 type Server struct {
 	mu     sync.Mutex
 	server *http.Server
@@ -24,8 +24,7 @@ func New() *Server {
 	return &Server{done: make(chan struct{})}
 }
 
-// StartAsync runs the HTTP server in the background. `done` is closed once the
-// socket is actually listening.
+// StartAsync 在后台运行 HTTP 服务。套接字真正开始监听后会关闭 done 通道。
 func (s *Server) StartAsync() {
 	s.mu.Lock()
 	if s.server != nil {
@@ -58,7 +57,7 @@ func (s *Server) StartAsync() {
 	log.Printf("api server listening on http://localhost:%d", config.Port)
 }
 
-// WaitReady blocks until the server started listening (or the timeout).
+// WaitReady 阻塞直到服务开始监听（或超时）。
 func (s *Server) WaitReady(timeout time.Duration) bool {
 	select {
 	case <-s.done:
@@ -68,7 +67,7 @@ func (s *Server) WaitReady(timeout time.Duration) bool {
 	}
 }
 
-// Stop gracefully shuts the server down.
+// Stop 优雅地关闭服务。
 func (s *Server) Stop(ctx context.Context) {
 	s.mu.Lock()
 	srv := s.server

@@ -55,7 +55,9 @@ func UpsertBookAgentState(s *BookAgentState) (*BookAgentState, error) {
 	}
 	now := time.Now().UnixMilli()
 	if _, err := DB().Exec(
-		"INSERT INTO bookAgentState (bookId, plan, progress, issues, updatedAt) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO bookAgentState (bookId, plan, progress, issues, updatedAt) VALUES (?, ?, ?, ?, ?) "+
+			"ON CONFLICT(bookId) DO UPDATE SET plan = excluded.plan, progress = excluded.progress, "+
+			"issues = excluded.issues, updatedAt = excluded.updatedAt",
 		s.BookID, s.Plan, string(progress), string(issues), now,
 	); err != nil {
 		return nil, err

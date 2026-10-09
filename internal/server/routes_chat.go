@@ -15,7 +15,7 @@ import (
 	"memo/internal/response"
 )
 
-// registerChatRoutes mounts the streaming AI endpoints:
+// registerChatRoutes 挂载流式 AI 端点：
 //
 //	POST /api/chat-stream
 //	POST /api/chat-agent
@@ -26,7 +26,7 @@ func registerChatRoutes(api chi.Router) {
 	api.Get("/chat-cancel", chatCancelHandler)
 }
 
-// chatStreamHandler validates the body, then answers with a plain SSE stream.
+// chatStreamHandler 校验请求体后，以纯 SSE 流作出响应。
 func chatStreamHandler(w http.ResponseWriter, r *http.Request) {
 	req, ok := decodeChatBody(w, r)
 	if !ok {
@@ -47,7 +47,7 @@ func chatStreamHandler(w http.ResponseWriter, r *http.Request) {
 	ai.RunChatStream(r.Context(), req, response.StartSSE(w))
 }
 
-// chatAgentHandler validates the body, then runs the tool calling loop.
+// chatAgentHandler 校验请求体后，运行工具调用循环。
 func chatAgentHandler(w http.ResponseWriter, r *http.Request) {
 	req, ok := decodeChatBody(w, r)
 	if !ok {
@@ -68,7 +68,7 @@ func chatAgentHandler(w http.ResponseWriter, r *http.Request) {
 	ai.RunAgent(r.Context(), req, response.StartSSE(w))
 }
 
-// chatCancelHandler aborts an in flight request registered by requestId.
+// chatCancelHandler 中止由 requestId 注册的进行中的请求。
 func chatCancelHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := r.URL.Query().Get("requestId")
 	if requestID == "" {
@@ -97,7 +97,7 @@ type chatCancelAck struct {
 	Message string `json:"message"`
 }
 
-// writeChatJSON keeps the field order of Express' res.json({success, message}).
+// writeChatJSON 保持与 Express res.json({success, message}) 相同的字段顺序。
 func writeChatJSON(w http.ResponseWriter, status int, payload any) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)

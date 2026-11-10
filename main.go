@@ -43,6 +43,7 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
+		EnableDefaultContextMenu: false, // 禁用默认上下文菜单
 	})
 
 	if err != nil {

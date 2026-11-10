@@ -314,7 +314,6 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
                         elementsSelectable={interactive}
                         elevateNodesOnSelect={false}
                         onlyRenderVisibleElements
-                        proOptions={{ hideAttribution: true }} // 隐藏右下角水印
                         connectionLineStyle={{ stroke: theme.node.activeStroke, strokeWidth: 2, strokeDasharray: "5,5" }}
                     >
                         {backgroundMode !== "blank" ? (

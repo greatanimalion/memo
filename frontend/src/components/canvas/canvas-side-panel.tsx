@@ -86,7 +86,7 @@ export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreview
 
     return (
         <motion.div
-            className="relative z-[60] flex h-full shrink-0"
+            className="relative z-60 flex h-full shrink-0"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: panelOpen ? width + 1 : 0, opacity: panelOpen ? 1 : 0 }}
             transition={{ duration: resizing ? 0 : PANEL_MOTION_SECONDS, ease: PANEL_EASE }}
@@ -255,7 +255,7 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, on
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
                 {nodeViewMode === "grid" ? (
                     filtered.length ? (
-                        <div className="grid gap-2 px-1 [grid-template-columns:repeat(auto-fill,minmax(88px,1fr))]">
+                        <div className="grid gap-2 px-1 grid-cols-[repeat(auto-fill,minmax(88px,1fr))]">
                             {filtered.map((node) => {
                                 const Icon = NODE_TYPE_ICON[node.type] || FileText;
                                 const isImage = node.type === CanvasNodeType.Image && node.metadata?.content;

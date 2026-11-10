@@ -24,7 +24,6 @@
       "@renderer/*": ["./src/*"],
       "@type": ["./src/types"],
       "@type/*": ["./src/types/*"],
-      "@": ["./src"],
       "@/*": ["./src/*"]
     }
   },

@@ -33,7 +33,7 @@ export function isSiteTool(name: string): name is SiteToolName {
     return (SITE_TOOL_NAMES as readonly string[]).includes(name);
 }
 
-function siteText(key: string, options?: Record<string, unknown>) {
+function siteText(key: string, options: Record<string, unknown> = {}) {
     return i18n.t(`agent.siteTools.${key}`, options);
 }
 

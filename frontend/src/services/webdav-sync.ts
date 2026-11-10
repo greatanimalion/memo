@@ -4,7 +4,7 @@ import { withLocalProxy, type WebdavSyncConfig } from "@/store/use-config-store"
 export const WEBDAV_MANIFEST_FILE_NAME = "manifest.json";
 const WEBDAV_REQUEST_TIMEOUT_MS = 120000;
 const ensuredDirectories = new Set<string>();
-const webdavText = (key: string, options?: Record<string, unknown>) => i18n.t(`config.webdav.errors.${key}`, options);
+const webdavText = (key: string, options: Record<string, unknown> = {}) => i18n.t(`config.webdav.errors.${key}`, options);
 
 export async function testWebdavConnection(config: WebdavSyncConfig) {
     await ensureWebdavDirectory(config);

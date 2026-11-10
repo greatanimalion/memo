@@ -7,7 +7,7 @@ import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, withLocalPr
 import { runModelPlugin } from "./model-plugin";
 
 type RequestOptions = { signal?: AbortSignal };
-const apiText = (key: string, options?: Record<string, unknown>) => i18n.t(`apiErrors.${key}`, options);
+const apiText = (key: string, options: Record<string, unknown> = {}) => i18n.t(`apiErrors.${key}`, options);
 
 function aiApiUrl(config: AiConfig, path: string) {
     return buildApiUrl(config.baseUrl, path);

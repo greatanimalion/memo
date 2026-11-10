@@ -10,7 +10,7 @@ import { imageToDataUrl } from "@/services/image-storage";
 import { imageSizePresets, inferMediaScale } from "@/lib/media-size";
 import type { ReferenceImage } from "@/types/image";
 
-const apiText = (key: string, options?: Record<string, unknown>) => i18n.t(`apiErrors.${key}`, options);
+const apiText = (key: string, options: Record<string, unknown> = {}) => i18n.t(`apiErrors.${key}`, options);
 
 export type AiTextMessage = {
     role: "system" | "user" | "assistant";

@@ -6,6 +6,9 @@
   }
 }
 
+.react-flow__nodes .selected {
+  z-index: 3 !important;
+}
 
 /* 默认CSS变量（当没有主题类时使用） */
 :root {

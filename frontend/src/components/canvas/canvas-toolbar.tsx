@@ -69,6 +69,7 @@ export function CanvasToolbar({
     const [panelX, setPanelX] = useState(0);
     const [extensionsOpen, setExtensionsOpen] = useState(false);
     const [extPanelX, setExtPanelX] = useState(0);
+    const [containerWidth, setContainerWidth] = useState(0);
     // Keep extension plugin nodes synchronized with registry changes.
     useNodeRegistryVersion();
     const extensionDefs = listNodeDefinitions().filter((def) => def.showInCreateMenu !== false && getNodePluginId(def.type) !== "builtin");
@@ -89,6 +90,25 @@ export function CanvasToolbar({
         document.addEventListener("pointerdown", handlePointerDown, true);
         return () => document.removeEventListener("pointerdown", handlePointerDown, true);
     }, [extensionsOpen, appearanceOpen]);
+
+    // Track toolbar width so popovers can be clamped inside the visible area on narrow screens.
+    useEffect(() => {
+        const element = rootRef.current;
+        if (!element) return;
+        setContainerWidth(element.clientWidth);
+        const observer = new ResizeObserver(() => setContainerWidth(element.clientWidth));
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, []);
+
+    // Keep the popover fully visible: clamp its center so half of it never overflows the container.
+    const clampPanelX = (x: number, halfWidth: number) => {
+        if (!containerWidth) return x || "50%";
+        const min = halfWidth + 8;
+        const max = containerWidth - halfWidth - 8;
+        if (max < min) return containerWidth / 2;
+        return Math.min(Math.max(x || containerWidth / 2, min), max);
+    };
 
     return (
         <div ref={rootRef} className="pointer-events-none absolute bottom-5 z-50 flex justify-center" style={{ left: 300, right: 16 }} data-canvas-bottom-toolbar>
@@ -183,8 +203,8 @@ export function CanvasToolbar({
 
             {extensionsOpen && extensionDefs.length ? (
                 <div
-                    className="thin-scrollbar pointer-events-auto absolute bottom-[72px] z-30 max-h-[50vh] w-[240px] -translate-x-1/2 overflow-y-auto rounded-xl border p-2 shadow-xl backdrop-blur"
-                    style={{ left: extPanelX || "50%", background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item }}
+                    className="thin-scrollbar pointer-events-auto absolute bottom-18 z-30 max-h-[50vh] w-60 max-w-[calc(100%-16px)] -translate-x-1/2 overflow-y-auto rounded-xl border p-2 shadow-xl backdrop-blur"
+                    style={{ left: clampPanelX(extPanelX, 120), background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item }}
                 >
                     <div className="px-1.5 pb-1.5 text-[11px] font-medium opacity-50">{t("canvas.toolbar.extensions")}</div>
                     <div className="grid gap-0.5">
@@ -213,10 +233,10 @@ export function CanvasToolbar({
 
             {appearanceOpen ? (
                 <div
-                    className="pointer-events-auto absolute bottom-[72px] z-30 w-[248px] -translate-x-1/2 rounded-xl border p-2.5 shadow-xl backdrop-blur"
-                    style={{ left: panelX || "50%", background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item }}
+                    className="pointer-events-auto absolute bottom-18 z-30 w-62 max-w-[calc(100%-16px)] -translate-x-1/2 rounded-xl border p-2.5 shadow-xl backdrop-blur"
+                    style={{ left: clampPanelX(panelX, 124), background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item }}
                 >
-                    <div className="px-1 pb-2 text-sm font-medium opacity-65">{t("canvas.toolbar.appearance")}</div>
+                    {/* <div className="px-1 pb-2 text-sm font-medium opacity-65">{t("canvas.toolbar.appearance")}</div>
                     <div className="px-1 pb-1.5 text-[11px] font-medium opacity-50">{t("canvas.toolbar.themeMode")}</div>
                     <div className="grid grid-cols-2 gap-1 rounded-lg p-1" style={{ background: theme.toolbar.itemHover }}>
                         <CanvasThemeButton colorTheme={colorTheme} targetTheme="light" onThemeChange={setTheme}>
@@ -227,10 +247,11 @@ export function CanvasToolbar({
                             <Moon className="size-4" />
                             {t("canvas.toolbar.dark")}
                         </CanvasThemeButton>
-                    </div>
+                    </div> */}
                     <div className="mt-3 px-1 pb-1.5 text-[11px] font-medium opacity-50">{t("canvas.toolbar.gridStyle")}</div>
                     <Segmented
-                        className="w-full !p-1 [&_.ant-segmented-group]:!flex [&_.ant-segmented-item]:!min-h-8 [&_.ant-segmented-item]:!flex-1 [&_.ant-segmented-item-label]:!min-h-8 [&_.ant-segmented-item-label]:!leading-8"
+                        className="w-full p-1! [&_.ant-segmented-group]:flex! [&_.ant-segmented-item]:min-h-8! 
+                        [&_.ant-segmented-item]:flex-1! [&_.ant-segmented-item-label]:min-h-8! [&_.ant-segmented-item-label]:leading-8!"
                         value={backgroundMode}
                         onChange={(value) => onBackgroundModeChange(value as CanvasBackgroundMode)}
                         options={[

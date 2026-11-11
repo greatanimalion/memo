@@ -27,6 +27,16 @@
 
   // 禁止 Ctrl + '+' / '-' / '0'
   window.addEventListener('keydown', (e) => {
+     // 阻止 F5 刷新
+    if (event.key === 'F5') {
+        event.preventDefault();
+        return false;
+    }
+    // 阻止 Ctrl+R (Windows/Linux) 或 Cmd+R (macOS) 刷新
+    if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+        event.preventDefault();
+        return false;
+    }
     if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
       e.preventDefault();
     }

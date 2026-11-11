@@ -298,7 +298,6 @@ export const CanvasNode = React.memo(function CanvasNode({
             className={`node-element group/node flex h-full w-full select-none flex-col transition-shadow duration-200 ${referenceSelectionState === "available" ? "cursor-pointer" : referenceSelectionState ? "cursor-not-allowed" : ""}`}
             style={{
                 transition: "box-shadow 200ms ease",
-                zIndex: (isSelected ? 2 : 1)+'!important',
             }}
             onMouseEnter={() => {
                 setHovered(true);
@@ -946,7 +945,6 @@ function BatchFrame({ batchCount, batchExpanded, children }: { batchCount: numbe
                                 borderColor: theme.node.stroke,
                                 opacity: batchExpanded ? 0 : 1,
                                 transform: `translate(${10 + index * 6}px, ${4 + index * 3}px) rotate(${1.5 + index}deg)`,
-                                zIndex: -index - 1,
                             }}
                         />
                     ))}

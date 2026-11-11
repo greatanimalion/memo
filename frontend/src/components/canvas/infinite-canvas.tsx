@@ -75,7 +75,7 @@ const selectionOf = (flowNodes: FlowCanvasNode[]) => {
 const toFlowViewport = (viewport: ViewportTransform): Viewport => ({ x: viewport.x, y: viewport.y, zoom: viewport.k });
 const fromFlowViewport = (viewport: Viewport): ViewportTransform => ({ x: viewport.x, y: viewport.y, k: viewport.zoom });
 
-export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = "lines", nodes, connections, selectedNodeIds, selectedConnectionId, highlightedConnectionIds, interactive = true, renderNode, instanceRef, overlay, onViewportChange, onCanvasNodesChange, onCanvasSelectionChange, onNodesDelete, onConnectionSelect, onConnectionDelete, onNodeContextMenu, onConnectionContextMenu, validateConnection, onCanvasConnect, onConnectEnd, onNodeDragStart, onNodeDragStop, onPaneClick, onPaneDoubleClick, onPaneContextMenu, onDrop }: InfiniteCanvasProps) {
+export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = "dots", nodes, connections, selectedNodeIds, selectedConnectionId, highlightedConnectionIds, interactive = true, renderNode, instanceRef, overlay, onViewportChange, onCanvasNodesChange, onCanvasSelectionChange, onNodesDelete, onConnectionSelect, onConnectionDelete, onNodeContextMenu, onConnectionContextMenu, validateConnection, onCanvasConnect, onConnectEnd, onNodeDragStart, onNodeDragStop, onPaneClick, onPaneDoubleClick, onPaneContextMenu, onDrop }: InfiniteCanvasProps) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const localInstanceRef = useRef<CanvasFlowInstance | null>(null);
     const flowNodesRef = useRef<FlowCanvasNode[]>([]);
@@ -314,6 +314,7 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
                         elementsSelectable={interactive}
                         elevateNodesOnSelect={false}
                         onlyRenderVisibleElements
+                        proOptions={{ hideAttribution: true }} // 隐藏右下角水印
                         connectionLineStyle={{ stroke: theme.node.activeStroke, strokeWidth: 2, strokeDasharray: "5,5" }}
                     >
                         {backgroundMode !== "blank" ? (

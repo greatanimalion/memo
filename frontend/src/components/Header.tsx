@@ -17,23 +17,23 @@ const Header: React.FC = () => {
 
   return (
     <div
-      className="h-16 flex items-center justify-between px-4 dragArea relative z-9999"
+      className="h-12 flex items-center justify-between px-4 dragArea relative z-9999"
       ref={header}
       style={{ backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border-color)' }}
     >
       {/* 左侧：应用名称和面包屑 */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--text-primary)' }}>
+          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: 'var(--text-primary)' }}>
             <span className="font-bold text-sm" style={{ color: 'var(--bg-primary)' }}>本</span>
           </div>
-          <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>多功能记事本</h1>
+          <h1 className="font-semibold" style={{ color: 'var(--text-primary)' }}>多功能记事本</h1>
         </div>
       </div>
       {/* 右侧：工具图标 */}
-      <div className="flex items-center gap-3 noDragArea">
+      <div className="flex items-center gap-1 noDragArea">
         <button
-          className="p-2 rounded-lg transition-colors cursor-pointer"
+          className="p-2  transition-colors cursor-pointer"
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           onClick={() => handleClick("minimizeWindow")}
@@ -42,7 +42,7 @@ const Header: React.FC = () => {
         </button>
         {maximized ? (
           <button
-            className="p-2 rounded-lg transition-colors cursor-pointer"
+            className="p-2 transition-colors cursor-pointer"
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
@@ -53,7 +53,7 @@ const Header: React.FC = () => {
           </button>
         ) : (
           <button
-            className="p-2 rounded-lg transition-colors cursor-pointer"
+            className="p-2  transition-colors cursor-pointer"
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
@@ -64,7 +64,7 @@ const Header: React.FC = () => {
           </button>
         )}
         <button
-          className="p-2 rounded-lg transition-colors cursor-pointer"
+          className="p-2  transition-colors cursor-pointer"
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >

@@ -7,7 +7,7 @@ frontend/dist/
 build/bin/
 build/**/*.exe
 *.syso
-
+etc
 # Runtime data (SQLite + uploads)
 data/
 *.db

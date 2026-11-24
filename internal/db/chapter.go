@@ -122,6 +122,18 @@ func GetChapter(id string) (*Chapter, error) {
 	return scanChapter(DB().QueryRow("SELECT "+chapterColumns+" FROM chapters WHERE id = ?", id))
 }
 
+// GetChapterByOrder 按书籍与序号读取单章，避免为取上一章而载入全部正文。
+func GetChapterByOrder(bookID string, order int64) (*Chapter, error) {
+	return scanChapter(DB().QueryRow(
+		"SELECT "+chapterColumns+" FROM chapters WHERE bookId = ? AND `order` = ? LIMIT 1", bookID, order))
+}
+
+// GetLastChapterByBookID 读取某本书序号最大的章节（通常是最近写入的一章）。
+func GetLastChapterByBookID(bookID string) (*Chapter, error) {
+	return scanChapter(DB().QueryRow(
+		"SELECT "+chapterColumns+" FROM chapters WHERE bookId = ? ORDER BY `order` DESC LIMIT 1", bookID))
+}
+
 func CreateChapter(c *Chapter) (*Chapter, error) {
 	now := time.Now().UnixMilli()
 	created := c.CreatedAt

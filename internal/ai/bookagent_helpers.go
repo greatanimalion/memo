@@ -132,6 +132,8 @@ func inferToolArgs(toolName, content string) map[string]any {
 			return map[string]any{"target": m[1]}
 		}
 		return nil
+	case "get_chapter":
+		return map[string]any{}
 	default:
 		return nil
 	}

@@ -1,6 +1,10 @@
 import React, { useRef } from "react";
 import { Dropdown } from "antd";
-import { CopyOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons";
 import { XMarkdown } from "@ant-design/x-markdown";
 import { Think } from "@ant-design/x";
 import type { Message } from "@type/session";
@@ -13,6 +17,7 @@ interface MessageAreaProps {
   typingTarget: string;
   typingDate: string;
   typeId: string;
+  toolStatus?: string;
   onCopyMessage: (content: string) => void;
   onDeleteMessage: (msg: Message) => void;
 }
@@ -24,6 +29,7 @@ const MessageArea: React.FC<MessageAreaProps> = ({
   typingTarget,
   typingDate,
   typeId,
+  toolStatus,
   onCopyMessage,
   onDeleteMessage,
 }) => {
@@ -84,6 +90,18 @@ const MessageArea: React.FC<MessageAreaProps> = ({
             <div className="flex items-start gap-3 max-w-[85%]">
               <div className="flex-1">
                 <Think title="Complete thinking" blink loading={true} />
+                {toolStatus && (
+                  <div
+                    className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+                    style={{
+                      backgroundColor: "var(--bg-secondary)",
+                      color: "var(--accent-color)",
+                    }}
+                  >
+                    <LoadingOutlined spin />
+                    <span>{toolStatus}</span>
+                  </div>
+                )}
                 {typingTarget && (
                   <div className="rounded-2xl px-4 py-3 rounded-tl-sm" style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
                     <XMarkdown content={typingTarget} />

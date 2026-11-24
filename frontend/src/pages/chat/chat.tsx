@@ -60,6 +60,7 @@ const ChatPage: React.FC = () => {
   const [typingTarget, setTypingTarget] = useState("");
   const [typeId, setTypeId] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [toolStatus, setToolStatus] = useState("");
   const [openAgent, setOpenAgent] = useState(false);
   const [pendingResponse, setPendingResponse] = useState<{
     content: string;
@@ -115,6 +116,7 @@ const ChatPage: React.FC = () => {
 
       setIsThinking(true);
       setTypeId(currentSessionId);
+      setToolStatus("");
 
       let sessionToUpdate = currentSession;
 
@@ -200,6 +202,16 @@ const ChatPage: React.FC = () => {
               if (event === "message") {
                 accumulatedContent += data;
                 setTypingTarget(accumulatedContent);
+              } else if (event === "tool_call") {
+                try {
+                  const { name } = JSON.parse(data);
+                  if (name) setToolStatus(`正在调用工具：${name}…`);
+                } catch {}
+              } else if (event === "tool") {
+                try {
+                  const { name } = JSON.parse(data);
+                  if (name) setToolStatus(`工具 ${name} 已完成`);
+                } catch {}
               } else if (event === "error") {
                 throw new Error(data);
               } else if (event === "cancel") {
@@ -240,6 +252,7 @@ const ChatPage: React.FC = () => {
         }
       } finally {
         setTypeId("");
+        setToolStatus("");
         pushSessionToCurrentSession(sessionToUpdate);
         setTypingTarget("");
         updateSession(sessionToUpdate);
@@ -358,6 +371,7 @@ const ChatPage: React.FC = () => {
           typingTarget={typingTarget}
           typingDate={typingDate}
           typeId={typeId}
+          toolStatus={toolStatus}
           onCopyMessage={handleCopyMessage}
           onDeleteMessage={deleteMessage}
         />

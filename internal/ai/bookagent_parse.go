@@ -33,6 +33,7 @@ var (
 
 var bookAgentParamTypes = map[string]map[string]string{
 	"get_book_info":  {"bookId": "string"},
+	"get_chapter":    {"chapterId": "string", "bookId": "string"},
 	"save_chapter":   {"bookId": "string", "title": "string", "content": "string", "order": "number"},
 	"update_chapter": {"chapterId": "string", "title": "string", "content": "string"},
 	"route":          {"target": "string"},

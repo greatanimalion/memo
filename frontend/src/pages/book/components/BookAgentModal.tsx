@@ -47,6 +47,11 @@ function parseSSEBuffer(
   return { events, remaining };
 }
 
+function clipForPanel(text: string, max = 600): string {
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max)} …` : text;
+}
+
 interface BookAgentModalProps {
   open: boolean;
   onClose: () => void;
@@ -419,7 +424,7 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
           case "tool": {
             try {
               const { name, result } = JSON.parse(data);
-              appendToCurrentAgent(`\n[${name}] ${result}\n`);
+              appendToCurrentAgent(`\n[${name}] ${clipForPanel(result)}\n`);
             } catch {}
             break;
           }

@@ -299,15 +299,23 @@ GET  /api/memorySize     获取存储大小
 
 ### 写书多 Agent
 
-写书采用多 Agent 编排，每个 Agent 有独立的 System Prompt，通过 `route` 工具切换到下一个角色：
+写书采用「四角色 + 结构化台账」编排，每个 Agent 有独立的 System Prompt，通过 `route` 工具切换：
 
-1. **Orchestrator** — 总调度，只负责切换流程
-2. **Thinker** — 根据需求输出书籍大纲（"一句话核心" + 章节结构）
-3. **Writer** — 按大纲逐章写作
-4. **Editor** — 对 Writer 输出进行润色
-5. **Consistency** — 检查前后一致性，返回"通过"或问题列表
+1. **Orchestrator** — 主调度层，根据当前状态切换流程
+2. **Architect** — 冻结全书章位，输出章纲、出场角色与功能槽位（JSON）
+3. **Character**（按需激活）— 只为本章出场的主要角色启动，基于分层记忆输出决策包（行动/台词/内心/状态变化）
+4. **Writer** — 汇总决策包与台账上下文，渲染章节正文
+5. **Guard** — 定稿前校验正文与台账一致性，伏笔超期预警，矛盾则阻断返工
 
-状态持久化在 `bookAgentState` 表中，包括 `plan`、`progress`（已完成章节）、`issues`（问题列表）。
+结构化台账（Ledger）是唯一真相源，状态不存对话上下文：
+
+- `storyCharacters` / `characterEvents`：角色基础档案 + 变化事件流，当前状态由事件投影
+- `storyEvents`：按叙事章节索引的事件表
+- `storyLocations` / `locationEvents`：地点基础档案 + 状态版本事件流
+- `foreshadows`：伏笔埋设/回收计划与超期预警
+- `storyClock`：当前叙事时间指针
+
+草稿不写台账，只有 Guard 通过后的定稿版本才写回；`bookAgentState` 继续保存 `plan`、`progress`（已完成章节）与 `issues`（问题列表）。
 
 ---
 

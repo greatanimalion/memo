@@ -75,6 +75,82 @@ var schemaStatements = []string{
 		"issues TEXT NOT NULL DEFAULT '[]'," +
 		"updatedAt INTEGER NOT NULL DEFAULT 0," +
 		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
+	// ─────────── 结构化台账（Ledger）：长篇记忆的唯一真相源 ───────────
+	"CREATE TABLE IF NOT EXISTS storyCharacters (" +
+		"id TEXT PRIMARY KEY," +
+		"bookId TEXT NOT NULL," +
+		"name TEXT NOT NULL," +
+		"importance TEXT NOT NULL DEFAULT 'support'," +
+		"profile TEXT NOT NULL DEFAULT ''," +
+		"status TEXT NOT NULL DEFAULT 'alive'," +
+		"firstChapter INTEGER NOT NULL DEFAULT 0," +
+		"lastChapter INTEGER NOT NULL DEFAULT 0," +
+		"createdAt INTEGER NOT NULL DEFAULT 0," +
+		"updatedAt INTEGER NOT NULL DEFAULT 0," +
+		"UNIQUE(bookId, name)," +
+		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
+	"CREATE TABLE IF NOT EXISTS characterEvents (" +
+		"id TEXT PRIMARY KEY," +
+		"bookId TEXT NOT NULL," +
+		"characterId TEXT NOT NULL," +
+		"chapter INTEGER NOT NULL DEFAULT 0," +
+		"narrativeTime TEXT NOT NULL DEFAULT ''," +
+		"triggerEventId TEXT NOT NULL DEFAULT ''," +
+		"field TEXT NOT NULL," +
+		"oldValue TEXT NOT NULL DEFAULT ''," +
+		"newValue TEXT NOT NULL DEFAULT ''," +
+		"reason TEXT NOT NULL DEFAULT ''," +
+		"createdAt INTEGER NOT NULL DEFAULT 0)",
+	"CREATE INDEX IF NOT EXISTS idx_characterEvents_character ON characterEvents(characterId, chapter)",
+	"CREATE TABLE IF NOT EXISTS storyEvents (" +
+		"id TEXT PRIMARY KEY," +
+		"bookId TEXT NOT NULL," +
+		"chapter INTEGER NOT NULL DEFAULT 0," +
+		"narrativeTime TEXT NOT NULL DEFAULT ''," +
+		"summary TEXT NOT NULL DEFAULT ''," +
+		"characterIds TEXT NOT NULL DEFAULT '[]'," +
+		"locationId TEXT NOT NULL DEFAULT ''," +
+		"causeEventId TEXT NOT NULL DEFAULT ''," +
+		"stateDelta TEXT NOT NULL DEFAULT '{}'," +
+		"createdAt INTEGER NOT NULL DEFAULT 0)",
+	"CREATE INDEX IF NOT EXISTS idx_storyEvents_chapter ON storyEvents(bookId, chapter)",
+	"CREATE TABLE IF NOT EXISTS storyLocations (" +
+		"id TEXT PRIMARY KEY," +
+		"bookId TEXT NOT NULL," +
+		"name TEXT NOT NULL," +
+		"profile TEXT NOT NULL DEFAULT ''," +
+		"createdAt INTEGER NOT NULL DEFAULT 0," +
+		"updatedAt INTEGER NOT NULL DEFAULT 0," +
+		"UNIQUE(bookId, name)," +
+		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
+	"CREATE TABLE IF NOT EXISTS locationEvents (" +
+		"id TEXT PRIMARY KEY," +
+		"bookId TEXT NOT NULL," +
+		"locationId TEXT NOT NULL," +
+		"chapter INTEGER NOT NULL DEFAULT 0," +
+		"narrativeTime TEXT NOT NULL DEFAULT ''," +
+		"triggerEventId TEXT NOT NULL DEFAULT ''," +
+		"state TEXT NOT NULL DEFAULT ''," +
+		"reason TEXT NOT NULL DEFAULT ''," +
+		"createdAt INTEGER NOT NULL DEFAULT 0)",
+	"CREATE INDEX IF NOT EXISTS idx_locationEvents_location ON locationEvents(locationId, chapter)",
+	"CREATE TABLE IF NOT EXISTS foreshadows (" +
+		"id TEXT PRIMARY KEY," +
+		"bookId TEXT NOT NULL," +
+		"description TEXT NOT NULL," +
+		"plantedChapter INTEGER NOT NULL DEFAULT 0," +
+		"plannedResolveChapter INTEGER NOT NULL DEFAULT 0," +
+		"resolvedChapter INTEGER NOT NULL DEFAULT 0," +
+		"status TEXT NOT NULL DEFAULT 'open'," +
+		"createdAt INTEGER NOT NULL DEFAULT 0," +
+		"updatedAt INTEGER NOT NULL DEFAULT 0)",
+	"CREATE INDEX IF NOT EXISTS idx_foreshadows_book ON foreshadows(bookId, status)",
+	"CREATE TABLE IF NOT EXISTS storyClock (" +
+		"bookId TEXT PRIMARY KEY," +
+		"currentChapter INTEGER NOT NULL DEFAULT 0," +
+		"narrativeTime TEXT NOT NULL DEFAULT ''," +
+		"updatedAt INTEGER NOT NULL DEFAULT 0," +
+		"FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE)",
 	"CREATE TABLE IF NOT EXISTS usage_stats (" +
 		"date TEXT PRIMARY KEY," +
 		"typingMs INTEGER NOT NULL DEFAULT 0," +

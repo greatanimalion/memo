@@ -44,7 +44,7 @@ const ChatPage: React.FC = () => {
   const {
     sessions,
     currentSessionId,
-    currentSession,
+    currentSession, 
     agents,
     setAgents,
     prompt,

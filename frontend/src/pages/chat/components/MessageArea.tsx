@@ -61,11 +61,7 @@ const MessageArea: React.FC<MessageAreaProps> = ({
             <div
               className={`flex items-start gap-3 max-w-[85%] overflow-auto ${msg.role === "user" ? "flex-row-reverse" : ""}`}
             >
-              <div className="flex-1">
-                <Dropdown
-                  menu={{ items: getMessageActions(msg as Message) }}
-                  trigger={["contextMenu"]}
-                >
+              <div className="flex-1 group">
                   <div
                     className="rounded-2xl px-4 py-3"
                     style={{
@@ -79,7 +75,24 @@ const MessageArea: React.FC<MessageAreaProps> = ({
                       {formatTime(msg.timestamp || 0)}
                     </p>
                   </div>
-                </Dropdown>
+                {/* footer */}
+                {msg.role != "user" && (
+                  <>
+                    <div className="mt-1 flex h-7 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+                      {getMessageActions(msg as Message).map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={item.onClick}
+                          className="cursor-pointer  items-center gap-1 rounded-md px-2 py-1 text-xs leading-none text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                        >
+                          <span className="text-[13px]">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -114,7 +127,6 @@ const MessageArea: React.FC<MessageAreaProps> = ({
             </div>
           </div>
         )}
-
         <div ref={messagesEndRef} />
       </div>
     </div>

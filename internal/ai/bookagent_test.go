@@ -199,21 +199,27 @@ func TestBookAgentToolWhitelist(t *testing.T) {
 	if bookAgentToolAllowed("orchestrator", "save_chapter") {
 		t.Fatal("orchestrator must not be allowed save_chapter")
 	}
-	if bookAgentToolAllowed("thinker", "save_chapter") {
-		t.Fatal("thinker must not be allowed save_chapter")
+	if bookAgentToolAllowed("architect", "save_chapter") {
+		t.Fatal("architect must not be allowed save_chapter")
+	}
+	if !bookAgentToolAllowed("character", "get_chapter") {
+		t.Fatal("character should be allowed get_chapter")
+	}
+	if bookAgentToolAllowed("character", "save_chapter") {
+		t.Fatal("character must not be allowed save_chapter")
 	}
 	if !bookAgentToolAllowed("writer", "save_chapter") {
 		t.Fatal("writer should be allowed save_chapter")
 	}
-	if bookAgentToolAllowed("consistency", "update_chapter") {
-		t.Fatal("consistency must not be allowed update_chapter")
+	if bookAgentToolAllowed("guard", "update_chapter") {
+		t.Fatal("guard must not be allowed update_chapter")
 	}
 	if bookAgentToolAllowed("unknown", "route") {
 		t.Fatal("unknown role must not be allowed anything")
 	}
 }
 
-func TestConsistencyVerdict(t *testing.T) {
+func TestGuardVerdict(t *testing.T) {
 	run := &bookAgentRun{}
 	cases := map[string]string{
 		"检查完毕。\n结论: 通过":   "通过",
@@ -222,7 +228,7 @@ func TestConsistencyVerdict(t *testing.T) {
 		"未通过项（如有）: 无":     "",
 	}
 	for content, want := range cases {
-		if got := run.consistencyVerdict(content); got != want {
+		if got := run.guardVerdict(content); got != want {
 			t.Fatalf("verdict(%q) = %q, want %q", content, got, want)
 		}
 	}
@@ -262,40 +268,26 @@ func TestParseOutlineChaptersPlainFormats(t *testing.T) {
 	}
 }
 
-func TestRoutePhaseConsistencyVerdicts(t *testing.T) {
+func TestRoutePhaseGuardVerdicts(t *testing.T) {
 	book, err := db.CreateBook(&db.Book{ID: db.NewID(), Title: "路由判定"})
 	if err != nil {
 		t.Fatalf("create book: %v", err)
 	}
 	newRun := func() *bookAgentRun {
-		r := &bookAgentRun{bookID: book.ID, currentPhase: "consistency"}
+		r := &bookAgentRun{bookID: book.ID, currentPhase: "guard", chapterID: "ch-1"}
 		r.board = &db.BookAgentState{
 			BookID:   book.ID,
 			Progress: json.RawMessage("[]"),
 			Issues:   json.RawMessage("[]"),
 		}
 		r.outlineChapters = []outlineChapter{{Title: "第一章"}, {Title: "第二章"}}
+		r.lastDraft = strings.Repeat("定稿正文内容。", 20)
+		r.lastDraftCursor = 0
 		return r
 	}
 
-	// 未读取真实数据：即使结论是通过也必须重检。
+	// 通过：定稿写回台账并推进章节游标后回到 orchestrator。
 	r := newRun()
-	r.lastVerdict = "通过"
-	if got := r.routePhase(); got != "consistency" {
-		t.Fatalf("unverified verdict routed to %q, want consistency", got)
-	}
-
-	// 待检：重检一次。
-	r = newRun()
-	r.consistencyVerified = true
-	r.lastVerdict = "待检"
-	if got := r.routePhase(); got != "consistency" {
-		t.Fatalf("待检 routed to %q, want consistency", got)
-	}
-
-	// 通过：推进章节游标后回到 orchestrator。
-	r = newRun()
-	r.consistencyVerified = true
 	r.lastVerdict = "通过"
 	if got := r.routePhase(); got != "orchestrator" {
 		t.Fatalf("通过 routed to %q, want orchestrator", got)
@@ -306,13 +298,19 @@ func TestRoutePhaseConsistencyVerdicts(t *testing.T) {
 
 	// 不通过：退回 writer 返工，且不推进游标。
 	r = newRun()
-	r.consistencyVerified = true
 	r.lastVerdict = "不通过"
 	if got := r.routePhase(); got != "writer" {
 		t.Fatalf("不通过 routed to %q, want writer", got)
 	}
 	if !r.reworkPending || r.completedChapters != 0 {
 		t.Fatalf("reworkPending=%v completedChapters=%d", r.reworkPending, r.completedChapters)
+	}
+
+	// 无结论标记：先重检一次。
+	r = newRun()
+	r.lastVerdict = ""
+	if got := r.routePhase(); got != "guard" {
+		t.Fatalf("missing verdict routed to %q, want guard", got)
 	}
 }
 
@@ -356,16 +354,16 @@ func TestToolSaveChapterUpdatesCurrentInsteadOfDuplicating(t *testing.T) {
 }
 
 func TestRoutePhaseIgnoresIllegalTransition(t *testing.T) {
-	// editor 只能去 consistency；editor -> editor 属于非法跳转，应被忽略并走兜底。
-	r := &bookAgentRun{currentPhase: "editor", pendingRoute: "editor"}
-	if got := r.routePhase(); got != "consistency" {
-		t.Fatalf("illegal transition routed to %q, want consistency", got)
+	// writer 只能去 guard；writer -> architect 属于非法跳转，应被忽略并走兜底。
+	r := &bookAgentRun{currentPhase: "writer", pendingRoute: "architect", chapterID: "ch-1"}
+	if got := r.routePhase(); got != "guard" {
+		t.Fatalf("illegal transition routed to %q, want guard", got)
 	}
 
-	// writer 只能去 editor；writer -> orchestrator 应被忽略并走兜底。
-	r = &bookAgentRun{currentPhase: "writer", pendingRoute: "orchestrator", chapterID: "ch-1"}
-	if got := r.routePhase(); got != "editor" {
-		t.Fatalf("illegal transition routed to %q, want editor", got)
+	// architect 只能去 orchestrator/character/writer；architect -> architect 应被忽略。
+	r = &bookAgentRun{currentPhase: "architect", pendingRoute: "architect"}
+	if got := r.routePhase(); got != "orchestrator" {
+		t.Fatalf("illegal transition routed to %q, want orchestrator", got)
 	}
 }
 

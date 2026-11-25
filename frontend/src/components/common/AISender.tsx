@@ -181,7 +181,7 @@ const AISender: React.FC<{
           return (
             <Flex justify="space-between">
               <div className="flex gap-1 items-center">
-                <div className="max-[1400px]:hidden">
+                <div className="1max-[1400px]:hidden">
                   <Switch
                     value={openAgent}
                     checkedChildren={

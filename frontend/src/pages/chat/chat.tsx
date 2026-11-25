@@ -235,8 +235,11 @@ const ChatPage: React.FC = () => {
       } catch (error) {
         console.error("发送消息时出错:", error);
         if (!(error instanceof DOMException && error.name === "AbortError")) {
-          const errorMessage =
-            "抱歉，我在处理您的请求时遇到了问题，请稍后重试。";
+          const detail =
+            error instanceof Error ? error.message.trim() : String(error || "").trim();
+          const errorMessage = detail
+            ? `AI 调用失败：${detail}`
+            : "抱歉，我在处理您的请求时遇到了问题，请稍后重试。";
           sessionToUpdate = {
             ...sessionToUpdate,
             messages: [

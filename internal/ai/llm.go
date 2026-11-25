@@ -250,20 +250,28 @@ func (c *Client) buildBody(messages []Message, tools []Tool, stream bool) ([]byt
 	})
 }
 
+// requestHeaders 返回单次 AI 请求的请求头。集中在此便于请求发送与调试日志
+// 使用完全相同的头。
+func (c *Client) requestHeaders() http.Header {
+	headers := http.Header{}
+	headers.Set("Content-Type", "application/json")
+	headers.Set("Accept", "text/event-stream, application/json")
+	headers.Set("User-Agent", "memo-agent/1.0")
+	headers.Set("Authorization", "Bearer "+c.APIKey)
+	if strings.Contains(c.BaseURL, "openrouter.ai") {
+		headers.Set("HTTP-Referer", "https://localhost")
+		headers.Set("X-Title", "memo")
+	}
+	return headers
+}
+
 func (c *Client) newRequest(ctx context.Context, body []byte) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		c.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "text/event-stream, application/json")
-	req.Header.Set("User-Agent", "memo-agent/1.0")
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	if strings.Contains(c.BaseURL, "openrouter.ai") {
-		req.Header.Set("HTTP-Referer", "https://localhost")
-		req.Header.Set("X-Title", "memo")
-	}
+	req.Header = c.requestHeaders()
 	return req, nil
 }
 

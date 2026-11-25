@@ -408,7 +408,7 @@ func TestRunAgentWritesDiary(t *testing.T) {
 		t.Errorf("message event = %q", rec.events[2])
 	}
 
-	diary, err := db.GetDiary("2026-09-30")
+	diary, err := db.GetDiary("2026-09")
 	if err != nil || diary == nil {
 		t.Fatalf("diary read failed: %v", err)
 	}

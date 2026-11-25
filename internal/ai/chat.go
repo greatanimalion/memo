@@ -38,6 +38,31 @@ const (
 	doneEventText   = "[DONE]"
 )
 
+// streamWithHeaderLog 在每次 AI 调用前打印请求头，再执行流式请求。
+func streamWithHeaderLog(ctx context.Context, client *Client, messages []Message, tools []Tool, onDelta func(string)) (*Message, error) {
+	logAIRequestHeaders(client)
+	return client.Stream(ctx, messages, tools, onDelta)
+}
+
+// logAIRequestHeaders 打印单次 AI 调用的请求头。Authorization 会脱敏，
+// 避免把 API Key 明文写入日志。
+func logAIRequestHeaders(client *Client) {
+	headers := client.requestHeaders()
+	if auth := headers.Get("Authorization"); auth != "" {
+		headers.Set("Authorization", maskAuthorization(auth))
+	}
+	log.Printf("AI 请求头: %v", headers)
+}
+
+// maskAuthorization 完全隐藏 Bearer token，避免 API Key 出现在日志中。
+func maskAuthorization(value string) string {
+	const prefix = "Bearer "
+	if _, ok := strings.CutPrefix(value, prefix); ok {
+		return prefix + "***"
+	}
+	return "***"
+}
+
 // Emitter 是处理器使用的 SSE 输出接口（由 *response.SSE 实现）。
 type Emitter interface {
 	Write(event, data string)
@@ -65,6 +90,10 @@ type ChatRequest struct {
 var (
 	abortMu       sync.Mutex
 	abortControls = map[string]context.CancelFunc{}
+
+	// diaryWriteMu 串行化 AI 对日记的读-改-写，避免同轮多个 write_diary 调用
+	// 或并发请求互相覆盖同一个月份的数据。
+	diaryWriteMu sync.Mutex
 )
 
 // RegisterAbort 保存进行中请求的取消函数。
@@ -113,7 +142,7 @@ func RunChatStream(parent context.Context, req ChatRequest, sse Emitter) {
 
 	var runErr error
 	for continuation := 0; continuation < 3; continuation++ {
-		msg, err := client.Stream(ctx, messages, nil, func(fragment string) {
+		msg, err := streamWithHeaderLog(ctx, client, messages, nil, func(fragment string) {
 			if fragment != "" && ctx.Err() == nil {
 				sse.Write("message", fragment)
 			}
@@ -180,7 +209,7 @@ func RunAgent(parent context.Context, req ChatRequest, sse Emitter) {
 		// 每一轮都以流式方式调用：文本实时推送给前端，同时由客户端累积
 		// 工具调用。对忽略 stream=true 的服务端，Client 会自动回退。
 		streamed := false
-		msg, err := client.Stream(ctx, messages, tools, func(delta string) {
+		msg, err := streamWithHeaderLog(ctx, client, messages, tools, func(delta string) {
 			if delta == "" || ctx.Err() != nil {
 				return
 			}
@@ -412,7 +441,9 @@ type diaryDay struct {
 	Note  string          `json:"note"`
 }
 
-// writeDiary 将一天的数据写入由 date 标识的日记行。
+// writeDiary 将一天的数据合并写入该日期所属月份的日记行。
+// 日记表以 YYYY-MM 为 id、按月保存 monthDiarys，因此必须先读取该月已有
+// 数据再合并当天，否则会覆盖整月或写到一个前端读不到的 id 上。
 func writeDiary(rawArgs string) (string, error) {
 	var args writeDiaryArgs
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
@@ -424,6 +455,14 @@ func writeDiary(rawArgs string) (string, error) {
 	if args.Todos == nil {
 		return "", errors.New("todos: required")
 	}
+
+	date, err := time.Parse("2006-01-02", args.Date)
+	if err != nil {
+		return "", fmt.Errorf("date: invalid format, want YYYY-MM-DD: %w", err)
+	}
+	dateKey := date.Format("2006-01-02")
+	monthKey := date.Format("2006-01")
+
 	items := make([]diaryTodoItem, 0, len(args.Todos))
 	for _, t := range args.Todos {
 		items = append(items, diaryTodoItem{
@@ -435,10 +474,26 @@ func writeDiary(rawArgs string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _, err := db.UpdateDiary(args.Date, map[string]json.RawMessage{args.Date: day}); err != nil {
+
+	diaryWriteMu.Lock()
+	defer diaryWriteMu.Unlock()
+
+	monthDiarys := map[string]json.RawMessage{}
+	existing, err := db.GetDiary(monthKey)
+	if err != nil {
 		return "", err
 	}
-	return "日记记录成功，日期：" + args.Date, nil
+	if existing != nil {
+		for k, v := range existing.MonthDiarys {
+			monthDiarys[k] = v
+		}
+	}
+	monthDiarys[dateKey] = day
+
+	if _, err := db.UpdateDiary(monthKey, monthDiarys); err != nil {
+		return "", err
+	}
+	return "日记记录成功，日期：" + dateKey, nil
 }
 
 type searchMemoryArgs struct {

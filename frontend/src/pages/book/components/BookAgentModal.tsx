@@ -439,7 +439,15 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
             break;
           }
           case "done": {
-            setCurrentTurnStatus("done");
+      // 仅当本轮仍是 running 时才置为 done：error/cancel 事件可能已经
+      // 设置了最终状态，不能被流结束后的兜底逻辑覆盖。
+      const turnKey = currentTurnKeyRef.current;
+      const stillRunning = turnsRef.current.some(
+        (t) => t.key === turnKey && t.status === "running",
+      );
+      if (stillRunning) {
+        setCurrentTurnStatus("done");
+      }
             break;
           }
         }

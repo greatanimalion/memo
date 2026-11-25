@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -106,45 +105,73 @@ func TestRunBookAgentStreamsAndFinishes(t *testing.T) {
 }
 
 func TestBookAgentToolReplayPrecedesToolResult(t *testing.T) {
-	book, err := db.CreateBook(&db.Book{ID: db.NewID(), Title: "Tool Replay Book"})
+	// 工具结果回放时，带 tool_calls 的 assistant 消息必须排在 role=tool 之前，
+	// 否则 OpenAI 兼容接口会报 “tool must be a response to a preceding tool_calls”。
+	run := &bookAgentRun{prompt: "写一本书", bookID: "book-1"}
+	run.board = &db.BookAgentState{
+		BookID:   "book-1",
+		Plan:     "大纲",
+		Progress: json.RawMessage("[]"),
+		Issues:   json.RawMessage("[]"),
+	}
+	run.pendingToolMsg = &Message{
+		Role: "assistant",
+		ToolCalls: []ToolCall{{
+			ID:       "call_1",
+			Type:     "function",
+			Function: ToolCallFunction{Name: "get_book_info", Arguments: "{}"},
+		}},
+	}
+	run.pendingToolResults = []Message{{
+		Role:       "tool",
+		Content:    `{"title":"书"}`,
+		ToolCallID: "call_1",
+		Name:       "get_book_info",
+	}}
+
+	msgs := run.buildAgentMessages("writer")
+	assistantIdx, toolIdx := -1, -1
+	for i, m := range msgs {
+		if m.Role == "assistant" && len(m.ToolCalls) > 0 && assistantIdx < 0 {
+			assistantIdx = i
+		}
+		if m.Role == "tool" && toolIdx < 0 {
+			toolIdx = i
+		}
+	}
+	if assistantIdx < 0 || toolIdx < 0 {
+		t.Fatalf("messages missing assistant tool_calls or tool result: %+v", msgs)
+	}
+	if assistantIdx > toolIdx {
+		t.Fatalf("tool_calls must precede tool result: assistant=%d tool=%d", assistantIdx, toolIdx)
+	}
+}
+
+func TestBookAgentRouteDoesNotReplayAckTurn(t *testing.T) {
+	book, err := db.CreateBook(&db.Book{ID: db.NewID(), Title: "路由跳转测试"})
 	if err != nil {
 		t.Fatalf("create book: %v", err)
 	}
 
-	var secondBody string
 	calls := 0
-	stubTransport(t, func(req *http.Request) (*http.Response, error) {
+	stubTransport(t, func(*http.Request) (*http.Response, error) {
 		calls++
-		if calls == 1 {
-			content := dsmlInvoke("route", map[string]any{"target": "end"})
-			return sseResponse(sseDelta(content) + "data: [DONE]\n\n"), nil
-		}
-		raw, _ := io.ReadAll(req.Body)
-		secondBody = string(raw)
-		return sseResponse(sseDelta("好的，任务完成。") + "data: [DONE]\n\n"), nil
+		content := dsmlInvoke("route", map[string]any{"target": "end"})
+		return sseResponse(sseDelta(content) + "data: [DONE]\n\n"), nil
 	})
 
 	em := &recordingEmitter{}
 	RunBookAgent(context.Background(), BookAgentRequest{
-		Prompt:  "写一本书",
-		BookID:  book.ID,
-		Model:   "deepseek-chat",
-		BaseURL: "https://test.local/v1",
-		APIKey:  "test-key",
+		Prompt: "写一本书", BookID: book.ID, Model: "deepseek-chat",
+		BaseURL: "https://test.local/v1", APIKey: "test-key",
 	}, em)
 
-	// 第二轮请求必须先把带 tool_calls 的 assistant 消息放进去，再紧跟 tool 结果，
-	// 否则 OpenAI 兼容接口会报 “tool must be a response to a preceding tool_calls”。
-	assistantIdx := strings.Index(secondBody, `"tool_calls"`)
-	toolIdx := strings.Index(secondBody, `"role":"tool"`)
-	if assistantIdx < 0 {
-		t.Fatalf("second request missing assistant tool_calls:\n%s", secondBody)
+	// route 之后应直接跳转，不能再用工具回执重跑当前 Agent。
+	if calls != 1 {
+		t.Fatalf("expected 1 model call after route, got %d", calls)
 	}
-	if toolIdx < 0 {
-		t.Fatalf("second request missing tool result:\n%s", secondBody)
-	}
-	if assistantIdx > toolIdx {
-		t.Fatalf("tool_calls must precede tool result:\n%s", secondBody)
+	if !strings.Contains(em.String(), "event: done\ndata: [DONE]") {
+		t.Fatalf("stream missing done event:\n%s", em.String())
 	}
 }
 
@@ -214,6 +241,158 @@ func TestParseOutlineChapters(t *testing.T) {
 	}
 	if chapters[1].Title != "冲突" || chapters[1].Summary != "矛盾升级" {
 		t.Fatalf("chapter 1 = %+v", chapters[1])
+	}
+}
+
+func TestParseOutlineChaptersPlainFormats(t *testing.T) {
+	outline := "第1章 开端\n概要：主角登场\n\n" +
+		"**第2章、冲突**\n- 简介: 矛盾升级\n\n" +
+		"### 第三章：结局\n- 内容：收束"
+	chapters := parseOutlineChapters(outline)
+	if len(chapters) != 3 {
+		t.Fatalf("expected 3 chapters, got %d (%+v)", len(chapters), chapters)
+	}
+	wantTitles := []string{"开端", "冲突", "结局"}
+	wantSummaries := []string{"主角登场", "矛盾升级", "收束"}
+	for i := range chapters {
+		if chapters[i].Title != wantTitles[i] || chapters[i].Summary != wantSummaries[i] {
+			t.Fatalf("chapter %d = %+v, want title %q summary %q",
+				i, chapters[i], wantTitles[i], wantSummaries[i])
+		}
+	}
+}
+
+func TestRoutePhaseConsistencyVerdicts(t *testing.T) {
+	book, err := db.CreateBook(&db.Book{ID: db.NewID(), Title: "路由判定"})
+	if err != nil {
+		t.Fatalf("create book: %v", err)
+	}
+	newRun := func() *bookAgentRun {
+		r := &bookAgentRun{bookID: book.ID, currentPhase: "consistency"}
+		r.board = &db.BookAgentState{
+			BookID:   book.ID,
+			Progress: json.RawMessage("[]"),
+			Issues:   json.RawMessage("[]"),
+		}
+		r.outlineChapters = []outlineChapter{{Title: "第一章"}, {Title: "第二章"}}
+		return r
+	}
+
+	// 未读取真实数据：即使结论是通过也必须重检。
+	r := newRun()
+	r.lastVerdict = "通过"
+	if got := r.routePhase(); got != "consistency" {
+		t.Fatalf("unverified verdict routed to %q, want consistency", got)
+	}
+
+	// 待检：重检一次。
+	r = newRun()
+	r.consistencyVerified = true
+	r.lastVerdict = "待检"
+	if got := r.routePhase(); got != "consistency" {
+		t.Fatalf("待检 routed to %q, want consistency", got)
+	}
+
+	// 通过：推进章节游标后回到 orchestrator。
+	r = newRun()
+	r.consistencyVerified = true
+	r.lastVerdict = "通过"
+	if got := r.routePhase(); got != "orchestrator" {
+		t.Fatalf("通过 routed to %q, want orchestrator", got)
+	}
+	if r.completedChapters != 1 {
+		t.Fatalf("completedChapters = %d, want 1", r.completedChapters)
+	}
+
+	// 不通过：退回 writer 返工，且不推进游标。
+	r = newRun()
+	r.consistencyVerified = true
+	r.lastVerdict = "不通过"
+	if got := r.routePhase(); got != "writer" {
+		t.Fatalf("不通过 routed to %q, want writer", got)
+	}
+	if !r.reworkPending || r.completedChapters != 0 {
+		t.Fatalf("reworkPending=%v completedChapters=%d", r.reworkPending, r.completedChapters)
+	}
+}
+
+func TestToolSaveChapterUpdatesCurrentInsteadOfDuplicating(t *testing.T) {
+	book, err := db.CreateBook(&db.Book{ID: db.NewID(), Title: "保存章节测试"})
+	if err != nil {
+		t.Fatalf("create book: %v", err)
+	}
+	run := &bookAgentRun{bookID: book.ID, chapterOffset: 4}
+	if _, err := run.toolSaveChapter(map[string]any{
+		"title": "第五章", "content": strings.Repeat("初始正文。", 40),
+	}); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	firstID := run.chapterID
+	if firstID == "" {
+		t.Fatal("chapter not created")
+	}
+	if _, err := run.toolSaveChapter(map[string]any{
+		"title": "第五章", "content": strings.Repeat("修订正文。", 40),
+	}); err != nil {
+		t.Fatalf("resave: %v", err)
+	}
+	if run.chapterID != firstID {
+		t.Fatalf("resave created a new chapter: %q != %q", run.chapterID, firstID)
+	}
+
+	metas, err := db.GetChapterMetaByBookID(book.ID)
+	if err != nil {
+		t.Fatalf("list chapters: %v", err)
+	}
+	if len(metas) != 1 {
+		t.Fatalf("expected 1 chapter row, got %d", len(metas))
+	}
+	if metas[0].Order != 5 {
+		t.Fatalf("default order = %d, want 5 (offset+1)", metas[0].Order)
+	}
+	if metas[0].WordCount == 0 {
+		t.Fatal("wordCount not updated")
+	}
+}
+
+func TestRoutePhaseIgnoresIllegalTransition(t *testing.T) {
+	// editor 只能去 consistency；editor -> editor 属于非法跳转，应被忽略并走兜底。
+	r := &bookAgentRun{currentPhase: "editor", pendingRoute: "editor"}
+	if got := r.routePhase(); got != "consistency" {
+		t.Fatalf("illegal transition routed to %q, want consistency", got)
+	}
+
+	// writer 只能去 editor；writer -> orchestrator 应被忽略并走兜底。
+	r = &bookAgentRun{currentPhase: "writer", pendingRoute: "orchestrator", chapterID: "ch-1"}
+	if got := r.routePhase(); got != "editor" {
+		t.Fatalf("illegal transition routed to %q, want editor", got)
+	}
+}
+
+func TestEnterNodeBudget(t *testing.T) {
+	r := &bookAgentRun{}
+	for i := 0; i < bookAgentMaxNodeCallsPerChapter; i++ {
+		if !r.enterNode("writer") {
+			t.Fatalf("enterNode stopped too early at %d", i)
+		}
+	}
+	if r.enterNode("writer") {
+		t.Fatal("node budget not enforced")
+	}
+}
+
+func TestTrackStallDetectsNoProgress(t *testing.T) {
+	r := &bookAgentRun{}
+	if !r.trackStall() {
+		t.Fatal("first checkpoint should count as progress")
+	}
+	for i := 0; i < bookAgentMaxStalledCalls-1; i++ {
+		if !r.trackStall() {
+			t.Fatalf("stall detected too early at %d", i)
+		}
+	}
+	if r.trackStall() {
+		t.Fatal("stall limit not enforced")
 	}
 }
 

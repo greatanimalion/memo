@@ -1,9 +1,9 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { Cpu } from "lucide-react";
+import { Select } from "antd";
 import { useTranslation } from "react-i18next";
 
 import i18n from "@/i18n";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { modelOptionLabel, modelOptionName, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/store/use-config-store";
 
@@ -17,6 +17,14 @@ type ModelPickerProps = {
     placeholder?: string;
     onMissingConfig?: () => void;
 };
+
+type ModelOption = {
+    value: string;
+    label: string;
+    disabled?: boolean;
+};
+
+const EMPTY_VALUE = "__empty__";
 
 export function ModelPicker({ config, value, onChange, capability, className, fullWidth = false, placeholder, onMissingConfig }: ModelPickerProps) {
     const { t } = useTranslation();
@@ -34,54 +42,41 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
         return () => window.removeEventListener("model-picker-open", closeOtherPicker);
     }, [pickerId]);
 
+    const selectOptions = useMemo<ModelOption[]>(() => {
+        if (!options.length) return [{ value: EMPTY_VALUE, label: emptyModelLabel(config, capability), disabled: true }];
+        return options.map((model) => ({ value: model, label: modelOptionLabel(config, model) }));
+    }, [capability, config, options]);
+
     return (
-        <Select
-            open={open}
-            value={current}
-            onOpenChange={(nextOpen) => {
-                if (nextOpen && !options.length && config.channelMode === "local") onMissingConfig?.();
-                if (nextOpen) window.dispatchEvent(new CustomEvent("model-picker-open", { detail: pickerId }));
-                setOpen(nextOpen);
-            }}
-            onValueChange={onChange}
-        >
-            <SelectTrigger
-                className={cn(
-                    "canvas-composer-model-picker h-8 w-fit max-w-full gap-2 rounded-full border border-input bg-transparent px-3 text-sm font-normal shadow-sm transition-colors",
-                    fullWidth ? "w-full min-w-0 justify-start" : "min-w-[9rem] justify-start",
-                    "data-[state=open]:border-ring data-[state=open]:ring-2 data-[state=open]:ring-ring/20",
-                    className,
-                )}
-                onMouseDown={(event) => event.stopPropagation()}
-                onPointerDown={(event) => event.stopPropagation()}
+        <span className="contents" onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+            <Select
+                open={open}
+                value={current || undefined}
+                options={selectOptions}
+                placeholder={pickerPlaceholder}
+                className={cn("canvas-composer-model-picker nodrag  nowheel min-w-36", fullWidth ? "w-full" : "max-w-full", className)}
+                popupMatchSelectWidth={false}
+                styles={{ popup: { root: { zIndex: 1200 } } }}
+                prefix={<ModelIcon model={current} />}
                 title={current ? modelOptionLabel(config, current) : pickerPlaceholder}
-            >
-                <ModelIcon model={current} />
-                <span className="canvas-model-picker-text min-w-0 flex-1 truncate text-left">{current ? modelOptionLabel(config, current) : pickerPlaceholder}</span>
-            </SelectTrigger>
-            <SelectContent
-                data-canvas-no-zoom
-                className="z-[1200] w-80 max-w-[calc(100vw-24px)] rounded-xl border border-border/70 bg-popover p-1 shadow-xl"
-                position="popper"
-                align="start"
-                side="bottom"
-                sideOffset={6}
-                onPointerDown={(event) => event.stopPropagation()}
-                onMouseDown={(event) => event.stopPropagation()}
-            >
-                {options.length ? (
-                    options.map((model) => (
-                        <SelectItem key={model} value={model} textValue={modelOptionLabel(config, model)}>
-                            <ModelLabel config={config} model={model} />
-                        </SelectItem>
-                    ))
-                ) : (
-                    <SelectItem value="__empty__" disabled>
-                        {emptyModelLabel(config, capability)}
-                    </SelectItem>
+                labelRender={({ value: selected }) => <span className="canvas-model-picker-text block min-w-0 truncate text-left">{modelOptionLabel(config, String(selected ?? ""))}</span>}
+                optionRender={(option) => (option.value === EMPTY_VALUE ? <span>{option.label}</span> : <ModelLabel config={config} model={String(option.value)} />)}
+                popupRender={(menu) => (
+                    <div data-canvas-no-zoom onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+                        {menu}
+                    </div>
                 )}
-            </SelectContent>
-        </Select>
+                onOpenChange={(nextOpen) => {
+                    if (nextOpen && !options.length && config.channelMode === "local") onMissingConfig?.();
+                    if (nextOpen) window.dispatchEvent(new CustomEvent("model-picker-open", { detail: pickerId }));
+                    setOpen(nextOpen);
+                }}
+                onChange={(next) => {
+                    if (next === EMPTY_VALUE) return;
+                    onChange(next);
+                }}
+            />
+        </span>
     );
 }
 
@@ -107,11 +102,11 @@ function ModelIcon({ model }: { model: string }) {
 
 function resolveModelIcon(model: string) {
     const name = model.toLowerCase();
-    if (name.includes("claude") || name.includes("anthropic")) return "/icons/claude.svg";
-    if (name.includes("gemini") || name.includes("google")) return "/icons/gemini.svg";
-    if (name.includes("gpt") || name.includes("openai")) return "/icons/openai.svg";
-    if (name.includes("grok") || name.includes("grok")) return "/icons/grok.svg";
-    if (name.includes("deepseek") || name.includes("deepseek")) return "/icons/deepseek.svg";
-    if (name.includes("glm") || name.includes("glm")) return "/icons/glm.svg";
+    if (name.includes("claude") || name.includes("anthropic")) return "/public/icons/claude.svg";
+    if (name.includes("gemini") || name.includes("google")) return "/public/icons/gemini.svg";
+    if (name.includes("gpt") || name.includes("openai")) return "/public/icons/openai.svg";
+    if (name.includes("grok") || name.includes("grok")) return "/public/icons/grok.svg";
+    if (name.includes("deepseek") || name.includes("deepseek")) return "/public/icons/deepseek.svg";
+    if (name.includes("glm") || name.includes("glm")) return "/public/icons/glm.svg";
     return "";
 }

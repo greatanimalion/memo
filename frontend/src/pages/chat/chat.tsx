@@ -61,7 +61,7 @@ const ChatPage: React.FC = () => {
   const [typeId, setTypeId] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [toolStatus, setToolStatus] = useState("");
-  const [openAgent, setOpenAgent] = useState(false);
+  const [openAgent, setOpenAgent] = useState(true);
   const [pendingResponse, setPendingResponse] = useState<{
     content: string;
     timestamp: number;

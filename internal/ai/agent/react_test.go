@@ -235,10 +235,13 @@ func TestRunAgentToolLoop(t *testing.T) {
 	}
 
 	first := decodeSent(t, bodies[0])
-	if len(first.Tools) != 4 {
-		t.Fatalf("first round sent %d tools, want 4", len(first.Tools))
+	if len(first.Tools) != 7 {
+		t.Fatalf("first round sent %d tools, want 7", len(first.Tools))
 	}
-	wantTools := []string{"get_time", "write_diary", "get_memory", "update_memory"}
+	wantTools := []string{
+		"get_time", "write_diary", "get_memory",
+		"write_memory", "read_memory", "rename_memory", "star_memory",
+	}
 	for i, name := range wantTools {
 		if first.Tools[i].Function.Name != name {
 			t.Errorf("tool %d = %q, want %q", i, first.Tools[i].Function.Name, name)

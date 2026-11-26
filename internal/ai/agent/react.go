@@ -24,7 +24,10 @@ const (
 - get_time: 查询当前时间
 - write_diary: 记录日记（日期、待办事项、备注）
 - get_memory: 搜索或列出用户的记忆/笔记
-- update_memory: 根据 ID 修改记忆的标题或星标状态
+- write_memory: 写入记忆正文（省略 id 时按 title 新建记忆）
+- read_memory: 读取指定记忆的正文
+- rename_memory: 修改记忆标题
+- star_memory: 收藏或取消收藏记忆
 当用户请求相关操作时，请调用合适的工具。请用中文回复。`
 )
 

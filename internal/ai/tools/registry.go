@@ -268,7 +268,12 @@ var chatTools = New(
 	Must(getTimeTool()),
 	Must(writeDiaryTool()),
 	Must(getMemoryTool()),
-	Must(updateMemoryTool()),
+	// 记忆管理：写入/读取/重命名/收藏，见 memory.go。
+	// update_memory 已由 write_memory / rename_memory / star_memory 取代。
+	Must(writeMemoryTool()),
+	Must(readMemoryTool()),
+	Must(renameMemoryTool()),
+	Must(starMemoryTool()),
 )
 
 // ChatTools 返回聊天工具注册表（供 agent 层读取声明与执行）。

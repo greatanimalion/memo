@@ -3,7 +3,9 @@ package response
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 )
 
 // Success 写入与原 Express 处理程序一致的响应封装：
@@ -76,7 +78,15 @@ func (s *SSE) Write(event, data string) {
 	if s == nil || s.w == nil {
 		return
 	}
-	_, _ = fmt.Fprintf(s.w, "event: %s\ndata: %s\n\n", event, data)
+	// 多行数据必须逐行加 data: 前缀，否则换行后的内容会被 SSE 分帧规则丢弃。
+	// 模型流式输出的正文片段通常包含换行，这里统一处理。
+	var b strings.Builder
+	fmt.Fprintf(&b, "event: %s\n", event)
+	for _, line := range strings.Split(data, "\n") {
+		fmt.Fprintf(&b, "data: %s\n", line)
+	}
+	b.WriteString("\n")
+	_, _ = io.WriteString(s.w, b.String())
 	if s.f != nil {
 		s.f.Flush()
 	}

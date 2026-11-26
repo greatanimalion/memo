@@ -297,10 +297,6 @@ func chapterUpdate(w http.ResponseWriter, r *http.Request) {
 	if raw, has := body["content"]; has {
 		content := db.RawToString(raw)
 		updates["content"] = content
-		// 人工修改正文时同步刷新 aiRes，保证 AI 读取到最新版本。
-		if _, hasAIRes := body["aiRes"]; !hasAIRes {
-			updates["aiRes"] = content
-		}
 	}
 	if raw, has := body["aiRes"]; has {
 		updates["aiRes"] = db.RawToString(raw)

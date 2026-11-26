@@ -123,6 +123,38 @@ body::-webkit-scrollbar {
   width: 100% !important;
 }
 
+/* react-diff-view 对比视图：跟随项目主题变量 */
+.diff-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  background-color: var(--bg-primary);
+  font-size: 12px;
+}
+.diff-wrap .diff {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+.diff-wrap .diff-gutter {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary, #888888);
+}
+.diff-wrap .diff-code {
+  color: var(--text-primary);
+}
+.diff-wrap .diff-code-insert,
+.diff-wrap .diff-gutter-insert {
+  background-color: rgba(46, 160, 67, 0.16);
+}
+.diff-wrap .diff-code-delete,
+.diff-wrap .diff-gutter-delete {
+  background-color: rgba(248, 81, 73, 0.16);
+}
+.diff-wrap .diff-code-edit {
+  background-color: rgba(187, 128, 9, 0.28);
+}
+
 /* 拖拽区域 */
 .dragArea {
   -webkit-app-region: drag;

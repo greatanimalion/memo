@@ -24,15 +24,16 @@ export function parseSSEBuffer(buffer: string): {
   for (const part of parts) {
     if (!part.trim()) continue;
     let event = "message";
-    let data = "";
+    const dataLines: string[] = [];
     for (const line of part.split("\n")) {
       if (line.startsWith("event: ")) {
         event = line.slice(7);
       } else if (line.startsWith("data: ")) {
-        data = line.slice(6);
+        // 多行数据在 SSE 中会拆成多条 data: 行，这里按原换行拼回
+        dataLines.push(line.slice(6));
       }
     }
-    events.push({ event, data });
+    events.push({ event, data: dataLines.join("\n") });
   }
   return { events, remaining };
 }

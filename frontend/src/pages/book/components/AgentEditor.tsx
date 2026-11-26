@@ -1,7 +1,7 @@
 
 // 现实现：左侧章节预览（可切换 diff），右侧基于 ant-design/x 的 AI 写书对话。
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bubble, Sender, ThoughtChain } from "@ant-design/x";
 import { XMarkdown } from "@ant-design/x-markdown";
 import { Button, Segmented, message as antdMessage } from "antd";
@@ -12,7 +12,17 @@ import {
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued";
+// 对比视图改用 react-diff-view：先用 diff 生成 unified diff，再解析成 hunks 渲染
+import {
+  parseDiff,
+  Diff,
+  Hunk,
+  tokenize,
+  markEdits,
+} from "react-diff-view";
+import "react-diff-view/style/index.css";
+import { createTwoFilesPatch } from "diff";
+// import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued";
 import { useWriterStore } from "@renderer/store/useWriterStore";
 import { getBookAgentsByBookId } from "@renderer/services/bookAgent";
 import { mergeChapterAI } from "@renderer/services/book";
@@ -492,6 +502,29 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
     ? currentChapter?.aiRes || ""
     : currentChapter?.content || "";
 
+  // 对比视图：content（原文）与 aiRes（AI 更改）的 unified diff 与词级高亮
+  const diffData = useMemo(() => {
+    if (viewMode !== "diff" || !currentChapter || currentChapter.isAi !== 1) {
+      return { hunks: [], tokens: null };
+    }
+    // react-diff-view 的解析器要求 git 格式头部（diff --git ...），
+    // 而 diff 包输出的是 "=====" 分隔行，这里替换掉再解析。
+    const patch = createTwoFilesPatch(
+      "a/content",
+      "b/aiRes",
+      currentChapter.content || "",
+      currentChapter.aiRes || "",
+      "",
+      "",
+      { context: 3 },
+    ).replace(/^=+\n/, "diff --git a/content b/aiRes\n");
+    const hunks = parseDiff(patch).flatMap((file) => file.hunks);
+    const tokens = hunks.length
+      ? tokenize(hunks, { enhancers: [markEdits(hunks, { type: "block" })] })
+      : null;
+    return { hunks, tokens };
+  }, [viewMode, currentChapter?.content, currentChapter?.aiRes, currentChapter?.isAi]);
+
   // 确认合并：后端读取 aiRes 覆盖 content，并把 isAi 置为 0
   const handleMergeAI = useCallback(async () => {
     const chapterId = currentChapter?.id;
@@ -570,7 +603,7 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
                 title="用 AI 正文覆盖 content，并标记为人工内容"
                 onClick={() => void handleMergeAI()}
               >
-                确认合并
+                确认覆盖
               </Button>
             )}
             {isAiChapter && (
@@ -594,6 +627,32 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
           </div>
 
           {viewMode === "diff" && isAiChapter ? (
+            <div
+              className={
+                isDarkTheme() ? "diff-wrap diff-wrap-dark" : "diff-wrap"
+              }
+            >
+              {diffData.hunks.length > 0 ? (
+                <Diff
+                  viewType="split"
+                  diffType="modify"
+                  hunks={diffData.hunks}
+                  tokens={diffData.tokens}
+                >
+                  {(hunks) =>
+                    hunks.map((hunk) => (
+                      <Hunk key={hunk.content} hunk={hunk} />
+                    ))
+                  }
+                </Diff>
+              ) : (
+                <div className="p-4 text-sm italic text-theme-muted">
+                  两侧内容一致，暂无差异
+                </div>
+              )}
+            </div>
+          ) : (
+            /* 原 react-diff-viewer-continued 实现（已替换为 react-diff-view）
             <div className="flex-1 min-h-0 overflow-auto p-2">
               <ReactDiffViewer
                 oldValue={currentChapter.content || ""}
@@ -607,7 +666,7 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
                 disableWorker
               />
             </div>
-          ) : (
+            */
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
               {previewText ? (
                 <div className="whitespace-pre-wrap wrap-break-word text-[13px] leading-7 text-theme-secondary">

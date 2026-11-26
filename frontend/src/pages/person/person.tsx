@@ -5,6 +5,7 @@ import { getLocalStore, setLocalStore } from "@renderer/utils/localStore";
 import ApiKeyList from "./components/ApiKeyList";
 import AddKeyForm from "./components/AddKeyForm";
 import DocumentModelManager from "./components/DocumentModelManager";
+import CanvasApiManager from "./components/CanvasApiManager";
 import { DOCUMENTMODEL } from "@renderer/constants";
 
 const PersonPage: React.FC = () => {
@@ -84,6 +85,9 @@ const PersonPage: React.FC = () => {
             documentModel={documentModel}
             onModelChange={handleDocumentModelChange}
           />
+
+          {/* 画布 API 管理：画布直连第三方接口所需的渠道地址、密钥与模型 */}
+          <CanvasApiManager />
         </div>
       </div>
     </div>

@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 )
 
 // Success 写入与原 Express 处理程序一致的响应封装：
@@ -57,6 +59,10 @@ func write(w http.ResponseWriter, status int, body any) {
 type SSE struct {
 	w http.ResponseWriter
 	f http.Flusher
+
+	// 心跳协程与业务协程会并发写入，必须加锁避免响应体交错。
+	mu     sync.Mutex
+	closed bool
 }
 
 // StartSSE 将响应切换为 event-stream 模式。
@@ -74,10 +80,35 @@ func StartSSE(w http.ResponseWriter) *SSE {
 	return s
 }
 
-func (s *SSE) Write(event, data string) {
-	if s == nil || s.w == nil {
-		return
+// Comment 写入一条 SSE 注释行（如 : connected / : keep-alive）。
+// 注释行用于建立连接与保活，前端不会把它当作事件处理。
+func (s *SSE) Comment(text string) {
+	s.writeRaw(": " + text + "\n\n")
+}
+
+// Heartbeat 每隔 interval 写入一条 keep-alive 注释，返回停止函数。
+// 用于长时间运行的多 Agent 流程，避免连接被代理层按空闲超时断开。
+func (s *SSE) Heartbeat(interval time.Duration) func() {
+	done := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				s.Comment("keep-alive")
+			}
+		}
+	}()
+	var once sync.Once
+	return func() {
+		once.Do(func() { close(done) })
 	}
+}
+
+func (s *SSE) Write(event, data string) {
 	// 多行数据必须逐行加 data: 前缀，否则换行后的内容会被 SSE 分帧规则丢弃。
 	// 模型流式输出的正文片段通常包含换行，这里统一处理。
 	var b strings.Builder
@@ -86,7 +117,21 @@ func (s *SSE) Write(event, data string) {
 		fmt.Fprintf(&b, "data: %s\n", line)
 	}
 	b.WriteString("\n")
-	_, _ = io.WriteString(s.w, b.String())
+	s.writeRaw(b.String())
+}
+
+// writeRaw 在锁内写入并立即 flush；关闭后忽略后续写入，
+// 避免心跳协程在 handler 返回后继续操作 ResponseWriter。
+func (s *SSE) writeRaw(payload string) {
+	if s == nil || s.w == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
+	_, _ = io.WriteString(s.w, payload)
 	if s.f != nil {
 		s.f.Flush()
 	}
@@ -96,7 +141,10 @@ func (s *SSE) End() {
 	if s == nil || s.w == nil {
 		return
 	}
-	if f, ok := s.w.(http.Flusher); ok {
-		f.Flush()
+	s.mu.Lock()
+	s.closed = true
+	s.mu.Unlock()
+	if s.f != nil {
+		s.f.Flush()
 	}
 }

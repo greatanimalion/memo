@@ -17,7 +17,7 @@ import { AIKey } from "@renderer/types/common";
 import { getLocalStore } from "@renderer/utils/localStore";
 import { resolveModelConfig } from "@renderer/utils/helper";
 import { getBookAgentsByBookId } from "@renderer/services/bookAgent";
-import { parseSSEBuffer } from "@renderer/utils/sse";
+import { dispatchSSE, parseSSEBuffer, parseSSEPayload } from "@renderer/utils/sse";
 import type { SSEEvent } from "@renderer/utils/sse";
 
 const { TextArea } = Input;
@@ -377,58 +377,51 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
 
   const parseStreamIncremental = useCallback(
     (newEvents: SSEEvent[]) => {
-      for (const { event, data } of newEvents) {
-        switch (event) {
-          case "agent": {
-            try {
-              const { name } = JSON.parse(data);
-              if (AGENT_META[name]) {
-                ensureAgent(name);
-              }
-            } catch {}
-            break;
-          }
-          case "message": {
+      for (const evt of newEvents) {
+        dispatchSSE(evt, {
+          // 用户消息已由 startTurn 本地写入，服务端回显无需重复展示
+          user_message: () => {},
+          agent: (data) => {
+            const payload = parseSSEPayload<{ name?: string }>(data);
+            if (payload?.name && AGENT_META[payload.name]) {
+              ensureAgent(payload.name);
+            }
+          },
+          message: (data) => {
             appendToCurrentAgent(data);
-            break;
-          }
-          case "tool_call": {
-            try {
-              const { name } = JSON.parse(data);
-              appendToCurrentAgent(`\n调用工具: ${name}\n`);
-            } catch {}
-            break;
-          }
-          case "tool": {
-            try {
-              const { name, result } = JSON.parse(data);
-              appendToCurrentAgent(`\n[${name}] ${clipForPanel(result)}\n`);
-            } catch {}
-            break;
-          }
-          case "error": {
+          },
+          tool_call: (data) => {
+            const payload = parseSSEPayload<{ name?: string }>(data);
+            if (payload?.name) {
+              appendToCurrentAgent(`\n调用工具: ${payload.name}\n`);
+            }
+          },
+          tool: (data) => {
+            const payload = parseSSEPayload<{ name?: string; result?: string }>(data);
+            if (payload) {
+              appendToCurrentAgent(`\n[${payload.name || "unknown"}] ${clipForPanel(payload.result || "")}\n`);
+            }
+          },
+          error: (data) => {
             appendToCurrentAgent(`\n[错误] ${data}`);
             setCurrentTurnStatus("error");
-            break;
-          }
-          case "cancel": {
+          },
+          cancel: () => {
             appendToCurrentAgent("\n\n[任务已取消]");
             setCurrentTurnStatus("cancelled");
-            break;
-          }
-          case "done": {
-      // 仅当本轮仍是 running 时才置为 done：error/cancel 事件可能已经
-      // 设置了最终状态，不能被流结束后的兜底逻辑覆盖。
-      const turnKey = currentTurnKeyRef.current;
-      const stillRunning = turnsRef.current.some(
-        (t) => t.key === turnKey && t.status === "running",
-      );
-      if (stillRunning) {
-        setCurrentTurnStatus("done");
-      }
-            break;
-          }
-        }
+          },
+          done: () => {
+            // 仅当本轮仍是 running 时才置为 done：error/cancel 事件可能已经
+            // 设置了最终状态，不能被流结束后的兜底逻辑覆盖。
+            const turnKey = currentTurnKeyRef.current;
+            const stillRunning = turnsRef.current.some(
+              (t) => t.key === turnKey && t.status === "running",
+            );
+            if (stillRunning) {
+              setCurrentTurnStatus("done");
+            }
+          },
+        });
       }
     },
     [

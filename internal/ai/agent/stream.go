@@ -21,8 +21,20 @@ type toolCallEvent struct {
 }
 
 type toolResultEvent struct {
+	// Agent 标识发起本次工具调用的角色（多 Agent 写书流程会带上）
+	Agent  string `json:"agent,omitempty"`
 	Name   string `json:"name"`
 	Result string `json:"result"`
+}
+
+// chapterSavedEvent 表示一次章节写库成功，前端据此立即刷新章节列表。
+type chapterSavedEvent struct {
+	Agent     string `json:"agent,omitempty"`
+	ChapterID string `json:"chapterId"`
+	Title     string `json:"title"`
+	Order     int64  `json:"order"`
+	// Created 为 true 表示新建章节，false 表示更新既有章节
+	Created bool `json:"created"`
 }
 
 // jsonPayload 完全按照 JSON.stringify 的方式渲染载荷：不做 HTML 转义、

@@ -392,7 +392,7 @@ func (r *bookAgentRun) run(ctx context.Context) {
 		if node == "tools" {
 			results := r.executeTools()
 			for _, res := range results {
-				r.sse.Write("tool", jsonPayload(toolResultEvent{Name: res.Name, Result: res.Content}))
+				r.sse.Write("tool", jsonPayload(toolResultEvent{Agent: r.currentAgent, Name: res.Name, Result: res.Content}))
 				r.conversation = append(r.conversation, convMessage{
 					Agent:     r.currentAgent,
 					Role:      "tool",
@@ -1608,6 +1608,8 @@ func (r *bookAgentRun) toolSaveChapter(args saveChapterArgs) (string, error) {
 			return "章节更新失败", nil
 		}
 		r.setLastDraft(content)
+		// 章节已写库，立即通知前端刷新章节列表
+		r.emitChapterSaved(chapter, false)
 		return fmt.Sprintf("章节更新成功: %s (id: %s)", chapter.Title, chapter.ID), nil
 	}
 
@@ -1627,6 +1629,8 @@ func (r *bookAgentRun) toolSaveChapter(args saveChapterArgs) (string, error) {
 	}
 	r.chapterID = c.ID
 	r.setLastDraft(content)
+	// 新章节已创建，立即通知前端刷新章节列表
+	r.emitChapterSaved(c, true)
 	return fmt.Sprintf("章节保存成功: %s (id: %s)", c.Title, c.ID), nil
 }
 
@@ -1661,6 +1665,8 @@ func (r *bookAgentRun) toolUpdateChapter(args updateChapterArgs) (string, error)
 			r.setLastDraft(content)
 		}
 	}
+	// 章节已写库，立即通知前端刷新章节列表
+	r.emitChapterSaved(chapter, false)
 	return fmt.Sprintf("章节更新成功: %s", chapter.Title), nil
 }
 
@@ -1752,14 +1758,17 @@ func (r *bookAgentRun) autoSaveWriter(content string) {
 
 	if r.chapterID != "" {
 		// 返工或续写：更新同一条章节。AI 正文写入 aiRes。
-		if _, err := db.UpdateChapter(r.chapterID, map[string]any{
+		updated, err := db.UpdateChapter(r.chapterID, map[string]any{
 			"title": title, "aiRes": pureContent, "wordCount": int64(jsLen(pureContent)),
 			"isAi": int64(1),
-		}); err != nil {
+		})
+		if err != nil {
 			log.Printf("[auto-save] 章节更新失败: %v", err)
 			return
 		}
 		r.setLastDraft(pureContent)
+		// 章节已写库，立即通知前端刷新章节列表
+		r.emitChapterSaved(updated, false)
 		return
 	}
 
@@ -1780,6 +1789,24 @@ func (r *bookAgentRun) autoSaveWriter(content string) {
 	}
 	r.chapterID = created.ID
 	r.setLastDraft(pureContent)
+	// 新章节已创建，立即通知前端刷新章节列表
+	r.emitChapterSaved(created, true)
+}
+
+// emitChapterSaved 在章节写库成功后推送 chapter_saved 事件，
+// 前端据此立即刷新章节列表，无需等整轮流程结束。
+func (r *bookAgentRun) emitChapterSaved(chapter *db.Chapter, created bool) {
+	// 单测等无 SSE 输出通道的场景直接跳过
+	if chapter == nil || r.sse == nil {
+		return
+	}
+	r.sse.Write("chapter_saved", jsonPayload(chapterSavedEvent{
+		Agent:     r.currentAgent,
+		ChapterID: chapter.ID,
+		Title:     chapter.Title,
+		Order:     chapter.Order,
+		Created:   created,
+	}))
 }
 
 // ──────────────────── 书籍信息头部 ────────────────────

@@ -2,12 +2,13 @@
 // 现实现：左侧章节预览（可切换 diff），右侧基于 ant-design/x 的 AI 写书对话。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bubble, Sender, ThoughtChain } from "@ant-design/x";
+import { Bubble, Sender, Think, ThoughtChain } from "@ant-design/x";
 import { XMarkdown } from "@ant-design/x-markdown";
-import { Button, Segmented, message as antdMessage } from "antd";
+import { Button, Flex, Segmented, message as antdMessage } from "antd";
 import {
   BorderOuterOutlined,
   CheckOutlined,
+  CodeOutlined,
   FileTextOutlined,
   LeftOutlined,
   RightOutlined,
@@ -26,7 +27,7 @@ import { createTwoFilesPatch } from "diff";
 import { useWriterStore } from "@renderer/store/useWriterStore";
 import { getBookAgentsByBookId } from "@renderer/services/bookAgent";
 import { mergeChapterAI } from "@renderer/services/book";
-import { parseSSEBuffer } from "@renderer/utils/sse";
+import { dispatchSSE, parseSSEBuffer, parseSSEPayload } from "@renderer/utils/sse";
 import type { SSEEvent } from "@renderer/utils/sse";
 import { port } from "@renderer/constants";
 import type { AIKey } from "@renderer/types/common";
@@ -42,6 +43,15 @@ interface AgentEditorProps {
 type ChatRole = "user" | "ai";
 type ChatStatus = "local" | "loading" | "updating" | "success" | "error" | "abort";
 
+/** 单个 Agent 步骤里的一次工具调用（渲染为嵌套的 ThoughtChain.Item）。 */
+interface ChatToolStep {
+  key: string;
+  name: string;
+  status: "loading" | "success" | "error";
+  /** 工具返回结果的文本 */
+  result?: string;
+}
+
 interface ChatMessage {
   key: string;
   role: ChatRole;
@@ -51,6 +61,8 @@ interface ChatMessage {
   status?: ChatStatus;
   /** 同一次请求/同一条历史记录的标识，用于把多个 Agent 串成一条思考链 */
   runKey?: string;
+  /** 该步骤内发起的工具调用（按顺序展示） */
+  tools?: ChatToolStep[];
 }
 
 type ChatBlock =
@@ -109,6 +121,9 @@ function clipToolResult(result: unknown, max = 1200): string {
   return text.length > max ? `${text.slice(0, max)}…（已截断）` : text;
 }
 
+/** 后端保存的工具记录形如 "[工具名] 返回内容"，此处拆出名称与结果。 */
+const TOOL_RECORD_RE = /^\[([^\]]+)\]\s*([\s\S]*)$/;
+
 /** 把后端保存的历史问答转换为聊天气泡：每条记录 = 一问多答。 */
 function buildHistory(records: BookAgent[]): ChatMessage[] {
   const out: ChatMessage[] = [];
@@ -120,22 +135,39 @@ function buildHistory(records: BookAgent[]): ChatMessage[] {
       content: record.title || "（历史任务）",
       status: "success",
     });
-    const grouped = new Map<string, string>();
+    // 同一 Agent 的输出聚合为一条消息：正文进 content，工具调用进 tools
+    const grouped = new Map<string, ChatMessage>();
     for (const msg of record.messages || []) {
       const agent = msg.agent || "orchestrator";
-      const prev = grouped.get(agent) || "";
-      const text = msg.role === "tool" ? `\n${msg.content}\n` : `\n\n${msg.content}`;
-      grouped.set(agent, prev + text);
+      let entry = grouped.get(agent);
+      if (!entry) {
+        entry = {
+          key: `h-a-${record.id}-${agent}`,
+          role: "ai",
+          agent,
+          content: "",
+          status: "success",
+          runKey: record.id,
+          tools: [],
+        };
+        grouped.set(agent, entry);
+      }
+      if (msg.role === "tool") {
+        const matched = TOOL_RECORD_RE.exec(msg.content || "");
+        const tools = entry.tools || (entry.tools = []);
+        tools.push({
+          key: `h-t-${record.id}-${agent}-${tools.length}`,
+          name: matched ? matched[1] : "tool",
+          status: "success",
+          result: matched ? matched[2] : msg.content || "",
+        });
+      } else {
+        entry.content += `\n\n${msg.content}`;
+      }
     }
-    for (const [agent, content] of grouped) {
-      out.push({
-        key: `h-a-${record.id}-${agent}`,
-        role: "ai",
-        agent,
-        content: content.trim(),
-        status: "success",
-        runKey: record.id,
-      });
+    for (const entry of grouped.values()) {
+      entry.content = entry.content.trim();
+      out.push(entry);
     }
   }
   return out;
@@ -251,6 +283,17 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
     [syncMessages],
   );
 
+  /** 按键更新单条消息，供工具步骤（tools 数组）增量写入。 */
+  const mutateMessage = useCallback(
+    (key: string, updater: (msg: ChatMessage) => ChatMessage) => {
+      messagesRef.current = messagesRef.current.map((m) =>
+        m.key === key ? updater(m) : m,
+      );
+      syncMessages();
+    },
+    [syncMessages],
+  );
+
   // 打开书籍时加载历史问答
   useEffect(() => {
     if (!book?.id) return;
@@ -315,69 +358,114 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
     return activeKeyRef.current as string;
   }, [startAgentMessage]);
 
+  // 章节写库（chapter_saved 事件）后立即刷新章节列表，
+  // 不必等整轮写书流程结束才发现新章节 / 字数变化。
+  const refreshingRef = useRef(false);
+  const refreshChapters = useCallback(async () => {
+    const bookId = useWriterStore.getState().book?.id;
+    // 连续保存多章时只保留一次在途刷新，避免并发覆盖列表
+    if (!bookId || refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      await loadBookById(bookId);
+      // 当前章节若被本次保存更新，重新拉取以同步最新的 aiRes 正文
+      const state = useWriterStore.getState();
+      const chapterId = state.currentChapter?.id;
+      if (
+        chapterId &&
+        state.book.chapters.some((chapter) => chapter.id === chapterId)
+      ) {
+        await state.setCurrentChapter(chapterId);
+      }
+    } catch (error) {
+      console.error("刷新章节列表失败:", error);
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, [loadBookById]);
+
   const handleEvents = useCallback(
     (events: SSEEvent[]) => {
-      for (const { event, data } of events) {
-        switch (event) {
-          case "agent": {
-            try {
-              const { name } = JSON.parse(data);
-              if (name) startAgentMessage(name);
-            } catch {
-              // 忽略无法解析的 agent 事件
-            }
-            break;
-          }
-          case "message": {
+      for (const evt of events) {
+        dispatchSSE(evt, {
+          // 用户消息已由前端本地插入气泡，服务端回显无需重复展示
+          user_message: () => {},
+          agent: (data) => {
+            const payload = parseSSEPayload<{ name?: string }>(data);
+            if (payload?.name) startAgentMessage(payload.name);
+          },
+          message: (data) => {
             appendToMessage(ensureActive(), data);
-            break;
-          }
-          case "tool_call": {
-            try {
-              const { name } = JSON.parse(data);
-              if (name) appendToMessage(ensureActive(), `\n\n〔调用工具〕${name}`);
-            } catch {
-              // 忽略无法解析的工具事件
-            }
-            break;
-          }
-          case "tool": {
-            try {
-              const { name, result } = JSON.parse(data);
-              // 展示后台工具的真实返回，便于确认 AI 读到了什么内容
-              appendToMessage(
-                ensureActive(),
-                `\n\n〔工具 ${name || "unknown"} 返回〕\n${clipToolResult(result)}`,
-              );
-            } catch {
-              // 无法解析时按原始文本展示
-              appendToMessage(
-                ensureActive(),
-                `\n\n〔工具返回〕\n${clipToolResult(data)}`,
-              );
-            }
-            break;
-          }
-          case "error": {
+          },
+          tool_call: (data) => {
+            const payload = parseSSEPayload<{ name?: string }>(data);
+            const name = payload?.name || "unknown";
+            const key = ensureActive();
+            // 工具调用作为独立步骤，渲染为嵌套的 ThoughtChain.Item
+            mutateMessage(key, (m) => ({
+              ...m,
+              tools: [
+                ...(m.tools || []),
+                {
+                  key: `tool-${Date.now()}-${seqRef.current++}`,
+                  name,
+                  status: "loading",
+                },
+              ],
+            }));
+          },
+          tool: (data) => {
+            const payload = parseSSEPayload<{ name?: string; result?: unknown }>(data);
+            const name = payload?.name || "unknown";
+            // 展示后台工具的真实返回，便于确认 AI 读到了什么内容
+            const result = clipToolResult(payload ? payload.result : data);
+            const key = ensureActive();
+            mutateMessage(key, (m) => {
+              const tools = m.tools || [];
+              // 从后往前找最近一个同名且仍在执行的调用
+              let target = -1;
+              for (let i = tools.length - 1; i >= 0; i--) {
+                if (tools[i].status === "loading" && tools[i].name === name) {
+                  target = i;
+                  break;
+                }
+              }
+              const next =
+                target >= 0
+                  ? tools.map((tool, index) =>
+                      index === target
+                        ? { ...tool, status: "success" as const, result }
+                        : tool,
+                    )
+                  : [
+                      ...tools,
+                      {
+                        key: `tool-${Date.now()}-${seqRef.current++}`,
+                        name,
+                        status: "success" as const,
+                        result,
+                      },
+                    ];
+              return { ...m, tools: next };
+            });
+          },
+          // 章节已写库（AI 保存成功），立即刷新章节列表
+          chapter_saved: () => {
+            void refreshChapters();
+          },
+          error: (data) => {
             appendToMessage(ensureActive(), `\n\n[错误] ${data}`);
             finishActive("error");
-            break;
-          }
-          case "cancel": {
+          },
+          cancel: () => {
             appendToMessage(ensureActive(), "\n\n[任务已取消]");
             finishActive("abort");
-            break;
-          }
-          case "done": {
-            finishActive("success");
-            break;
-          }
-          default:
-            break;
-        }
+          },
+          done: () => finishActive("success"),
+        });
       }
     },
-    [appendToMessage, ensureActive, finishActive, startAgentMessage],
+    [appendToMessage, ensureActive, finishActive, mutateMessage, refreshChapters, startAgentMessage],
   );
 
   const handleSend = useCallback(
@@ -747,7 +835,7 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
               ) : (
                 <ThoughtChain
                   key={block.key}
-                  line="solid"
+                  line="dashed"
                   expandedKeys={block.steps
                     .filter((step) => !collapsedKeys.has(step.key))
                     .map((step) => step.key)}
@@ -774,11 +862,33 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
                             ? "abort"
                             : "success",
                     blink: step.status === "loading",
-                    content: step.content ? (
-                      <div className="text-sm">
-                        <XMarkdown content={step.content} />
-                      </div>
-                    ) : undefined,
+                    // 节点内容 = 思考过程 + 本次发起的所有工具调用
+                    content:
+                      step.content || step.tools?.length ? (
+                        <Flex gap="small" vertical>
+                          {step.content && (
+                            <Think title="思考过程">
+                              <div className="text-sm">
+                                <XMarkdown content={step.content} />
+                              </div>
+                            </Think>
+                          )}
+                          {step.tools?.map((tool) => (
+                            <ThoughtChain.Item
+                              key={tool.key}
+                              variant="solid"
+                              icon={<CodeOutlined />}
+                              status={tool.status}
+                              title={`工具：${tool.name}`}
+                              description={
+                                tool.result
+                                  ? clipToolResult(tool.result, 300)
+                                  : "执行中…"
+                              }
+                            />
+                          ))}
+                        </Flex>
+                      ) : undefined,
                   }))}
                 />
               ),

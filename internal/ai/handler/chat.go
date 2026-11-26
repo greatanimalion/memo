@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -18,6 +19,17 @@ import (
 
 // chatService 是 HTTP 协议层之下的业务入口。
 var chatService = service.ChatService{}
+
+// startSSE 以统一协议启动流式响应：
+//   - 先写一条 `: connected` 注释，确保连接立即建立
+//   - 再开启 15s 心跳（`: keep-alive`），防止代理层按空闲超时断开
+//
+// 返回的 stop 需在 handler 结束时调用。
+func startSSE(w http.ResponseWriter) (*response.SSE, func()) {
+	sse := response.StartSSE(w)
+	sse.Comment("connected")
+	return sse, sse.Heartbeat(15 * time.Second)
+}
 
 // RegisterChatRoutes 挂载流式 AI 端点：
 //
@@ -53,7 +65,10 @@ func chatStreamHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	chatService.ChatStream(r.Context(), req, response.StartSSE(w))
+	sse, stop := startSSE(w)
+	defer stop()
+	chatService.ChatStream(r.Context(), req, sse)
+	sse.End()
 }
 
 // chatAgentHandler 校验请求体后，运行工具调用循环。
@@ -74,7 +89,10 @@ func chatAgentHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	chatService.Agent(r.Context(), req, response.StartSSE(w))
+	sse, stop := startSSE(w)
+	defer stop()
+	chatService.Agent(r.Context(), req, sse)
+	sse.End()
 }
 
 // chatCancelHandler 中止由 requestId 注册的进行中的请求。
@@ -108,7 +126,8 @@ func bookAgentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sse := response.StartSSE(w)
+	sse, stop := startSSE(w)
+	defer stop()
 	chatService.BookAgent(r.Context(), req, sse)
 	sse.End()
 }

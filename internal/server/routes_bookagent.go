@@ -1,6 +1,21 @@
 package server
 
 import (
+	"github.com/go-chi/chi/v5"
+
+	"memo/internal/ai/handler"
+)
+
+// registerBookAgentRoutes 挂载 POST /api/book-agent，实际实现已迁移到
+// internal/ai/handler。
+func registerBookAgentRoutes(api chi.Router) {
+	handler.RegisterBookAgentRoutes(api)
+}
+
+// 以下为迁移前的原实现（http 处理逻辑已移至 internal/ai/handler），
+// 按约束保留为注释，不再编译。
+/*
+import (
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -35,3 +50,4 @@ func bookAgent(w http.ResponseWriter, r *http.Request) {
 	ai.RunBookAgent(r.Context(), req, sse)
 	sse.End()
 }
+*/

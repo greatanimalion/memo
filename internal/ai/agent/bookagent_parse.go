@@ -1,4 +1,4 @@
-package ai
+package agent
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"memo/internal/ai/llm"
 )
 
 // ──────────────────── SSE 载荷结构 ────────────────────
@@ -133,7 +135,7 @@ func containsBookToolCall(calls []bookToolCall, candidate bookToolCall) bool {
 
 // parseMessageToolCalls 重新读取 runAgent 产生的 assistant 消息上
 // 存储的工具调用。
-func parseMessageToolCalls(msg Message) []bookToolCall {
+func parseMessageToolCalls(msg llm.Message) []bookToolCall {
 	calls := make([]bookToolCall, 0, len(msg.ToolCalls))
 	for _, tc := range msg.ToolCalls {
 		args := map[string]any{}

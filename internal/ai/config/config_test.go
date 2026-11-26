@@ -1,4 +1,4 @@
-package ai
+package config
 
 import "testing"
 

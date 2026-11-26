@@ -1,4 +1,4 @@
-package ai
+package agent
 
 import (
 	"bytes"
@@ -14,6 +14,10 @@ import (
 	"sync"
 	"time"
 
+	"memo/internal/ai/config"
+	"memo/internal/ai/llm"
+	"memo/internal/ai/memory"
+	"memo/internal/ai/tools"
 	"memo/internal/db"
 )
 
@@ -177,12 +181,12 @@ func RunBookAgent(parent context.Context, req BookAgentRequest, sse Emitter) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 	if req.RequestID != "" {
-		RegisterAbort(req.RequestID, cancel)
-		defer UnregisterAbort(req.RequestID)
+		memory.RegisterAbort(req.RequestID, cancel)
+		defer memory.UnregisterAbort(req.RequestID)
 	}
 
 	run := &bookAgentRun{
-		client: NewClient(ResolveRequest(req.Model, req.BaseURL), req.APIKey, "", 0.7),
+		client: llm.NewClient(config.ResolveRequest(req.Model, req.BaseURL), req.APIKey, "", 0.7),
 		sse:    sse,
 		prompt: req.Prompt,
 		bookID: req.BookID,
@@ -241,68 +245,17 @@ func bookAgentToolAllowed(role, tool string) bool {
 // ──────────────────── 原生工具声明 ────────────────────
 
 // bookAgentToolsForRole 返回该角色可用的 OpenAI function 工具声明。
-// 把这些声明真正随请求发送（而不是只在提示词里描述），模型即可使用原生
-// function calling；DSML / 纯文本解析仅作为不支持工具调用时的回退。
-func bookAgentToolsForRole(role string) []Tool {
-	defs := map[string]Tool{
-		"route": bookAgentRouteTool(),
-		"get_book_info": FuncTool("get_book_info", "获取书籍信息与已保存章节列表（不含正文）", map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"bookId": map[string]any{"type": "string", "description": "书籍 ID，省略时使用当前书籍"},
-			},
-		}),
-		"get_chapter": FuncTool("get_chapter", "读取指定章节的完整正文；省略 chapterId 时返回当前书籍最后一章", map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"chapterId": map[string]any{"type": "string", "description": "章节 ID"},
-				"bookId":    map[string]any{"type": "string", "description": "书籍 ID，省略时使用当前书籍"},
-			},
-		}),
-		"save_chapter": FuncTool("save_chapter", "新建章节并保存正文", map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"bookId":  map[string]any{"type": "string", "description": "书籍 ID"},
-				"title":   map[string]any{"type": "string", "description": "章节标题"},
-				"content": map[string]any{"type": "string", "description": "章节正文（Markdown）"},
-				"order":   map[string]any{"type": "number", "description": "章节序号"},
-			},
-			"required": []string{"bookId", "title", "content"},
-		}),
-		"update_chapter": FuncTool("update_chapter", "更新已有章节的标题或正文", map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"chapterId": map[string]any{"type": "string", "description": "章节 ID"},
-				"title":     map[string]any{"type": "string", "description": "新标题"},
-				"content":   map[string]any{"type": "string", "description": "新正文（Markdown）"},
-			},
-			"required": []string{"chapterId"},
-		}),
-	}
-
-	allowed := bookAgentToolPermissions[role]
-	out := make([]Tool, 0, len(allowed))
-	// 固定顺序，保证每次请求体稳定、便于服务端缓存。
-	for _, name := range []string{"route", "get_book_info", "get_chapter", "save_chapter", "update_chapter"} {
-		if allowed[name] {
-			out = append(out, defs[name])
+// 工具声明与 schema 统一由 booktools.go 的 newBookToolRegistry 提供，
+// 这里只按既有的角色白名单（bookAgentToolPermissions）过滤。
+func bookAgentToolsForRole(role string) []llm.Tool {
+	all := newBookToolRegistry(nil).Declarations()
+	out := make([]llm.Tool, 0, len(all))
+	for _, tool := range all {
+		if bookAgentToolAllowed(role, tool.Function.Name) {
+			out = append(out, tool)
 		}
 	}
 	return out
-}
-
-func bookAgentRouteTool() Tool {
-	return FuncTool("route", "切换流程到下一个 Agent。一次只调用一个 route。", map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"target": map[string]any{
-				"type":        "string",
-				"description": "目标 Agent 或 end",
-				"enum":        []string{"orchestrator", "architect", "character", "writer", "guard", "end"},
-			},
-		},
-		"required": []string{"target"},
-	})
 }
 
 // outlineChapter 是从 Architect 章纲解析出的单个章节。
@@ -318,7 +271,10 @@ type outlineChapter struct {
 }
 
 type bookAgentRun struct {
-	client *Client
+	// client 依赖 llm.StreamingLLM 抽象而非具体实现，便于替换与测试。
+	// 原实现为 *llm.Client，保留备查。
+	// client *llm.Client
+	client llm.StreamingLLM
 	sse    Emitter
 	prompt string
 	bookID string
@@ -362,11 +318,13 @@ type bookAgentRun struct {
 	lastDraftCursor int
 	// board 是按书籍持久化的共享黑板。
 	board *db.BookAgentState
+	// toolsReg 是本运行实例的工具注册表（工具声明 + 绑定运行态的执行函数）。
+	toolsReg *tools.Registry
 
 	// pendingToolMsg 保存待执行工具调用的 assistant 消息；pendingToolResults
 	// 回传给同一个 Agent（ReAct 风格）。
-	pendingToolMsg     *Message
-	pendingToolResults []Message
+	pendingToolMsg     *llm.Message
+	pendingToolResults []llm.Message
 
 	// guard 节点的重试计数。
 	guardRetries int
@@ -386,6 +344,7 @@ type bookAgentRun struct {
 
 func (r *bookAgentRun) run(ctx context.Context) {
 	r.board = r.loadBoard()
+	r.toolsReg = newBookToolRegistry(r)
 	r.characterProfiles = map[string]architectCharacter{}
 	r.decisionPacks = map[string]string{}
 	r.initConversation()
@@ -427,7 +386,7 @@ func (r *bookAgentRun) run(ctx context.Context) {
 					Content:   fmt.Sprintf("[%s] %s", res.Name, clipText(res.Content, 2000)),
 					Timestamp: time.Now().UnixMilli(),
 				})
-				r.pendingToolResults = append(r.pendingToolResults, Message{
+				r.pendingToolResults = append(r.pendingToolResults, llm.Message{
 					Role:       "tool",
 					Content:    res.Content,
 					ToolCallID: res.ID,
@@ -766,29 +725,29 @@ func (r *bookAgentRun) boardSummary() string {
 
 // buildAgentMessages 为单个 Agent 节点构建全新隔离的上下文：
 // system 提示词 + 跨轮历史摘要 + 黑板 + 本节点输入。
-func (r *bookAgentRun) buildAgentMessages(node string) []Message {
+func (r *bookAgentRun) buildAgentMessages(node string) []llm.Message {
 	prompt, ok := bookAgentPrompts[node]
 	if !ok {
 		prompt = bookAgentPrompts["orchestrator"]
 	}
 
-	msgs := make([]Message, 0, 6)
-	msgs = append(msgs, Message{Role: "system", Content: prompt})
+	msgs := make([]llm.Message, 0, 6)
+	msgs = append(msgs, llm.Message{Role: "system", Content: prompt})
 
 	if r.historySummary != "" {
-		msgs = append(msgs, Message{
+		msgs = append(msgs, llm.Message{
 			Role:    "system",
 			Content: "## 历史对话摘要\n" + r.historySummary,
 		})
 	}
 	if summary := r.boardSummary(); summary != "" {
-		msgs = append(msgs, Message{
+		msgs = append(msgs, llm.Message{
 			Role:    "system",
 			Content: "## 项目共享状态\n" + summary,
 		})
 	}
 
-	msgs = append(msgs, Message{Role: "user", Content: r.buildNodeInput(node)})
+	msgs = append(msgs, llm.Message{Role: "user", Content: r.buildNodeInput(node)})
 	// 工具结果只回传给发起工具的同一个 agent（隔离，不外泄）。
 	// OpenAI 协议要求 role=tool 的消息必须紧跟在带 tool_calls 的 assistant
 	// 消息之后，因此这里先回放该 assistant 消息再追加工具结果。
@@ -994,9 +953,6 @@ func (r *bookAgentRun) initConversation() {
 	}))
 }
 
-// buildHistoryContext 定义在上方运行循环附近（返回摘要字符串，
-// 而非共享的 []Message 对话记录）。
-
 // saveMessages 将整个对话写回 bookAgent 记录。
 func (r *bookAgentRun) saveMessages() {
 	if r.recordID == "" {
@@ -1014,7 +970,7 @@ func (r *bookAgentRun) saveMessages() {
 // runAgent 以隔离上下文执行单个 Agent 节点：节点获得全新的消息列表
 // （system 提示词 + 历史摘要 + 黑板 + 本节点输入），而非共享完整对话记录
 // （Trae 风格隔离）。
-func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, error) {
+func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*llm.Message, error) {
 	msgs := r.buildAgentMessages(node)
 	// 工具回放只使用一次，避免污染下一次节点上下文。
 	r.pendingToolMsg = nil
@@ -1032,26 +988,26 @@ func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, err
 		r.sse.Write("message", fragment)
 	}
 
-	var tools []Tool
+	var toolList []llm.Tool
 	if !r.noNativeTools {
-		tools = bookAgentToolsForRole(node)
+		toolList = bookAgentToolsForRole(node)
 	}
-	msg, err := r.client.Stream(ctx, msgs, tools, emitDelta)
-	if err != nil && len(tools) > 0 && IsToolsUnsupported(err) {
+	msg, err := r.streamNode(ctx, msgs, toolList, emitDelta)
+	if err != nil && len(toolList) > 0 && llm.IsToolsUnsupported(err) {
 		// 兼容不支持 function calling 的模型：去掉 tools 重试一次，并记住
 		// 该模式，避免后续每个节点都先失败一次。
 		r.noNativeTools = true
-		msg, err = r.client.Stream(ctx, msgs, nil, emitDelta)
+		msg, err = r.streamNode(ctx, msgs, nil, emitDelta)
 	}
-	if err != nil && IsContextLengthExceeded(err) {
+	if err != nil && llm.IsContextLengthExceeded(err) {
 		// 上下文超限：强制压缩本节点输入（优先保留尾部任务/工具结果）后重试。
 		msgs = trimMessages(msgs, maxAgentInputTokens/3)
-		msg, err = r.client.Stream(ctx, msgs, tools, emitDelta)
+		msg, err = r.streamNode(ctx, msgs, toolList, emitDelta)
 	}
 	if err != nil {
 		return nil, err
 	}
-	r.outputTruncated = msg.FinishReason == FinishLength
+	r.outputTruncated = msg.FinishReason == llm.FinishLength
 
 	fullContent := msg.Content
 	calls := []bookToolCall{}
@@ -1061,14 +1017,14 @@ func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, err
 
 	// 所有工具调用都进入 out.ToolCalls，由 executeSingleTool 做白名单校验
 	// 并返回拒绝结果，这样模型能收到反馈并自行纠正（而不是被静默丢弃）。
-	out := &Message{Role: "assistant", Content: fullContent, FinishReason: msg.FinishReason}
+	out := &llm.Message{Role: "assistant", Content: fullContent, FinishReason: msg.FinishReason}
 	for _, c := range calls {
 		r.sse.Write("tool_call", jsonPayload(bookAgentToolCallEvent{Agent: node, Name: c.Name}))
 		argsJSON, _ := json.Marshal(c.Args)
-		out.ToolCalls = append(out.ToolCalls, ToolCall{
+		out.ToolCalls = append(out.ToolCalls, llm.ToolCall{
 			ID:   c.ID,
 			Type: "function",
-			Function: ToolCallFunction{
+			Function: llm.ToolCallFunction{
 				Name:      c.Name,
 				Arguments: string(argsJSON),
 			},
@@ -1087,9 +1043,31 @@ func (r *bookAgentRun) runAgent(ctx context.Context, node string) (*Message, err
 	return out, nil
 }
 
+// streamNode 通过 llm.StreamingLLM 统一接口执行一次节点调用：文本增量交给
+// onDelta 实时输出，终止块返回完整消息。原实现直接调用 Client.Stream，
+// 这里改为与 phero 一致的 ExecuteStream + CallOption 形式。
+func (r *bookAgentRun) streamNode(ctx context.Context, msgs []llm.Message, toolList []llm.Tool, onDelta func(string)) (*llm.Message, error) {
+	var result *llm.Message
+	for chunk, err := range r.client.ExecuteStream(ctx, msgs, llm.WithTools(toolList...)) {
+		if err != nil {
+			return nil, err
+		}
+		if chunk.TextDelta != "" {
+			onDelta(chunk.TextDelta)
+		}
+		if chunk.Done {
+			result = chunk.Message
+		}
+	}
+	if result == nil {
+		return nil, fmt.Errorf("llm stream ended without a final message")
+	}
+	return result, nil
+}
+
 // collectToolCalls 合并模型返回的标准工具调用、DSML 编码解析结果，
 // 以及最后手段的纯文本启发式解析。
-func (r *bookAgentRun) collectToolCalls(msg *Message, fullContent string) []bookToolCall {
+func (r *bookAgentRun) collectToolCalls(msg *llm.Message, fullContent string) []bookToolCall {
 	calls := make([]bookToolCall, 0, len(msg.ToolCalls)+1)
 	for _, tc := range msg.ToolCalls {
 		args := map[string]any{}
@@ -1117,12 +1095,12 @@ func (r *bookAgentRun) collectToolCalls(msg *Message, fullContent string) []book
 
 // hasValidBookToolCalls 报告模型是否请求了工具。注意：不带参数的工具
 // （如 get_book_info、get_chapter）同样是有效调用，不能因参数为空而忽略。
-func hasValidBookToolCalls(msg *Message) bool {
+func hasValidBookToolCalls(msg *llm.Message) bool {
 	return len(msg.ToolCalls) > 0
 }
 
 // hasToolCall 报告 msg 是否包含当前 Agent 有权调用的指定工具。
-func (r *bookAgentRun) hasToolCall(msg *Message, names ...string) bool {
+func (r *bookAgentRun) hasToolCall(msg *llm.Message, names ...string) bool {
 	for _, tc := range msg.ToolCalls {
 		if !bookAgentToolAllowed(r.currentAgent, tc.Function.Name) {
 			continue
@@ -1339,9 +1317,14 @@ func (r *bookAgentRun) executeTools() []toolResult {
 	}
 
 	// 写章节的工具必须串行执行：它们共享 r.chapterID / lastDraft 状态。
+	// 串行标记由 tools 注册表上的 Exclusive 声明统一维护。
+	reg := r.toolsReg
+	if reg == nil {
+		reg = newBookToolRegistry(r)
+	}
 	hasSerial := false
 	for _, c := range calls {
-		if c.Name == "update_chapter" || c.Name == "save_chapter" {
+		if tool, ok := reg.Get(c.Name); ok && tool.Exclusive() {
 			hasSerial = true
 			break
 		}
@@ -1407,19 +1390,11 @@ func (r *bookAgentRun) invokeToolSafely(name string, args map[string]any) (resul
 }
 
 func (r *bookAgentRun) invokeTool(name string, args map[string]any) (string, error) {
-	switch name {
-	case "get_book_info":
-		return r.toolGetBookInfo(args)
-	case "get_chapter":
-		return r.toolGetChapter(args)
-	case "save_chapter":
-		return r.toolSaveChapter(args)
-	case "update_chapter":
-		return r.toolUpdateChapter(args)
-	case "route":
-		return r.toolRoute(args)
+	reg := r.toolsReg
+	if reg == nil {
+		reg = newBookToolRegistry(r)
 	}
-	return "未知工具: " + name, nil
+	return reg.Execute(context.Background(), name, args)
 }
 
 type bookInfoChapter struct {
@@ -1438,8 +1413,8 @@ type bookInfoPayload struct {
 	Chapters     []bookInfoChapter `json:"chapters"`
 }
 
-func (r *bookAgentRun) toolGetBookInfo(args map[string]any) (string, error) {
-	bookID, _ := args["bookId"].(string)
+func (r *bookAgentRun) toolGetBookInfo(args getBookInfoArgs) (string, error) {
+	bookID := args.BookID
 	book, err := db.GetBook(bookID)
 	if err != nil {
 		return "", err
@@ -1485,8 +1460,8 @@ func (r *bookAgentRun) toolGetBookInfo(args map[string]any) (string, error) {
 
 // toolGetChapter 读取指定章节正文；省略 chapterId 时返回当前书籍最后一章。
 // 这让 writer / consistency 能访问真实正文，而不是只看元数据。
-func (r *bookAgentRun) toolGetChapter(args map[string]any) (string, error) {
-	chapterID, _ := args["chapterId"].(string)
+func (r *bookAgentRun) toolGetChapter(args getChapterArgs) (string, error) {
+	chapterID := args.ChapterID
 	if chapterID != "" {
 		chapter, err := db.GetChapter(chapterID)
 		if err != nil {
@@ -1498,7 +1473,7 @@ func (r *bookAgentRun) toolGetChapter(args map[string]any) (string, error) {
 		return formatChapterForAgent(chapter), nil
 	}
 
-	bookID, _ := args["bookId"].(string)
+	bookID := args.BookID
 	if bookID == "" {
 		bookID = r.bookID
 	}
@@ -1533,23 +1508,20 @@ func (r *bookAgentRun) previousChapterContext() string {
 	return fmt.Sprintf("## 上一章《%s》结尾（承接用）\n\n%s", previous.Title, tailText(previous.Content, 1200))
 }
 
-func (r *bookAgentRun) toolSaveChapter(args map[string]any) (string, error) {
-	bookID, _ := args["bookId"].(string)
+func (r *bookAgentRun) toolSaveChapter(args saveChapterArgs) (string, error) {
+	bookID := args.BookID
 	if bookID == "" {
 		bookID = r.bookID
 	}
 	if bookID == "" {
 		return "保存失败：缺少 bookId", nil
 	}
-	title := strings.TrimSpace(toString(args["title"]))
-	content := stripChapterHeading(toString(args["content"]))
+	title := strings.TrimSpace(args.Title)
+	content := stripChapterHeading(args.Content)
 	if strings.TrimSpace(content) == "" {
 		return "保存失败：章节内容为空", nil
 	}
-	order := int64(0)
-	if v, ok := args["order"]; ok {
-		order = toInt64(v)
-	}
+	order := args.Order
 	if order <= 0 {
 		order = int64(r.chapterNumber())
 	}
@@ -1589,8 +1561,8 @@ func (r *bookAgentRun) toolSaveChapter(args map[string]any) (string, error) {
 	return fmt.Sprintf("章节保存成功: %s (id: %s)", c.Title, c.ID), nil
 }
 
-func (r *bookAgentRun) toolUpdateChapter(args map[string]any) (string, error) {
-	chapterID, _ := args["chapterId"].(string)
+func (r *bookAgentRun) toolUpdateChapter(args updateChapterArgs) (string, error) {
+	chapterID := args.ChapterID
 	if chapterID == "" {
 		chapterID = r.chapterID
 	}
@@ -1598,13 +1570,13 @@ func (r *bookAgentRun) toolUpdateChapter(args map[string]any) (string, error) {
 		return "章节更新失败：缺少 chapterId，且当前没有正在处理的章节", nil
 	}
 	updates := map[string]any{}
-	if v, ok := args["content"]; ok {
-		content := stripChapterHeading(toString(v))
+	if args.Content != nil {
+		content := stripChapterHeading(*args.Content)
 		updates["content"] = content
 		updates["wordCount"] = int64(jsLen(content))
 	}
-	if v, ok := args["title"]; ok {
-		updates["title"] = toString(v)
+	if args.Title != nil {
+		updates["title"] = *args.Title
 	}
 	chapter, err := db.UpdateChapter(chapterID, updates)
 	if err != nil {
@@ -1621,8 +1593,8 @@ func (r *bookAgentRun) toolUpdateChapter(args map[string]any) (string, error) {
 	return fmt.Sprintf("章节更新成功: %s", chapter.Title), nil
 }
 
-func (r *bookAgentRun) toolRoute(args map[string]any) (string, error) {
-	target, _ := args["target"].(string)
+func (r *bookAgentRun) toolRoute(args routeArgs) (string, error) {
+	target := args.Target
 	switch target {
 	case "orchestrator", "architect", "character", "writer", "guard", "end":
 	default:

@@ -1,6 +1,20 @@
 package server
 
 import (
+	"github.com/go-chi/chi/v5"
+
+	"memo/internal/ai/handler"
+)
+
+// registerChatRoutes 挂载流式 AI 端点，实际实现已迁移到 internal/ai/handler。
+func registerChatRoutes(api chi.Router) {
+	handler.RegisterChatRoutes(api)
+}
+
+// 以下为迁移前的原实现（http 处理逻辑已移至 internal/ai/handler），
+// 按约束保留为注释，不再编译。
+/*
+import (
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -107,3 +121,4 @@ func writeChatJSON(w http.ResponseWriter, status int, payload any) {
 	w.WriteHeader(status)
 	_, _ = w.Write(bytes.TrimRight(buf.Bytes(), "\n"))
 }
+*/

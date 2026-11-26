@@ -1,4 +1,4 @@
-package ai
+package agent
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"unicode/utf8"
+
+	"memo/internal/ai/llm"
 )
 
 // Agent 循环的通用能力：上下文预算、工具执行隔离与结果裁剪。
@@ -25,7 +27,7 @@ const (
 )
 
 // estimateMessageTokens 粗略估算一条消息的 token 数。
-func estimateMessageTokens(m Message) int {
+func estimateMessageTokens(m llm.Message) int {
 	chars := len(m.Content)
 	for _, tc := range m.ToolCalls {
 		chars += len(tc.Function.Name) + len(tc.Function.Arguments)
@@ -34,7 +36,7 @@ func estimateMessageTokens(m Message) int {
 }
 
 // estimateMessagesTokens 粗略估算整组消息的 token 数。
-func estimateMessagesTokens(messages []Message) int {
+func estimateMessagesTokens(messages []llm.Message) int {
 	total := 0
 	for _, m := range messages {
 		total += estimateMessageTokens(m)
@@ -45,7 +47,7 @@ func estimateMessagesTokens(messages []Message) int {
 // trimMessages 在超出 token 预算时丢弃最旧的历史消息。它始终保留首条
 // system 消息，并且不会让截断后的序列以 role=tool 开头（否则会破坏
 // OpenAI 协议中 tool 消息必须紧跟 tool_calls 的要求）。
-func trimMessages(messages []Message, maxTokens int) []Message {
+func trimMessages(messages []llm.Message, maxTokens int) []llm.Message {
 	if maxTokens <= 0 || len(messages) == 0 || estimateMessagesTokens(messages) <= maxTokens {
 		return messages
 	}
@@ -67,7 +69,7 @@ func trimMessages(messages []Message, maxTokens int) []Message {
 		start++
 	}
 
-	out := make([]Message, 0, 1+len(rest)-start)
+	out := make([]llm.Message, 0, 1+len(rest)-start)
 	out = append(out, system)
 	out = append(out, rest[start:]...)
 	return out
@@ -114,7 +116,7 @@ func executeToolSafely(name, arguments string) (result string, err error) {
 
 // runToolCallsConcurrently 并发执行同一轮的多个工具调用，结果保持调用顺序。
 // ctx 取消时，未开始的调用直接返回取消错误；已有的本地工具不受影响。
-func runToolCallsConcurrently(ctx context.Context, calls []ToolCall, exec func(ToolCall) (string, error)) []toolOutcome {
+func runToolCallsConcurrently(ctx context.Context, calls []llm.ToolCall, exec func(llm.ToolCall) (string, error)) []toolOutcome {
 	outcomes := make([]toolOutcome, len(calls))
 	var wg sync.WaitGroup
 	for i := range calls {

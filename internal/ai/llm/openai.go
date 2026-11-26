@@ -1,16 +1,19 @@
-package ai
+package llm
 
 import (
 	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
+
+	"memo/internal/ai/config"
 )
 
 // defaultHTTPClient 由所有 Client 共享。其 Transport 保持为 nil，从而在请求
@@ -26,158 +29,6 @@ const (
 	maxLLMResponseBody = 32 << 20
 )
 
-// FinishReason 常量，与 OpenAI 协议一致。
-const (
-	FinishStop      = "stop"
-	FinishLength    = "length"
-	FinishToolCalls = "tool_calls"
-)
-
-// APIError 表示服务端以 HTTP 状态码拒绝请求。错误文本保持原有
-// "llm http <code>: <body>" 形式，便于前端与既有测试继续使用。
-type APIError struct {
-	StatusCode int
-	Body       string
-}
-
-func (e *APIError) Error() string {
-	return fmt.Sprintf("llm http %d: %s", e.StatusCode, truncate(e.Body, 300))
-}
-
-// ContextLengthExceeded 报告该错误是否由“提示超出上下文窗口”引起。
-func (e *APIError) ContextLengthExceeded() bool {
-	return isContextLengthText(e.Body)
-}
-
-// contextLengthError 用于服务端在 200 响应或流式块中返回的上下文超限错误。
-type contextLengthError struct {
-	message string
-}
-
-func (e *contextLengthError) Error() string { return e.message }
-
-// IsContextLengthExceeded 判断 err 是否表示提示超出模型上下文窗口。
-// 调用方据此裁剪历史后重试，而不是原样重试。
-func IsContextLengthExceeded(err error) bool {
-	if err == nil {
-		return false
-	}
-	var apiErr *APIError
-	if errors.As(err, &apiErr) {
-		return apiErr.ContextLengthExceeded()
-	}
-	var ctxErr *contextLengthError
-	return errors.As(err, &ctxErr)
-}
-
-// contextLengthPhrases 取自各 OpenAI 兼容服务端的常见报错文案。
-var contextLengthPhrases = []string{
-	"maximum context length",
-	"context_length_exceeded",
-	"exceeds the available context size",
-	"exceed_context_size_error",
-	"context window",
-	"prompt is too long",
-	"too many tokens",
-}
-
-func isContextLengthText(text string) bool {
-	lower := strings.ToLower(text)
-	for _, phrase := range contextLengthPhrases {
-		if strings.Contains(lower, phrase) {
-			return true
-		}
-	}
-	return false
-}
-
-// providerMessageError 把服务端返回的错误消息转换为可分类的错误。
-func providerMessageError(message string) error {
-	if isContextLengthText(message) {
-		return &contextLengthError{message: message}
-	}
-	return errors.New(message)
-}
-
-// IsToolsUnsupported 判断错误是否因为服务端/模型不支持 function calling。
-// 调用方可据此去掉 tools 重试，以兼容只支持纯文本补全的模型。
-func IsToolsUnsupported(err error) bool {
-	var apiErr *APIError
-	if !errors.As(err, &apiErr) {
-		return false
-	}
-	switch apiErr.StatusCode {
-	case http.StatusBadRequest, http.StatusUnprocessableEntity, http.StatusNotImplemented:
-	default:
-		return false
-	}
-	lower := strings.ToLower(apiErr.Body)
-	for _, phrase := range []string{"tool", "function calling", "function_call", "functions"} {
-		if strings.Contains(lower, phrase) {
-			return true
-		}
-	}
-	return false
-}
-
-// ModelConfig 是 OpenAI 兼容接口配置。两个字段均来自前端：用户在
-// APIKey 页面自行添加模型与 base URL，后端不保存预设列表。
-type ModelConfig struct {
-	Model string `json:"model"`
-	URL   string `json:"url"`
-}
-
-// ResolveRequest 将前端传入的模型 id 与 base URL 转为接口配置，
-// 除裁剪空白外不做其他改动。
-func ResolveRequest(name, baseURL string) ModelConfig {
-	return ModelConfig{
-		Model: strings.TrimSpace(name),
-		URL:   strings.TrimSpace(baseURL),
-	}
-}
-
-// Message 遵循 OpenAI chat completion 的结构。
-type Message struct {
-	Role       string     `json:"role"`
-	Content    string     `json:"content"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
-	Name       string     `json:"name,omitempty"`
-	// FinishReason 仅用于记录模型停止原因（stop/length/tool_calls），
-	// 不参与回传给服务端的请求体。
-	FinishReason string `json:"-"`
-}
-
-type ToolCall struct {
-	ID       string           `json:"id"`
-	Type     string           `json:"type"`
-	Function ToolCallFunction `json:"function"`
-}
-
-type ToolCallFunction struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
-}
-
-// Tool 是 OpenAI function 工具声明。
-type Tool struct {
-	Type     string       `json:"type"`
-	Function ToolFunction `json:"function"`
-}
-
-type ToolFunction struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Parameters  map[string]any `json:"parameters"`
-}
-
-func FuncTool(name, description string, parameters map[string]any) Tool {
-	return Tool{
-		Type:     "function",
-		Function: ToolFunction{Name: name, Description: description, Parameters: parameters},
-	}
-}
-
 // Client 与 OpenAI 兼容的 /chat/completions 接口通信。
 type Client struct {
 	BaseURL     string
@@ -187,7 +38,8 @@ type Client struct {
 	HTTP        *http.Client
 }
 
-func NewClient(cfg ModelConfig, apiKey, model string, temperature float64) *Client {
+// NewClient 依据模型配置创建 OpenAI 兼容客户端。
+func NewClient(cfg config.ModelConfig, apiKey, model string, temperature float64) *Client {
 	if model == "" {
 		model = cfg.Model
 	}
@@ -206,6 +58,8 @@ type chatRequest struct {
 	Stream      bool      `json:"stream"`
 	Temperature float64   `json:"temperature"`
 	Tools       []Tool    `json:"tools,omitempty"`
+	// MaxTokens 对应 WithMaxOutputTokens；0 表示不限制（保持原有请求体不变）。
+	MaxTokens int `json:"max_tokens,omitempty"`
 }
 
 type chatResponse struct {
@@ -240,14 +94,20 @@ type streamChunk struct {
 	} `json:"error"`
 }
 
-func (c *Client) buildBody(messages []Message, tools []Tool, stream bool) ([]byte, error) {
+func (c *Client) buildBody(messages []Message, tools []Tool, maxTokens int, stream bool) ([]byte, error) {
 	return json.Marshal(chatRequest{
 		Model:       c.Model,
 		Messages:    messages,
 		Stream:      stream,
 		Temperature: c.Temperature,
 		Tools:       tools,
+		MaxTokens:   maxTokens,
 	})
+}
+
+// RequestHeaders 返回单次 AI 请求的请求头，供调试日志复用。
+func (c *Client) RequestHeaders() http.Header {
+	return c.requestHeaders()
 }
 
 // requestHeaders 返回单次 AI 请求的请求头。集中在此便于请求发送与调试日志
@@ -308,11 +168,20 @@ func (c *Client) do(ctx context.Context, body []byte) (*http.Response, error) {
 			raw, _ := io.ReadAll(io.LimitReader(resp.Body, maxLLMErrorBody))
 			_ = resp.Body.Close()
 			apiErr := &APIError{StatusCode: resp.StatusCode, Body: string(raw)}
+			// 按 phero 的做法把服务端 HTTP 错误统一包装为 ProviderError，
+			// 错误文本保持 APIError 原文不变，便于用 errors.Is/As 分类。
+			providerErr := &ProviderError{
+				Provider:              "openai",
+				StatusCode:            resp.StatusCode,
+				RetryAfter:            parseRetryAfter(resp.Header),
+				ContextLengthExceeded: apiErr.ContextLengthExceeded(),
+				Err:                   apiErr,
+			}
 			if attempt < maxLLMAttempts-1 && isRetryableStatus(resp.StatusCode) {
-				lastErr = apiErr
+				lastErr = providerErr
 				continue
 			}
-			return nil, apiErr
+			return nil, providerErr
 		}
 		return resp, nil
 	}
@@ -328,9 +197,27 @@ func isRetryableStatus(status int) bool {
 	}
 }
 
+// parseRetryAfter 解析 Retry-After 头（秒数形式），无法解析时返回 0。
+func parseRetryAfter(header http.Header) time.Duration {
+	value := strings.TrimSpace(header.Get("Retry-After"))
+	if value == "" {
+		return 0
+	}
+	seconds, err := strconv.Atoi(value)
+	if err != nil || seconds <= 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
+}
+
 // Chat 执行非流式补全。
 func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*Message, error) {
-	body, err := c.buildBody(messages, tools, false)
+	return c.chat(ctx, messages, tools, 0)
+}
+
+// chat 是非流式补全的内部实现，maxTokens 为 0 时不限制输出长度。
+func (c *Client) chat(ctx context.Context, messages []Message, tools []Tool, maxTokens int) (*Message, error) {
+	body, err := c.buildBody(messages, tools, maxTokens, false)
 	if err != nil {
 		return nil, err
 	}
@@ -353,7 +240,12 @@ func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*M
 // 某些 OpenAI 兼容服务端会忽略 stream=true 直接返回完整 JSON；这里在读到
 // 首个非 SSE 数据时回退为缓冲解析，因此调用方无需区分两种服务端。
 func (c *Client) Stream(ctx context.Context, messages []Message, tools []Tool, onDelta func(string)) (*Message, error) {
-	body, err := c.buildBody(messages, tools, true)
+	return c.stream(ctx, messages, tools, 0, onDelta)
+}
+
+// stream 是流式补全的内部实现，maxTokens 为 0 时不限制输出长度。
+func (c *Client) stream(ctx context.Context, messages []Message, tools []Tool, maxTokens int, onDelta func(string)) (*Message, error) {
+	body, err := c.buildBody(messages, tools, maxTokens, true)
 	if err != nil {
 		return nil, err
 	}
@@ -364,6 +256,89 @@ func (c *Client) Stream(ctx context.Context, messages []Message, tools []Tool, o
 	defer resp.Body.Close()
 
 	return readStream(ctx, resp.Body, onDelta)
+}
+
+// resolveCall 解析并校验单次调用选项。本后端只支持工具列表与输出长度上限，
+// 无法满足的工具选择模式会显式报错而不是静默忽略。
+func (c *Client) resolveCall(opts ...CallOption) (*CallConfig, error) {
+	cfg := NewCallConfig(opts...)
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	if cfg.ToolChoice != nil {
+		switch cfg.ToolChoice.Mode {
+		case ToolChoiceAuto:
+		case ToolChoiceNone:
+			cfg.Tools = nil
+		default:
+			return nil, fmt.Errorf("%w: tool choice %q", ErrUnsupportedCallOption, cfg.ToolChoice.Mode)
+		}
+	}
+	return cfg, nil
+}
+
+// Execute 实现 LLM 接口：一次非流式补全。
+func (c *Client) Execute(ctx context.Context, messages []Message, opts ...CallOption) (*Result, error) {
+	cfg, err := c.resolveCall(opts...)
+	if err != nil {
+		return nil, err
+	}
+	msg, err := c.chat(ctx, messages, cfg.Tools, cfg.MaxOutputTokens)
+	if err != nil {
+		return nil, err
+	}
+	return &Result{
+		Message:         msg,
+		Model:           c.Model,
+		FinishReason:    msg.FinishReason,
+		RawFinishReason: string(msg.FinishReason),
+	}, nil
+}
+
+// ExecuteStream 实现 StreamingLLM 接口：文本以 TextDelta 增量产出，
+// 工具调用在流结束后逐条产出，最后产出 Done 为 true 的终止块。
+func (c *Client) ExecuteStream(ctx context.Context, messages []Message, opts ...CallOption) iter.Seq2[StreamChunk, error] {
+	return func(yield func(StreamChunk, error) bool) {
+		cfg, err := c.resolveCall(opts...)
+		if err != nil {
+			yield(StreamChunk{}, err)
+			return
+		}
+
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		stopped := false
+		msg, err := c.stream(ctx, messages, cfg.Tools, cfg.MaxOutputTokens, func(delta string) {
+			if stopped || delta == "" {
+				return
+			}
+			if !yield(StreamChunk{TextDelta: delta}, nil) {
+				// 消费方提前结束：取消底层请求，避免继续读取响应体。
+				stopped = true
+				cancel()
+			}
+		})
+		if stopped {
+			return
+		}
+		if err != nil {
+			yield(StreamChunk{}, err)
+			return
+		}
+		for i := range msg.ToolCalls {
+			if !yield(StreamChunk{ToolCall: &msg.ToolCalls[i]}, nil) {
+				return
+			}
+		}
+		yield(StreamChunk{
+			Message:         msg,
+			Model:           c.Model,
+			FinishReason:    msg.FinishReason,
+			RawFinishReason: string(msg.FinishReason),
+			Done:            true,
+		}, nil)
+	}
 }
 
 // readStream 解析 SSE 流；若响应体并非 SSE，则回退为一次性 JSON 解析。
@@ -466,7 +441,7 @@ func readStream(ctx context.Context, r io.Reader, onDelta func(string)) (*Messag
 		return parseBuffered(buffered.String(), onDelta)
 	}
 
-	msg := &Message{Role: "assistant", Content: content.String(), FinishReason: finishReason}
+	msg := &Message{Role: "assistant", Content: content.String(), FinishReason: FinishReason(finishReason)}
 	for _, idx := range toolOrder {
 		if tc, ok := toolCalls[idx]; ok {
 			if tc.Type == "" {
@@ -492,22 +467,9 @@ func parseBuffered(raw string, onDelta func(string)) (*Message, error) {
 		return nil, fmt.Errorf("llm returned no choices")
 	}
 	msg := parsed.Choices[0].Message
-	msg.FinishReason = parsed.Choices[0].Finish
+	msg.FinishReason = FinishReason(parsed.Choices[0].Finish)
 	if msg.Content != "" && onDelta != nil {
 		onDelta(msg.Content)
 	}
 	return &msg, nil
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
-}
-
-// WithTimeout 返回绑定指定超时的 context（流式调用不设超时，
-// 以免长内容生成被截断）。
-func WithTimeout(ctx context.Context, d time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, d)
 }

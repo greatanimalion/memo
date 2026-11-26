@@ -1,4 +1,4 @@
-package ai
+package agent
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"memo/internal/ai/llm"
 	"memo/internal/db"
 )
 
@@ -315,15 +316,17 @@ func (r *bookAgentRun) generateBitPlayer(ctx context.Context, chapter int, slot 
 		Appearance:   "普通样貌",
 	}
 	if r.client != nil {
-		msgs := []Message{
+		msgs := []llm.Message{
 			{Role: "system", Content: "你是轻量配角档案生成器。根据功能槽位生成一个只服务本章情节的配角，只输出 JSON。"},
 			{Role: "user", Content: fmt.Sprintf(
 				"功能槽位：%s\n本章：第%d章\n\n输出格式：\n"+
 					`{"name":"2-4字姓名","personality":"性格","fatalMistake":"即将犯的错","death":"死亡方式","appearance":"外貌"}`,
 				slot, chapter)},
 		}
-		if msg, err := r.client.Chat(ctx, msgs, nil); err == nil {
-			if p, ok := parseBitPlayer(msg.Content); ok {
+		// 原实现：if msg, err := r.client.Chat(ctx, msgs, nil); err == nil {
+		// 	if p, ok := parseBitPlayer(msg.Content); ok {
+		if result, err := r.client.Execute(ctx, msgs); err == nil && result.Message != nil {
+			if p, ok := parseBitPlayer(result.Message.Content); ok {
 				profile = p
 			}
 		}

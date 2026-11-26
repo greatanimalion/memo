@@ -1,113 +1,18 @@
-package ai
+package agent
 
 import (
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
+	"memo/internal/ai/llm"
+	"memo/internal/ai/memory"
 	"memo/internal/db"
 )
-
-func TestMain(m *testing.M) {
-	dir, err := os.MkdirTemp("", "memo-ai-test-")
-	if err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("MEMORY_DATA_DIR", filepath.ToSlash(dir)); err != nil {
-		panic(err)
-	}
-	code := m.Run()
-	_ = os.RemoveAll(dir)
-	os.Exit(code)
-}
-
-// ──────────────────── 辅助工具 ────────────────────
-
-type recordingEmitter struct {
-	events []string
-}
-
-func (r *recordingEmitter) Write(event, data string) {
-	r.events = append(r.events, "event: "+event+"\ndata: "+data+"\n\n")
-}
-
-func (r *recordingEmitter) String() string { return strings.Join(r.events, "") }
-
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
-
-func stubTransport(t *testing.T, fn roundTripFunc) {
-	t.Helper()
-	orig := http.DefaultTransport
-	http.DefaultTransport = fn
-	t.Cleanup(func() { http.DefaultTransport = orig })
-}
-
-func sseResponse(body string) *http.Response {
-	return &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     http.Header{"Content-Type": []string{"text/event-stream"}},
-		Body:       io.NopCloser(strings.NewReader(body)),
-	}
-}
-
-func completionResponse(content string) string {
-	payload := map[string]any{
-		"choices": []any{map[string]any{
-			"message":       map[string]any{"role": "assistant", "content": content},
-			"finish_reason": "stop",
-		}},
-	}
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		panic(err)
-	}
-	return string(raw)
-}
-
-func toolCallResponse(id, name, args string) string {
-	payload := map[string]any{
-		"choices": []any{map[string]any{"message": map[string]any{
-			"role":    "assistant",
-			"content": "",
-			"tool_calls": []any{map[string]any{
-				"id":       id,
-				"type":     "function",
-				"function": map[string]any{"name": name, "arguments": args},
-			}},
-		}}},
-	}
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		panic(err)
-	}
-	return string(raw)
-}
-
-type sentRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Stream      bool      `json:"stream"`
-	Temperature float64   `json:"temperature"`
-	Tools       []Tool    `json:"tools"`
-}
-
-func decodeSent(t *testing.T, raw []byte) sentRequest {
-	t.Helper()
-	var sent sentRequest
-	if err := json.Unmarshal(raw, &sent); err != nil {
-		t.Fatalf("decode model request: %v (%s)", err, raw)
-	}
-	return sent
-}
 
 // ──────────────────── 取消 ────────────────────
 
@@ -127,7 +32,7 @@ func TestRunChatStreamCancelledEmitsCancelThenDone(t *testing.T) {
 	if rec.String() != want {
 		t.Fatalf("stream cancel branch mismatch:\ngot  %q\nwant %q", rec.String(), want)
 	}
-	if AbortRequest("cancel-stream-1") {
+	if memory.AbortRequest("cancel-stream-1") {
 		t.Fatal("requestId was not unregistered after the run")
 	}
 }
@@ -148,23 +53,8 @@ func TestRunAgentCancelledEmitsCancelThenDone(t *testing.T) {
 	if rec.String() != want {
 		t.Fatalf("agent cancel branch mismatch:\ngot  %q\nwant %q", rec.String(), want)
 	}
-	if AbortRequest("cancel-agent-1") {
+	if memory.AbortRequest("cancel-agent-1") {
 		t.Fatal("requestId was not unregistered after the run")
-	}
-}
-
-func TestAbortRequestCancelsAndForgets(t *testing.T) {
-	inner, innerCancel := context.WithCancel(context.Background())
-	defer innerCancel()
-	RegisterAbort("abort-target", innerCancel)
-	if !AbortRequest("abort-target") {
-		t.Fatal("expected the registered request to be aborted")
-	}
-	if inner.Err() == nil {
-		t.Fatal("context was not cancelled")
-	}
-	if AbortRequest("abort-target") {
-		t.Fatal("second abort should miss (404 branch)")
 	}
 }
 
@@ -180,7 +70,7 @@ func TestBuildMessages(t *testing.T) {
 		},
 	}
 	msgs := buildMessages(req, ChatSystemPrompt)
-	want := []Message{
+	want := []llm.Message{
 		{Role: "system", Content: "你是一个中文 AI 助手。请简洁、准确地回答用户的问题。"},
 		{Role: "user", Content: "旧问题"},
 		{Role: "assistant", Content: "旧回答"},
@@ -243,7 +133,7 @@ func TestRunChatStreamEventFlow(t *testing.T) {
 	if len(sent.Tools) != 0 {
 		t.Errorf("chat-stream must not send tools, got %d", len(sent.Tools))
 	}
-	wantMsgs := []Message{
+	wantMsgs := []llm.Message{
 		{Role: "system", Content: ChatSystemPrompt},
 		{Role: "user", Content: "之前的问题"},
 		{Role: "assistant", Content: "之前的回答"},
@@ -345,10 +235,10 @@ func TestRunAgentToolLoop(t *testing.T) {
 	}
 
 	first := decodeSent(t, bodies[0])
-	if len(first.Tools) != 3 {
-		t.Fatalf("first round sent %d tools, want 3", len(first.Tools))
+	if len(first.Tools) != 4 {
+		t.Fatalf("first round sent %d tools, want 4", len(first.Tools))
 	}
-	wantTools := []string{"get_time", "write_diary", "get_memory"}
+	wantTools := []string{"get_time", "write_diary", "get_memory", "update_memory"}
 	for i, name := range wantTools {
 		if first.Tools[i].Function.Name != name {
 			t.Errorf("tool %d = %q, want %q", i, first.Tools[i].Function.Name, name)
@@ -510,110 +400,6 @@ func TestRunAgentRecursionLimit(t *testing.T) {
 	}
 }
 
-// ──────────────────── 工具 ────────────────────
-
-func TestGetTimeToolFormat(t *testing.T) {
-	got, err := executeTool("get_time", "{}")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !regexp.MustCompile(`^\d{4}/\d{1,2}/\d{1,2} \d{2}:\d{2}:\d{2}$`).MatchString(got) {
-		t.Fatalf("get_time = %q", got)
-	}
-	loc, err := time.LoadLocation("Asia/Shanghai")
-	if err != nil {
-		t.Fatal(err)
-	}
-	parsed, err := time.ParseInLocation("2006/1/2 15:04:05", got, loc)
-	if err != nil {
-		t.Fatalf("parse %q: %v", got, err)
-	}
-	if diff := time.Since(parsed); diff < -2*time.Minute || diff > 2*time.Minute {
-		t.Errorf("get_time %q is not close to now in Asia/Shanghai (%v)", got, diff)
-	}
-}
-
-func TestUnknownTool(t *testing.T) {
-	if _, err := executeTool("nope", "{}"); err == nil || err.Error() != `Tool "nope" not found.` {
-		t.Fatalf("err = %v", err)
-	}
-}
-
-func TestWriteDiaryTool(t *testing.T) {
-	got, err := executeTool("write_diary", `{"date":"2026-01-05","todos":[{"text":"买菜"},{"text":"跑步"}],"note":""}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "日记记录成功，日期：2026-01-05" {
-		t.Fatalf("result = %q", got)
-	}
-	if _, err := executeTool("write_diary", `{}`); err == nil {
-		t.Fatal("missing date should fail validation")
-	}
-	if _, err := executeTool("write_diary", `not json`); err == nil {
-		t.Fatal("invalid arguments should fail")
-	}
-}
-
-func TestGetMemoryTool(t *testing.T) {
-	if _, err := db.DB().Exec("DELETE FROM memorys"); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := executeTool("get_memory", `{}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "暂无记忆" {
-		t.Fatalf("empty list = %q", got)
-	}
-
-	older, newer := int64(100), int64(200)
-	memories := []db.Memory{
-		{ID: "m-folder", Title: "文件夹", IsFolder: 1, Created: 1, Updated: 1, Starred: 0},
-		{ID: "m-old", Title: "旧的会议记录", Created: 1, Updated: 1, VisitedTime: &older, Starred: 0},
-		{ID: "m-new", Title: "NEW Report", Created: 1, Updated: 1, VisitedTime: &newer, Starred: 0},
-	}
-	for i := range memories {
-		if err := db.CreateMemory(&memories[i]); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	recent, err := executeTool("get_memory", `{}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	wantRecent := "[NEW Report] (id: m-new)\n[旧的会议记录] (id: m-old)"
-	if recent != wantRecent {
-		t.Fatalf("recent = %q, want %q", recent, wantRecent)
-	}
-
-	byKeyword, err := executeTool("get_memory", `{"keyword":"会议"}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if byKeyword != "[旧的会议记录] (id: m-old)" {
-		t.Fatalf("keyword match = %q", byKeyword)
-	}
-
-	caseInsensitive, err := executeTool("get_memory", `{"keyword":"REPort"}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if caseInsensitive != "[NEW Report] (id: m-new)" {
-		t.Fatalf("case insensitive match = %q", caseInsensitive)
-	}
-
-	none, err := executeTool("get_memory", `{"keyword":"不存在的关键词"}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if none != "未找到匹配的记忆" {
-		t.Fatalf("no match = %q", none)
-	}
-}
-
 // ──────────────────── 载荷格式化 ────────────────────
 
 func TestJSONPayloadMatchesJSONStringify(t *testing.T) {
@@ -624,5 +410,60 @@ func TestJSONPayloadMatchesJSONStringify(t *testing.T) {
 	}
 	if strings.HasSuffix(got, "\n") {
 		t.Fatal("payload must not end with a newline")
+	}
+}
+
+// ──────────────────── 上下文裁剪 ────────────────────
+
+func TestTrimMessagesKeepsSystemAndRecent(t *testing.T) {
+	messages := []llm.Message{{Role: "system", Content: "sys"}}
+	for i := 0; i < 100; i++ {
+		messages = append(messages, llm.Message{Role: "user", Content: strings.Repeat("x", 400)})
+	}
+	messages = append(messages, llm.Message{Role: "user", Content: "最新问题"})
+
+	trimmed := trimMessages(messages, 200)
+	if len(trimmed) >= len(messages) {
+		t.Fatalf("expected trimming, got %d messages", len(trimmed))
+	}
+	if trimmed[0].Role != "system" || trimmed[0].Content != "sys" {
+		t.Fatalf("system message not preserved: %+v", trimmed[0])
+	}
+	if last := trimmed[len(trimmed)-1]; last.Content != "最新问题" {
+		t.Fatalf("latest message dropped: %+v", last)
+	}
+	if trimmed[1].Role == "tool" {
+		t.Fatal("trimmed history must not start with a tool message")
+	}
+}
+
+func TestTrimMessagesNoopWhenWithinBudget(t *testing.T) {
+	messages := []llm.Message{
+		{Role: "system", Content: "sys"},
+		{Role: "user", Content: "hi"},
+	}
+	got := trimMessages(messages, 1000)
+	if len(got) != len(messages) {
+		t.Fatalf("got %d messages, want %d", len(got), len(messages))
+	}
+}
+
+func TestClipTextKeepsStartAndEnd(t *testing.T) {
+	text := strings.Repeat("a", 100) + strings.Repeat("b", 100)
+	clipped := clipText(text, 20)
+	if !strings.HasPrefix(clipped, "aaaaaaaaaa") {
+		t.Fatalf("missing start: %q", clipped)
+	}
+	if !strings.HasSuffix(clipped, "bbbbbbbbbb") {
+		t.Fatalf("missing end: %q", clipped)
+	}
+	if !strings.Contains(clipped, "字符已截断") {
+		t.Fatalf("missing truncation marker: %q", clipped)
+	}
+}
+
+func TestExecuteToolSafelyRecoversPanic(t *testing.T) {
+	if _, err := executeToolSafely("no_such_tool", "{}"); err == nil {
+		t.Fatal("unknown tool should return an error, not panic")
 	}
 }

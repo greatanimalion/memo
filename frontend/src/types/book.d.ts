@@ -32,6 +32,10 @@ export interface Chapter {
   bookId: string;
   title: string;
   content: string;
+  /** AI 回答正文，isAi=1 时 AI 读取该字段 */
+  aiRes?: string;
+  /** 1 表示 AI 写的章节，0 表示人工写的章节 */
+  isAi?: number;
   wordCount?: number;
   order?: number;
   volumeId?: string;

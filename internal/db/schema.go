@@ -37,6 +37,8 @@ var schemaStatements = []string{
 		"bookId TEXT NOT NULL," +
 		"title TEXT NOT NULL," +
 		"content TEXT NOT NULL DEFAULT ''," +
+		"aiRes TEXT NOT NULL DEFAULT ''," +
+		"isAi INTEGER NOT NULL DEFAULT 0," +
 		"wordCount INTEGER NOT NULL DEFAULT 0," +
 		"volumeId TEXT," +
 		"`order` INTEGER NOT NULL DEFAULT 0," +
@@ -168,4 +170,10 @@ var migrations = []string{
 	"ALTER TABLE books ADD COLUMN description TEXT NOT NULL DEFAULT ''",
 	"ALTER TABLE books ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0",
 	"ALTER TABLE books ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0",
+	// chapters.aiRes：章节对应的 AI 回答，与正文 content 分开留存。
+	"ALTER TABLE chapters ADD COLUMN aiRes TEXT NOT NULL DEFAULT ''",
+	// chapters.isAi：1 表示 AI 写的章节（读 aiRes），0 表示人工写的章节（读 content）。
+	"ALTER TABLE chapters ADD COLUMN isAi INTEGER NOT NULL DEFAULT 0",
+	// 兼容历史数据：已有 aiRes 但 content 为空的行视为 AI 写的章节。
+	"UPDATE chapters SET isAi = 1 WHERE aiRes <> '' AND content = ''",
 }

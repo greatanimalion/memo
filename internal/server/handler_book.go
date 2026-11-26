@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf16"
 
 	"github.com/go-chi/chi/v5"
 
@@ -27,6 +28,7 @@ func registerBookRoutes(api chi.Router) {
 	api.Get("/chapters/{id}", chapterGetByID)
 	api.Post("/chapters", chapterCreate)
 	api.Put("/chapters/{id}", chapterUpdate)
+	api.Post("/chapters/{id}/merge-ai", chapterMergeAI)
 	api.Delete("/chapters/{id}", chapterDelete)
 
 	api.Get("/books/{bookId}/volumes", volumeGetByBookID)
@@ -191,6 +193,8 @@ type chapterInput struct {
 	BookID    string          `json:"bookId"`
 	Title     string          `json:"title"`
 	Content   string          `json:"content"`
+	AIRes     string          `json:"aiRes"`
+	IsAI      *int64          `json:"isAi"`
 	WordCount *int64          `json:"wordCount"`
 	VolumeID  *string         `json:"volumeId"`
 	Order     *int64          `json:"order"`
@@ -233,23 +237,36 @@ func chapterCreate(w http.ResponseWriter, r *http.Request) {
 	order := int64(0)
 	if in.Order != nil {
 		order = *in.Order
-	} else {
-		max, err := db.GetMaxChapterOrder(in.BookID)
-		if err != nil {
-			response.Fail(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		order = max + 1
 	}
+	// 原实现由 handler 查最大序号 +1；现统一由 db.CreateChapter 在 order<=0 时
+	// 按本书最大序号自动递增，避免两处重复计算。
+	// max, err := db.GetMaxChapterOrder(in.BookID)
+	// if err != nil {
+	// 	response.Fail(w, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
+	// order = max + 1
 	wordCount := int64(0)
 	if in.WordCount != nil {
 		wordCount = *in.WordCount
+	}
+	// 人工创建章节时同步写入 aiRes，保证 AI 读取到同一份正文。
+	aiRes := in.AIRes
+	if aiRes == "" {
+		aiRes = in.Content
+	}
+	// isAi 默认 0（人工写的章节）；显式传入时以传入值为准。
+	isAi := int64(0)
+	if in.IsAI != nil {
+		isAi = *in.IsAI
 	}
 	c := &db.Chapter{
 		ID:        id,
 		BookID:    in.BookID,
 		Title:     in.Title,
 		Content:   in.Content,
+		AIRes:     aiRes,
+		IsAI:      isAi,
 		WordCount: wordCount,
 		VolumeID:  in.VolumeID,
 		Order:     order,
@@ -278,7 +295,21 @@ func chapterUpdate(w http.ResponseWriter, r *http.Request) {
 		updates["title"] = db.RawToString(raw)
 	}
 	if raw, has := body["content"]; has {
-		updates["content"] = db.RawToString(raw)
+		content := db.RawToString(raw)
+		updates["content"] = content
+		// 人工修改正文时同步刷新 aiRes，保证 AI 读取到最新版本。
+		if _, hasAIRes := body["aiRes"]; !hasAIRes {
+			updates["aiRes"] = content
+		}
+	}
+	if raw, has := body["aiRes"]; has {
+		updates["aiRes"] = db.RawToString(raw)
+	}
+	// 人工合并后可将 isAi 置为 0，AI 之后改读 content。
+	if raw, has := body["isAi"]; has {
+		if n, ok := db.RawToInt64(raw); ok {
+			updates["isAi"] = n
+		}
 	}
 	if raw, has := body["wordCount"]; has {
 		if n, ok := db.RawToInt64(raw); ok {
@@ -306,6 +337,39 @@ func chapterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.Success(w, c, "章节更新成功")
+}
+
+// chapterMergeAI 把 AI 生成的正文（aiRes）覆盖到人工正文（content），
+// 并将 isAi 置为 0，表示该章节已由人工确认合并。
+func chapterMergeAI(w http.ResponseWriter, r *http.Request) {
+	id := entPath(r, "id")
+	c, err := db.GetChapter(id)
+	if err != nil {
+		response.Fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if c == nil {
+		response.Fail(w, http.StatusNotFound, "未找到指定的章节")
+		return
+	}
+	if strings.TrimSpace(c.AIRes) == "" {
+		response.Fail(w, http.StatusBadRequest, "该章节没有可合并的 AI 内容")
+		return
+	}
+	updated, err := db.UpdateChapter(id, map[string]any{
+		"content":   c.AIRes,
+		"isAi":      int64(0),
+		"wordCount": int64(len(utf16.Encode([]rune(c.AIRes)))),
+	})
+	if err != nil {
+		response.Fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if updated == nil {
+		response.Fail(w, http.StatusNotFound, "未找到指定的章节")
+		return
+	}
+	response.Success(w, updated, "已合并 AI 内容到正文")
 }
 
 func chapterDelete(w http.ResponseWriter, r *http.Request) {
@@ -503,7 +567,7 @@ func bookSearch(w http.ResponseWriter, r *http.Request) {
 	contextLength := 5
 	results := []searchMatch{}
 	for _, chapter := range chapters {
-		text := []rune(stripHTML(chapter.Content))
+		text := []rune(stripHTML(chapter.EffectiveContent()))
 		if len(text) == 0 {
 			continue
 		}

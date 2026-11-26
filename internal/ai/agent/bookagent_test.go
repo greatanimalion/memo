@@ -369,6 +369,22 @@ func TestRoutePhaseIgnoresIllegalTransition(t *testing.T) {
 	}
 }
 
+func TestRoutePhaseStopsWriterWithoutDraft(t *testing.T) {
+	// Writer 连续未产出正文时，不能在 writer ↔ guard 之间反复兜底跳转。
+	r := &bookAgentRun{
+		currentPhase:  "writer",
+		pendingRoute:  "guard",
+		writerRetries: 1,
+		writerMisses:  bookAgentMaxWriterMisses,
+	}
+	if got := r.routePhase(); got != bookAgentEnd {
+		t.Fatalf("writer without draft routed to %q, want %q", got, bookAgentEnd)
+	}
+	if !r.aborted {
+		t.Fatal("run not marked aborted after writer gave up")
+	}
+}
+
 func TestEnterNodeBudget(t *testing.T) {
 	r := &bookAgentRun{}
 	for i := 0; i < bookAgentMaxNodeCallsPerChapter; i++ {

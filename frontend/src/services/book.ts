@@ -83,6 +83,12 @@ export async function deleteChapter(id: string): Promise<void> {
   await api.delete(`/api/chapters/${id}`);
 }
 
+/** 把 AI 正文（aiRes）覆盖到 content，并将章节标记为人工内容（isAi=0）。 */
+export async function mergeChapterAI(id: string): Promise<Chapter> {
+  const res = await api.post(`/api/chapters/${id}/merge-ai`);
+  return res.data.data;
+}
+
 // ========== Volume ==========
 
 export async function getVolumes(bookId: string): Promise<Volume[]> {

@@ -28,6 +28,10 @@ const (
 - read_memory: 读取指定记忆的正文
 - rename_memory: 修改记忆标题
 - star_memory: 收藏或取消收藏记忆
+- list_chapters: 列出书籍的全部章节
+- read_chapter: 读取指定章节的正文
+- create_chapter: 在书籍中新建章节
+- update_chapter: 修改指定章节的标题或正文
 当用户请求相关操作时，请调用合适的工具。请用中文回复。`
 )
 

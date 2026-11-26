@@ -1,4 +1,4 @@
-﻿import {
+import {
   AntDesignOutlined,
   CodeOutlined,
   EditOutlined,
@@ -14,6 +14,7 @@ import { AIKey, MyAgent } from "@renderer/types/common";
 import { getLocalStore, setLocalStore } from "@renderer/utils/localStore";
 import { Bot } from "lucide-react";
 import { cancelChat } from "@renderer/services/agent";
+import { abortChatStream } from "@renderer/services/chatStream";
 const { Text } = Typography;
 
 const Switch = Sender.Switch;
@@ -269,6 +270,8 @@ const AISender: React.FC<{
           }}
           onCancel={() => {
             setLoading(false);
+            // 先中断前端读取（AbortController），再通知后端取消请求。
+            abortChatStream(requestId);
             cancelChat(requestId);
             message.error("已取消");
           }}

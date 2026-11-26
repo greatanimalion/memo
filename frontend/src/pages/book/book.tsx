@@ -1,11 +1,9 @@
 ﻿import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useWriterStore } from '@renderer/store/useWriterStore'
-// import { AIAssistantPanel } from '@renderer/components/WriterAssistant'
 import LeftPanel from '@renderer/pages/book/components/LeftPanel'
 import RightPanel from '@renderer/pages/book/components/RightPanel'
 import Bookshelf from '@renderer/pages/book/components/Bookshelf'
-import BookAgentModal from '@renderer/pages/book/components/BookAgentModal'
 import useAppStore from '@renderer/store/app'
 import { ManusEditor } from './components/ManusEditor'
 import { AgentEditor } from './components/AgentEditor'
@@ -34,15 +32,8 @@ export default function TextEditorPage() {
           isBookScreen={appStore.isBookScreen}
           onOpenBookAgent={() => setBookAgentOpen(true)}
         />
-        {/* <ManusEditor /> */}
-<ManusEditor />
+       {bookAgentOpen?<AgentEditor onClose={() => setBookAgentOpen(false)} />:<ManusEditor />}
       </div>
-      <BookAgentModal
-        open={bookAgentOpen}
-        onClose={() => setBookAgentOpen(false)}
-      />
-      {/* <AIAssistantPanel /> */}
     </div>
   )
 }
-//{bookAgentOpen?<AgentEditor />:<ManusEditor />}

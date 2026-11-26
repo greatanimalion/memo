@@ -381,6 +381,10 @@ func (r *bookAgentRun) resetChapterState() {
 	r.decisionPacks = map[string]string{}
 	r.chapterBitPlayers = nil
 	r.chapterFinalized = false
+	// 单章的 Writer 产出计数与工具回放计数一并重置。
+	r.writerMisses = 0
+	r.toolRounds = 0
+	r.writerNudge = false
 }
 
 // ──────────────────── 分层上下文 ────────────────────

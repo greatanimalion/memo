@@ -161,6 +161,11 @@ const (
 	// 防死循环兜底：单章内同一节点最多执行次数，以及连续无进展轮次上限。
 	bookAgentMaxNodeCallsPerChapter = 8
 	bookAgentMaxStalledCalls        = 12
+	// Writer 连续未产出正文的最大轮次：超过后直接结束本轮运行，
+	// 避免 writer ↔ guard 互相兜底跳转直到节点调用上限。
+	bookAgentMaxWriterMisses = 2
+	// Writer 单章内连续只调用工具、不回正文的最大轮次。
+	bookAgentMaxWriterToolRounds = 3
 	// bookAgentMaxToolResultChars 限制单个工具结果进入上下文的长度。
 	bookAgentMaxToolResultChars = 12_000
 )
@@ -340,6 +345,14 @@ type bookAgentRun struct {
 	nodeCalls       map[string]int
 	lastProgressKey string
 	stalledCalls    int
+	// writerMisses 记录本章 Writer 连续未落库正文的轮次；
+	// toolRounds 记录当前节点的连续工具回放轮次。
+	writerMisses int
+	toolRounds   int
+	// writerNudge 在 Writer 上一轮未产出正文时置位，下一次调用追加纠正指令。
+	writerNudge bool
+	// aborted 表示调度层已主动输出错误并终止，避免再补发 done 事件。
+	aborted bool
 }
 
 func (r *bookAgentRun) run(ctx context.Context) {
@@ -401,12 +414,24 @@ func (r *bookAgentRun) run(ctx context.Context) {
 				exhausted = false
 				break
 			}
+			// Writer 连续多轮只调用工具（如反复 get_book_info）却不产出正文时，
+			// 提前结束并给出明确原因，避免耗尽节点调用上限后才报出难懂的错误。
+			r.toolRounds++
+			if r.currentAgent == "writer" && r.currentDraft() == "" && !r.hasPendingRoute() &&
+				r.toolRounds >= bookAgentMaxWriterToolRounds {
+				r.abortRun(fmt.Sprintf("Writer 连续 %d 轮只调用工具、未产出正文（第%d章），已停止；已完成章节已保存，请重试",
+					r.toolRounds, r.chapterNumber()))
+				status = "error"
+				exhausted = false
+				break
+			}
 			// 若本轮工具调用里包含 route，直接按路由跳转，不再用工具回执
 			// 重跑当前 Agent（回执会覆盖正文、大纲与结论，导致丢章/误判）。
 			if r.hasPendingRoute() {
 				r.pendingToolMsg = nil
 				r.pendingToolResults = nil
 				next := r.routePhase()
+				r.toolRounds = 0
 				if next == bookAgentEnd {
 					exhausted = false
 					break
@@ -477,6 +502,14 @@ func (r *bookAgentRun) run(ctx context.Context) {
 			default:
 				r.autoSaveWriter(msg.Content)
 			}
+			// 记录本章 Writer 是否产出正文；连续未产出时给下一次调用追加纠正指令。
+			if r.currentDraft() == "" {
+				r.writerMisses++
+				r.writerNudge = true
+			} else {
+				r.writerMisses = 0
+				r.writerNudge = false
+			}
 		case "guard":
 			r.lastVerdict = r.guardVerdict(msg.Content)
 			r.recordIssues(msg.Content)
@@ -495,6 +528,7 @@ func (r *bookAgentRun) run(ctx context.Context) {
 			break
 		}
 		next := r.routePhase()
+		r.toolRounds = 0
 		if next == bookAgentEnd {
 			exhausted = false
 			break
@@ -505,6 +539,10 @@ func (r *bookAgentRun) run(ctx context.Context) {
 	if exhausted && status == "done" {
 		status = "error"
 		r.sse.Write("error", "写作流程超过最大执行次数，已停止")
+	}
+	// 调度层已主动输出终止原因时不再补发 done，保持错误语义一致。
+	if r.aborted && status == "done" {
+		status = "error"
 	}
 	if status == "done" {
 		r.sse.Write("done", doneEventText)
@@ -755,6 +793,13 @@ func (r *bookAgentRun) buildAgentMessages(node string) []llm.Message {
 		msgs = append(msgs, *r.pendingToolMsg)
 	}
 	msgs = append(msgs, r.pendingToolResults...)
+	// Writer 上一轮没有产出正文时，追加一条明确的纠正指令，避免它继续只调工具。
+	if node == "writer" && r.writerNudge {
+		msgs = append(msgs, llm.Message{
+			Role:    "user",
+			Content: "注意：上一轮没有产出可保存的本章正文。请直接输出本章正文（Markdown，至少 800 字），不要只调用 get_book_info 等查询工具；写完后调用 save_chapter 或 update_chapter，再调用 route 转 guard。",
+		})
+	}
 	return trimMessages(msgs, maxAgentInputTokens)
 }
 
@@ -1260,6 +1305,13 @@ func (r *bookAgentRun) routePhase() string {
 		return "writer"
 	case "guard":
 		if r.currentDraft() == "" {
+			// Writer 已连续多轮没有产出正文：不再退回 Writer 形成死循环，
+			// 直接终止本轮运行并给出可理解的原因。
+			if r.writerMisses >= bookAgentMaxWriterMisses {
+				r.abortRun(fmt.Sprintf("Writer 连续 %d 轮未产出本章正文（第%d章），已停止；已完成章节已保存，请重试",
+					r.writerMisses, r.chapterNumber()))
+				return bookAgentEnd
+			}
 			return "writer"
 		}
 		return "guard"
@@ -1302,6 +1354,15 @@ func (r *bookAgentRun) clearPendingRoute() {
 	r.pendingMu.Lock()
 	r.pendingRoute = ""
 	r.pendingMu.Unlock()
+}
+
+// abortRun 记录问题并向前端输出明确的终止原因；置位 aborted 后不再补发 done。
+func (r *bookAgentRun) abortRun(reason string) {
+	r.recordIssueText(reason)
+	r.aborted = true
+	if r.sse != nil {
+		r.sse.Write("error", reason)
+	}
 }
 
 // ──────────────────── 工具执行 ────────────────────
@@ -1491,7 +1552,7 @@ func formatChapterForAgent(chapter *db.Chapter) string {
 	if chapter == nil {
 		return "未找到章节"
 	}
-	return fmt.Sprintf("# %s\n\n%s", chapter.Title, clipText(chapter.Content, bookAgentMaxToolResultChars))
+	return fmt.Sprintf("# %s\n\n%s", chapter.Title, clipText(chapter.EffectiveContent(), bookAgentMaxToolResultChars))
 }
 
 // previousChapterContext 返回上一章末尾片段，用于让新章节自然承接前文。
@@ -1502,10 +1563,14 @@ func (r *bookAgentRun) previousChapterContext() string {
 		return ""
 	}
 	previous, err := db.GetChapterByOrder(r.bookID, int64(order))
-	if err != nil || previous == nil || isBlank(previous.Content) {
+	if err != nil || previous == nil {
 		return ""
 	}
-	return fmt.Sprintf("## 上一章《%s》结尾（承接用）\n\n%s", previous.Title, tailText(previous.Content, 1200))
+	text := previous.EffectiveContent()
+	if isBlank(text) {
+		return ""
+	}
+	return fmt.Sprintf("## 上一章《%s》结尾（承接用）\n\n%s", previous.Title, tailText(text, 1200))
 }
 
 func (r *bookAgentRun) toolSaveChapter(args saveChapterArgs) (string, error) {
@@ -1531,8 +1596,10 @@ func (r *bookAgentRun) toolSaveChapter(args saveChapterArgs) (string, error) {
 
 	// 当前章节已存在（返工/续写）时更新同一行，避免重复建章。
 	if r.chapterID != "" {
+		// AI 写的正文写入 aiRes，content 只由人工编辑写入。
 		chapter, err := db.UpdateChapter(r.chapterID, map[string]any{
-			"title": title, "content": content, "wordCount": int64(jsLen(content)),
+			"title": title, "aiRes": content, "wordCount": int64(jsLen(content)),
+			"isAi": int64(1),
 		})
 		if err != nil {
 			return "", err
@@ -1545,10 +1612,12 @@ func (r *bookAgentRun) toolSaveChapter(args saveChapterArgs) (string, error) {
 	}
 
 	c := &db.Chapter{
-		ID:        db.NewID(),
-		BookID:    bookID,
-		Title:     title,
-		Content:   content,
+		ID:     db.NewID(),
+		BookID: bookID,
+		Title:  title,
+		// AI 生成的正文只写 aiRes，content 留给人工写作。
+		AIRes:     content,
+		IsAI:      1,
 		WordCount: int64(jsLen(content)),
 		Order:     order,
 		Metadata:  json.RawMessage("{}"),
@@ -1572,7 +1641,9 @@ func (r *bookAgentRun) toolUpdateChapter(args updateChapterArgs) (string, error)
 	updates := map[string]any{}
 	if args.Content != nil {
 		content := stripChapterHeading(*args.Content)
-		updates["content"] = content
+		// AI 写的正文写入 aiRes，content 只由人工编辑写入。
+		updates["aiRes"] = content
+		updates["isAi"] = int64(1)
 		updates["wordCount"] = int64(jsLen(content))
 	}
 	if args.Title != nil {
@@ -1586,7 +1657,7 @@ func (r *bookAgentRun) toolUpdateChapter(args updateChapterArgs) (string, error)
 		return "章节更新失败", nil
 	}
 	if chapterID == r.chapterID {
-		if content, ok := updates["content"].(string); ok {
+		if content, ok := updates["aiRes"].(string); ok {
 			r.setLastDraft(content)
 		}
 	}
@@ -1680,9 +1751,10 @@ func (r *bookAgentRun) autoSaveWriter(content string) {
 	}
 
 	if r.chapterID != "" {
-		// 返工或续写：更新同一条章节。
+		// 返工或续写：更新同一条章节。AI 正文写入 aiRes。
 		if _, err := db.UpdateChapter(r.chapterID, map[string]any{
-			"title": title, "content": pureContent, "wordCount": int64(jsLen(pureContent)),
+			"title": title, "aiRes": pureContent, "wordCount": int64(jsLen(pureContent)),
+			"isAi": int64(1),
 		}); err != nil {
 			log.Printf("[auto-save] 章节更新失败: %v", err)
 			return
@@ -1692,10 +1764,12 @@ func (r *bookAgentRun) autoSaveWriter(content string) {
 	}
 
 	created, err := db.CreateChapter(&db.Chapter{
-		ID:        db.NewID(),
-		BookID:    r.bookID,
-		Title:     title,
-		Content:   pureContent,
+		ID:     db.NewID(),
+		BookID: r.bookID,
+		Title:  title,
+		// AI 生成的正文只写 aiRes，content 留给人工写作。
+		AIRes:     pureContent,
+		IsAI:      1,
 		WordCount: int64(jsLen(pureContent)),
 		Order:     int64(r.chapterNumber()),
 		Metadata:  json.RawMessage("{}"),

@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+
+	// "strings" // isAi 分流后不再使用字符串判空
 	"time"
 )
 
@@ -12,6 +14,8 @@ type Chapter struct {
 	BookID    string          `json:"bookId"`
 	Title     string          `json:"title"`
 	Content   string          `json:"content"`
+	AIRes     string          `json:"aiRes"`
+	IsAI      int64           `json:"isAi"`
 	WordCount int64           `json:"wordCount"`
 	VolumeID  *string         `json:"volumeId"`
 	Order     int64           `json:"order"`
@@ -25,6 +29,7 @@ type ChapterMeta struct {
 	ID        string  `json:"id"`
 	BookID    string  `json:"bookId"`
 	Title     string  `json:"title"`
+	IsAI      int64   `json:"isAi"`
 	WordCount int64   `json:"wordCount"`
 	VolumeID  *string `json:"volumeId"`
 	Order     int64   `json:"order"`
@@ -32,14 +37,26 @@ type ChapterMeta struct {
 	UpdatedAt int64   `json:"updatedAt"`
 }
 
-const chapterColumns = "id, bookId, title, content, wordCount, volumeId, `order`, createdAt, updatedAt, metadata"
-const chapterMetaColumns = "id, bookId, title, wordCount, volumeId, `order`, createdAt, updatedAt"
+// EffectiveContent 返回供 AI 读取的章节正文：
+// isAi=1（AI 写的）读 aiRes，isAi=0（人工写的）读 content。
+func (c *Chapter) EffectiveContent() string {
+	if c == nil {
+		return ""
+	}
+	if c.IsAI != 0 {
+		return c.AIRes
+	}
+	return c.Content
+}
+
+const chapterColumns = "id, bookId, title, content, aiRes, isAi, wordCount, volumeId, `order`, createdAt, updatedAt, metadata"
+const chapterMetaColumns = "id, bookId, title, isAi, wordCount, volumeId, `order`, createdAt, updatedAt"
 
 func scanChapter(row rowScanner) (*Chapter, error) {
 	c := &Chapter{}
 	var vol, meta sql.NullString
 	var created, updated sql.NullInt64
-	err := row.Scan(&c.ID, &c.BookID, &c.Title, &c.Content, &c.WordCount, &vol, &c.Order, &created, &updated, &meta)
+	err := row.Scan(&c.ID, &c.BookID, &c.Title, &c.Content, &c.AIRes, &c.IsAI, &c.WordCount, &vol, &c.Order, &created, &updated, &meta)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -64,7 +81,7 @@ func scanChapterMeta(row rowScanner) (*ChapterMeta, error) {
 	c := &ChapterMeta{}
 	var vol sql.NullString
 	var created, updated sql.NullInt64
-	err := row.Scan(&c.ID, &c.BookID, &c.Title, &c.WordCount, &vol, &c.Order, &created, &updated)
+	err := row.Scan(&c.ID, &c.BookID, &c.Title, &c.IsAI, &c.WordCount, &vol, &c.Order, &created, &updated)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -148,9 +165,18 @@ func CreateChapter(c *Chapter) (*Chapter, error) {
 	if len(meta) == 0 {
 		meta = json.RawMessage("{}")
 	}
+	// `order` 未指定（0 或负数）时按本书当前最大序号 +1 自动递增，
+	// 调用方无需再自行计算；显式传入的正序号保持不变。
+	if c.Order <= 0 {
+		max, err := GetMaxChapterOrder(c.BookID)
+		if err != nil {
+			return nil, err
+		}
+		c.Order = max + 1
+	}
 	if _, err := DB().Exec(
-		"INSERT INTO chapters (id, bookId, title, content, wordCount, volumeId, `order`, createdAt, updatedAt, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		c.ID, c.BookID, c.Title, c.Content, c.WordCount, c.VolumeID, c.Order, created, updated, string(meta),
+		"INSERT INTO chapters (id, bookId, title, content, aiRes, isAi, wordCount, volumeId, `order`, createdAt, updatedAt, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		c.ID, c.BookID, c.Title, c.Content, c.AIRes, c.IsAI, c.WordCount, c.VolumeID, c.Order, created, updated, string(meta),
 	); err != nil {
 		return nil, err
 	}

@@ -17,35 +17,13 @@ import { AIKey } from "@renderer/types/common";
 import { getLocalStore } from "@renderer/utils/localStore";
 import { resolveModelConfig } from "@renderer/utils/helper";
 import { getBookAgentsByBookId } from "@renderer/services/bookAgent";
+import { parseSSEBuffer } from "@renderer/utils/sse";
+import type { SSEEvent } from "@renderer/utils/sse";
 
 const { TextArea } = Input;
 
-interface SSEEvent {
-  event: string;
-  data: string;
-}
-
-function parseSSEBuffer(
-  buffer: string,
-): { events: SSEEvent[]; remaining: string } {
-  const events: SSEEvent[] = [];
-  const parts = buffer.split("\n\n");
-  const remaining = parts.pop() || "";
-  for (const part of parts) {
-    if (!part.trim()) continue;
-    let event = "message";
-    let data = "";
-    for (const line of part.split("\n")) {
-      if (line.startsWith("event: ")) {
-        event = line.slice(7);
-      } else if (line.startsWith("data: ")) {
-        data = line.slice(6);
-      }
-    }
-    events.push({ event, data });
-  }
-  return { events, remaining };
-}
+// 原 SSEEvent / parseSSEBuffer 与 chat.tsx 完全重复，已统一抽到
+// @renderer/utils/sse，此处直接复用。
 
 function clipForPanel(text: string, max = 600): string {
   if (!text) return "";

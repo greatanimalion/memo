@@ -47,17 +47,6 @@ func writeDiaryTool() (*Tool, error) {
 // writeDiary 将一天的数据合并写入该日期所属月份的日记行。
 // 日记表以 YYYY-MM 为 id、按月保存 monthDiarys，因此必须先读取该月已有
 // 数据再合并当天，否则会覆盖整月或写到一个前端读不到的 id 上。
-//
-// 原实现 writeDiary(rawArgs string) 自行解析 JSON 参数；参数解析现已由
-// tools.NewTool 统一完成，函数只接收解析后的参数：
-//
-//	func writeDiary(rawArgs string) (string, error) {
-//		var args writeDiaryArgs
-//		if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
-//			return "", fmt.Errorf("failed to parse arguments: %w", err)
-//		}
-//		...以下为合并写入逻辑
-//	}
 func writeDiary(args writeDiaryArgs) (string, error) {
 	if args.Date == "" {
 		return "", errors.New("date: required")

@@ -274,6 +274,11 @@ var chatTools = New(
 	Must(readMemoryTool()),
 	Must(renameMemoryTool()),
 	Must(starMemoryTool()),
+	// 书籍章节管理：列出/读取/新建/修改章节，见 book.go。
+	Must(listChaptersTool()),
+	Must(readChapterTool()),
+	Must(createChapterTool()),
+	Must(updateChapterTool()),
 )
 
 // ChatTools 返回聊天工具注册表（供 agent 层读取声明与执行）。

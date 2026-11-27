@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
@@ -251,8 +251,11 @@ const Editor = ({ selectedFile }) => {
     async function loadInitialHTML() {
       const file = await getMemoryById(selectedFile.id);
       if (!file) return;
+      // 地址可能已带 ?token=，时间戳参数改用 & 拼接
+      const fileUrl = getLocalUrl(file.fileUrl!);
+      const bustUrl = `${fileUrl}${fileUrl.includes("?") ? "&" : "?"}t=${new Date().getTime()}`;
       const content = await axios
-        .get(getLocalUrl(file.fileUrl!)+'?t='+new Date().getTime())
+        .get(bustUrl)
         .then((res) => res.data)
         .catch((err) => {
           messageApi.open({

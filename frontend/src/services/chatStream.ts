@@ -1,4 +1,5 @@
 import { getApiUrl } from "@renderer/utils";
+import { getAuthHeaders } from "@renderer/utils/apiBase";
 import { dispatchSSE, parseSSEBuffer, parseSSEPayload } from "@renderer/utils/sse";
 import type { Message } from "@type/session";
 
@@ -49,7 +50,7 @@ export async function streamChat(params: ChatStreamParams): Promise<string> {
     const url = getApiUrl(`/api/${params.agent ? "chat-agent" : "chat-stream"}`);
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({
         prompt: params.prompt,
         model: params.model,

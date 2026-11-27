@@ -1,6 +1,6 @@
 export default {
     meta: {
-        title: "无限画布",
+        title: "画布",
         description: "一个无限画布创作工具",
     },
     theme: { toggle: "切换主题" },

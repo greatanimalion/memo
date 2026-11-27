@@ -133,6 +133,11 @@ const AISender: React.FC<{
         setSelectedAgent(_currentAgent);
       }
       setAiKeys(model);
+      // 与 handleSend 的兜底逻辑一致：未选择模型时默认展示第一个已配置模型，
+      // 避免界面显示「请选择」但实际已在用第一个密钥造成困惑。
+      if (!getLocalStore<string>("selectedAI")?.value && model[0]?.model) {
+        setSelectedAI(model[0].model);
+      }
     }, []);
     useEffect(() => {
       if (!selectedAgent || selectedAgent == "未选择") return;
@@ -264,9 +269,18 @@ const AISender: React.FC<{
           suffix={false}
           onSubmit={async (v, _, _skill) => {
             setLoading(true);
-            const res = await handleSend(v);
-            if (res) setLoading(false);
-            senderZhRef.current?.clear?.();
+            try {
+              const res = await handleSend(v);
+              if (res) {
+                // 发送失败（未配置模型 / 会话创建失败等）：保留输入内容，方便重试
+                setLoading(false);
+                return;
+              }
+              senderZhRef.current?.clear?.();
+            } catch (error) {
+              console.error("发送失败:", error);
+              setLoading(false);
+            }
           }}
           onCancel={() => {
             setLoading(false);

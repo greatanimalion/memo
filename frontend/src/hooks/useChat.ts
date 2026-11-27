@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Session, MyAgent } from "@type";
 import type { Message } from "@type/agents";
 import {
@@ -70,7 +70,9 @@ export const useChat = () => {
     return newSession;
   }, []);
 
-  // 更新当前会话消息
+  // 原实现：依赖闭包里的 currentSession/currentSessionId，
+  // 在「发送时自动新建会话」等场景下闭包还是旧值，会直接 return 导致消息不显示。
+  /*
   const pushSessionToCurrentSession = useCallback(
     (session: Session) => {
       if (!currentSession) return;
@@ -82,6 +84,19 @@ export const useChat = () => {
       }
     },
     [currentSession, currentSessionId],
+  );
+  */
+
+  // 更新当前会话消息：按传入会话自身的 id 定位，不再依赖闭包中的旧状态。
+  const pushSessionToCurrentSession = useCallback(
+    (session: Session) => {
+      if (!session) return;
+      setCurrentSession(session);
+      setSessions((prev) =>
+        prev.map((conv) => (conv.id === session.id ? session : conv)),
+      );
+    },
+    [],
   );
 
   // 更新会话列表

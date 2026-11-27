@@ -49,6 +49,11 @@ const AntDesignThemeProvider = ({ children }: AntDesignThemeProviderProps) => {
       theme={{
         ...themeConfig,
         algorithm: isDark ? antdTheme.darkAlgorithm : undefined,
+        token: {
+          ...themeConfig.token,
+          // 保证 message / modal / dropdown 等始终显示在 Header 之上。
+          zIndexPopupBase: 10000,
+        },
       }}
     >
       {children}

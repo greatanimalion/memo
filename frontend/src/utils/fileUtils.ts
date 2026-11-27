@@ -1,11 +1,13 @@
-﻿/**
+/**
  * 文件工具函数
  */
 
-import { port } from "@renderer/constants";
+// import { port } from "@renderer/constants";
+import { getApiBase, getApiToken } from "./apiBase";
 import type { Memory } from "@type/memory";
 
-const BASE_URL = `http://localhost:${port}`;
+// 端口可能在启动时被动态调整，地址改为运行时解析
+// const BASE_URL = `http://localhost:${port}`;
 
 /**
  * 将相对路径拼接为完整的本地 URL
@@ -15,17 +17,22 @@ const BASE_URL = `http://localhost:${port}`;
 export const getLocalUrl = (path: string): string => {
   if (!path) return "";
   if (path.startsWith("http")) return path;
-  return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
+  // 图片等静态资源无法自定义请求头，通过查询参数携带访问令牌
+  const token = getApiToken();
+  if (!token) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
 };
 
 /**
- * 从完整 URL 中提取相对路径（去掉 baseUrl 前缀）
+ * 从完整 URL 中提取相对路径（去掉 baseUrl 前缀与查询参数）
  * @param url 完整 URL
  * @returns 相对路径
  */
 export const getRelativePath = (url: string): string => {
   if (!url) return "";
-  return url.replace(BASE_URL, "");
+  // 去掉 ?token= 等查询参数，避免把令牌写进保存的相对路径
+  return url.split("?")[0].replace(getApiBase(), "");
 };
 
 /**
@@ -34,7 +41,7 @@ export const getRelativePath = (url: string): string => {
  * @returns 完整 API URL
  */
 export const getApiUrl = (path: string): string => {
-  return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  return `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
 /**

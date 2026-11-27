@@ -1,6 +1,6 @@
 export default {
     meta: {
-        title: "Infinite Canvas",
+        title: "Canvas",
         description: "An infinite canvas creation tool",
     },
     theme: { toggle: "Toggle theme" },

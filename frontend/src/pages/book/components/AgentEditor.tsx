@@ -29,7 +29,9 @@ import { getBookAgentsByBookId } from "@renderer/services/bookAgent";
 import { mergeChapterAI } from "@renderer/services/book";
 import { dispatchSSE, parseSSEBuffer, parseSSEPayload } from "@renderer/utils/sse";
 import type { SSEEvent } from "@renderer/utils/sse";
-import { port } from "@renderer/constants";
+// import { port } from "@renderer/constants";
+import { getApiUrl } from "@renderer/utils";
+import { getAuthHeaders } from "@renderer/utils/apiBase";
 import type { AIKey } from "@renderer/types/common";
 import type { BookAgent } from "@type/book";
 import { getLocalStore } from "@renderer/utils/localStore";
@@ -506,9 +508,10 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
       abortRef.current = abortController;
 
       try {
-        const response = await fetch(`http://localhost:${port}/api/book-agent`, {
+        // 端口由后端动态分配，统一通过 getApiUrl 拼接
+        const response = await fetch(getApiUrl("/api/book-agent"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({
             prompt: text,
             bookId,
@@ -577,7 +580,9 @@ export function AgentEditor({ onClose }: AgentEditorProps) {
 
   const handleCancel = useCallback(() => {
     if (requestId) {
-      fetch(`http://localhost:${port}/api/chat-cancel?requestId=${requestId}`).catch(
+      fetch(getApiUrl(`/api/chat-cancel?requestId=${requestId}`), {
+        headers: getAuthHeaders(),
+      }).catch(
         () => undefined,
       );
     }

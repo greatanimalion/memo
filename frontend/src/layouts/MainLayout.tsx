@@ -8,7 +8,6 @@ const MainLayout = () => {
   const AppStore = useAppStore()
   const contentRef = useRef(null);
   return (
-    <ConfigProvider getPopupContainer={() => contentRef.current || document.body}>
       <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
         <Header />
         <div className="flex flex-1 overflow-hidden">
@@ -18,7 +17,6 @@ const MainLayout = () => {
           </main>
         </div>
       </div>
-    </ConfigProvider>
   );
 };
 

@@ -1,4 +1,4 @@
-package server
+﻿package server
 
 import (
 	"bytes"
@@ -41,6 +41,9 @@ type envelope struct {
 	Error   string          `json:"error"`
 }
 
+// testToken 是 e2e 测试统一使用的访问令牌。
+const testToken = "test-token"
+
 func do(t *testing.T, srv *httptest.Server, method, path string, body any) (int, envelope) {
 	t.Helper()
 	var reader io.Reader
@@ -55,6 +58,7 @@ func do(t *testing.T, srv *httptest.Server, method, path string, body any) (int,
 	if err != nil {
 		t.Fatalf("request: %v", err)
 	}
+	req.Header.Set("Authorization", "Bearer "+testToken)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -71,7 +75,7 @@ func do(t *testing.T, srv *httptest.Server, method, path string, body any) (int,
 }
 
 func TestMemoryLifecycle(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	status, env := do(t, srv, http.MethodPost, "/api/memorys", map[string]any{
@@ -130,7 +134,7 @@ func TestMemoryLifecycle(t *testing.T) {
 }
 
 func TestDiaryUpsert(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	payload := map[string]any{
@@ -152,7 +156,7 @@ func TestDiaryUpsert(t *testing.T) {
 }
 
 func TestSessionRoundTrip(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	status, env := do(t, srv, http.MethodPost, "/api/sessions", map[string]any{
@@ -178,7 +182,7 @@ func TestSessionRoundTrip(t *testing.T) {
 }
 
 func TestBookChapterAndSearch(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	status, env := do(t, srv, http.MethodPost, "/api/books", map[string]any{"title": "My Book", "description": "d"})
@@ -215,7 +219,7 @@ func TestBookChapterAndSearch(t *testing.T) {
 }
 
 func TestUploadAndDeleteFile(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	var buf bytes.Buffer
@@ -232,6 +236,7 @@ func TestUploadAndDeleteFile(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/upload", &buf)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+testToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("upload: %v", err)
@@ -252,7 +257,8 @@ func TestUploadAndDeleteFile(t *testing.T) {
 		t.Fatalf("upload url = %q", uploaded.URL)
 	}
 
-	res, err := http.Get(srv.URL + uploaded.URL)
+	// 静态资源无法设置请求头，通过 ?token= 校验
+	res, err := http.Get(srv.URL + uploaded.URL + "?token=" + testToken)
 	if err != nil {
 		t.Fatalf("get upload: %v", err)
 	}
@@ -273,7 +279,7 @@ func TestUploadAndDeleteFile(t *testing.T) {
 }
 
 func TestBookAgentCRUD(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	status, env := do(t, srv, http.MethodPost, "/api/book-agents", map[string]any{
@@ -292,7 +298,7 @@ func TestBookAgentCRUD(t *testing.T) {
 }
 
 func TestAIValidation(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	if status, _ := do(t, srv, http.MethodPost, "/api/chat-stream", map[string]any{}); status != 400 {
@@ -307,7 +313,7 @@ func TestAIValidation(t *testing.T) {
 }
 
 func TestUsageStats(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
 	today := time.Now().Format("2006-01-02")

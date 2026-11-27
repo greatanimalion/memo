@@ -12,7 +12,9 @@ import {
   UpOutlined,
   DownOutlined,
 } from "@ant-design/icons";
-import { port } from "@renderer/constants";
+// import { port } from "@renderer/constants";
+import { getApiUrl } from "@renderer/utils";
+import { getAuthHeaders } from "@renderer/utils/apiBase";
 import { AIKey } from "@renderer/types/common";
 import { getLocalStore } from "@renderer/utils/localStore";
 import { resolveModelConfig } from "@renderer/utils/helper";
@@ -456,9 +458,10 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
     abortControllerRef.current = abortController;
 
     try {
-      const response = await fetch(`http://localhost:${port}/api/book-agent`, {
+      // 端口由后端动态分配，统一通过 getApiUrl 拼接
+      const response = await fetch(getApiUrl("/api/book-agent"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           prompt: userMessage,
           bookId: book.id,
@@ -519,7 +522,9 @@ const BookAgentModal: React.FC<BookAgentModalProps> = ({ open, onClose }) => {
 
   const handleCancel = useCallback(() => {
     if (requestId) {
-      fetch(`http://localhost:${port}/api/chat-cancel?requestId=${requestId}`);
+      fetch(getApiUrl(`/api/chat-cancel?requestId=${requestId}`), {
+        headers: getAuthHeaders(),
+      });
     }
     abortControllerRef.current?.abort();
     setIsStreaming(false);

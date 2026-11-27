@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/subtle"
 	"log"
 	"net/http"
 	"strings"
@@ -11,12 +12,17 @@ import (
 )
 
 // NewRouter 构建用于替代之前 Express 应用的路由。
-func NewRouter() http.Handler {
+// token 非空时启用访问校验：请求需携带 Authorization: Bearer <token>，
+// 或通过 ?token= 传入（用于无法自定义请求头的图片/静态资源）。
+func NewRouter(token string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(corsMiddleware)
 	r.Use(middleware.Recoverer)
 	r.Use(requestLogger)
+	if token != "" {
+		r.Use(authMiddleware(token))
+	}
 
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +59,32 @@ func corsMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// authMiddleware 校验访问令牌：优先读取 Authorization: Bearer，
+// 图片等无法设置请求头的资源允许通过 ?token= 传入。
+func authMiddleware(token string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// CORS 预检请求不带业务头，直接放行
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
+			provided := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+			if provided == "" {
+				provided = r.URL.Query().Get("token")
+			}
+			// 常量时间比较，避免时序侧信道
+			if subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = w.Write([]byte(`{"code":401,"error":"unauthorized"}`))
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func requestLogger(next http.Handler) http.Handler {

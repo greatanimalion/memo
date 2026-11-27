@@ -10,6 +10,16 @@
   z-index: 3 !important;
 }
 
+/* 画布选中/关联边的流光动画 */
+.canvas-edge-flow {
+  animation: canvas-edge-flow 1.4s linear infinite;
+}
+
+@keyframes canvas-edge-flow {
+  from { stroke-dashoffset: 134; }
+  to { stroke-dashoffset: 0; }
+}
+
 /* 默认CSS变量（当没有主题类时使用） */
 :root {
   --bg-color: #ffffff;

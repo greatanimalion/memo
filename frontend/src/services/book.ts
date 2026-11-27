@@ -1,5 +1,31 @@
+
 import api from ".";
 import type { Book, BookDetail, Chapter, Volume } from "@type/book";
+
+/** 通用 CRUD 工厂：三套接口完全同构，仅 base 路径与类型不同。 */
+function createCrudApi<Item, CreateInput = Partial<Item>, CreateResult = Item>(base: string) {
+  return {
+    list: async (): Promise<Item[]> => {
+      const res = await api.get(base);
+      return res.data.data || [];
+    },
+    get: async (id: string): Promise<Item> => {
+      const res = await api.get(`${base}/${id}`);
+      return res.data.data;
+    },
+    create: async (data: CreateInput): Promise<CreateResult> => {
+      const res = await api.post(base, data);
+      return res.data.data;
+    },
+    update: async (id: string, data: Partial<Item>): Promise<Item> => {
+      const res = await api.put(`${base}/${id}`, data);
+      return res.data.data;
+    },
+    remove: async (id: string): Promise<void> => {
+      await api.delete(`${base}/${id}`);
+    },
+  };
+}
 
 // ========== Search ==========
 
@@ -22,65 +48,31 @@ export async function searchBook(
 
 // ========== Book ==========
 
-export async function getBooks(): Promise<Book[]> {
-  const res = await api.get("/api/books");
-  return res.data.data || [];
-}
+const bookApi = createCrudApi<Book, Book, BookDetail>("/api/books");
+export const getBooks = bookApi.list;
+export const getBookById = bookApi.get;
+export const createBook = bookApi.create;
+export const updateBook = bookApi.update;
+export const deleteBook = bookApi.remove;
 
-export async function getBookById(id: string): Promise<Book> {
-  const res = await api.get(`/api/books/${id}`);
-  return res.data.data;
-}
-
+/** 书架详情：books 下单独的 /detail 子路径，属特例。 */
 export async function getBookDetail(id: string): Promise<BookDetail> {
   const res = await api.get(`/api/books/${id}/detail`);
   return res.data.data;
 }
 
-export async function createBook(book: Book): Promise<BookDetail> {
-  const res = await api.post("/api/books", book);
-  return res.data.data;
-}
-
-export async function updateBook(
-  id: string,
-  data: Partial<Book>,
-): Promise<Book> {
-  const res = await api.put(`/api/books/${id}`, data);
-  return res.data.data;
-}
-
-export async function deleteBook(id: string): Promise<void> {
-  await api.delete(`/api/books/${id}`);
-}
-
 // ========== Chapter ==========
 
+const chapterApi = createCrudApi<Chapter>("/api/chapters");
+export const getChapterById = chapterApi.get;
+export const createChapter = chapterApi.create;
+export const updateChapter = chapterApi.update;
+export const deleteChapter = chapterApi.remove;
+
+/** 某本书的章节列表：嵌套在 book 下，属特例。 */
 export async function getChapters(bookId: string): Promise<Chapter[]> {
   const res = await api.get(`/api/books/${bookId}/chapters`);
   return res.data.data || [];
-}
-
-export async function getChapterById(id: string): Promise<Chapter> {
-  const res = await api.get(`/api/chapters/${id}`);
-  return res.data.data;
-}
-
-export async function createChapter(chapter: Chapter): Promise<Chapter> {
-  const res = await api.post("/api/chapters", chapter);
-  return res.data.data;
-}
-
-export async function updateChapter(
-  id: string,
-  data: Partial<Chapter>,
-): Promise<Chapter> {
-  const res = await api.put(`/api/chapters/${id}`, data);
-  return res.data.data;
-}
-
-export async function deleteChapter(id: string): Promise<void> {
-  await api.delete(`/api/chapters/${id}`);
 }
 
 /** 把 AI 正文（aiRes）覆盖到 content，并将章节标记为人工内容（isAi=0）。 */
@@ -91,29 +83,14 @@ export async function mergeChapterAI(id: string): Promise<Chapter> {
 
 // ========== Volume ==========
 
+const volumeApi = createCrudApi<Volume>("/api/volumes");
+export const getVolumeById = volumeApi.get;
+export const createVolume = volumeApi.create;
+export const updateVolume = volumeApi.update;
+export const deleteVolume = volumeApi.remove;
+
+/** 某本书的卷列表：嵌套在 book 下，属特例。 */
 export async function getVolumes(bookId: string): Promise<Volume[]> {
   const res = await api.get(`/api/books/${bookId}/volumes`);
   return res.data.data || [];
-}
-
-export async function getVolumeById(id: string): Promise<Volume> {
-  const res = await api.get(`/api/volumes/${id}`);
-  return res.data.data;
-}
-
-export async function createVolume(volume: Volume): Promise<Volume> {
-  const res = await api.post("/api/volumes", volume);
-  return res.data.data;
-}
-
-export async function updateVolume(
-  id: string,
-  data: Partial<Volume>,
-): Promise<Volume> {
-  const res = await api.put(`/api/volumes/${id}`, data);
-  return res.data.data;
-}
-
-export async function deleteVolume(id: string): Promise<void> {
-  await api.delete(`/api/volumes/${id}`);
 }

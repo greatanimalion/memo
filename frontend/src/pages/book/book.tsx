@@ -2,7 +2,6 @@
 import { useSearchParams } from 'react-router-dom'
 import { useWriterStore } from '@renderer/store/useWriterStore'
 import LeftPanel from '@renderer/pages/book/components/LeftPanel'
-import RightPanel from '@renderer/pages/book/components/RightPanel'
 import Bookshelf from '@renderer/pages/book/components/Bookshelf'
 import useAppStore from '@renderer/store/app'
 import { ManusEditor } from './components/ManusEditor'

@@ -1,3 +1,4 @@
+/* ===== 旧实现（保留备查，已由 settings-popover-shell 工厂替代） =====
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Settings2 } from "lucide-react";
@@ -124,3 +125,35 @@ function ImageSettingsPortal({
         document.body,
     );
 }
+===== 旧实现结束 ===== */
+
+// ===== 新实现：仅声明本弹层的摘要与面板，骨架统一由工厂生成 =====
+import { createSettingsPopover } from "./settings-popover-shell";
+import { ImageSettingsPanel, imageQualityLabel, imageSizeLabel } from "@/components/image-settings-panel";
+import type { AiConfig } from "@/store/use-config-store";
+
+type CanvasImageSettingsPopoverProps = {
+    config: AiConfig;
+    onConfigChange: (key: keyof AiConfig, value: string) => void;
+    onMissingConfig?: () => void;
+    autoAdjustOverflow?: boolean;
+    buttonClassName?: string;
+    onOpenChange?: (open: boolean) => void;
+    placement?: "topLeft" | "top" | "topRight" | "bottomLeft" | "bottom" | "bottomRight";
+};
+
+export const CanvasImageSettingsPopover = createSettingsPopover<CanvasImageSettingsPopoverProps>({
+    defaultClassName: "!h-8 !max-w-[180px] !justify-start !rounded-full !px-2.5",
+    panelClassName: "canvas-image-settings-popover",
+    summary: ({ config }, t) => {
+        const quality = config.quality || "auto";
+        const count = Math.max(1, Math.min(15, Math.floor(Math.abs(Number(config.count)) || 1)));
+        const activeSize = config.size || "auto";
+        return (
+            <>
+                {imageQualityLabel(quality)} · {imageSizeLabel(activeSize)} · {t("canvas.controls.images", { count })}
+            </>
+        );
+    },
+    panel: ({ config, onConfigChange }, theme) => <ImageSettingsPanel config={config} onConfigChange={onConfigChange} theme={theme} className="space-y-4" />,
+});

@@ -5,6 +5,8 @@
  * 这里统一收敛，避免两处逻辑漂移。
  */
 
+import { getAuthHeaders } from "@renderer/utils/apiBase";
+
 export interface SSEEvent {
   event: string;
   data: string;
@@ -108,5 +110,50 @@ export function parseSSEPayload<T>(data: string): T | null {
     return JSON.parse(data) as T;
   } catch {
     return null;
+  }
+}
+
+/**
+ * 发起 SSE 流式请求并逐帧分发。
+ *
+ * 原先 chatStream.ts 与 bookAgent.tsx 各写了一份
+ * fetch → getReader → TextDecoder → parseSSEBuffer 的消费循环，
+ * 且 releaseLock 的调用不一致（bookAgent 漏了），这里统一收敛。
+ *
+ * 回调里抛出的异常会原样向外传播（例如服务端 error 事件转成 Error），
+ * 并在 finally 中释放 reader lock。
+ */
+export interface ConsumeSSEOptions {
+  url: string;
+  /** 请求体，内部统一 JSON 序列化 */
+  body: unknown;
+  signal?: AbortSignal;
+  /** 每解析出一个完整事件调用一次 */
+  onEvent: (evt: SSEEvent) => void;
+}
+
+export async function consumeSSEStream({ url, body, signal, onEvent }: ConsumeSSEOptions): Promise<void> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!response.body) throw new Error("响应体为空");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let sseBuffer = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      sseBuffer += decoder.decode(value, { stream: true });
+      const { events, remaining } = parseSSEBuffer(sseBuffer);
+      sseBuffer = remaining;
+      for (const evt of events) onEvent(evt);
+    }
+  } finally {
+    reader.releaseLock();
   }
 }

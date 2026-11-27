@@ -27,6 +27,17 @@ type toolResultEvent struct {
 	Result string `json:"result"`
 }
 
+// userMessageEvent 是 user_message 事件的载荷：除回显用户输入外，
+// 额外携带本次对话在 bookAgent 表中的记录 id，前端据此把实时对话段
+// 与持久化记录关联（删除某段对话时需要定位后端记录）。
+type userMessageEvent struct {
+	Agent     string `json:"agent"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+	Timestamp int64  `json:"timestamp"`
+	RecordID  string `json:"recordId"`
+}
+
 // chapterSavedEvent 表示一次章节写库成功，前端据此立即刷新章节列表。
 type chapterSavedEvent struct {
 	Agent     string `json:"agent,omitempty"`

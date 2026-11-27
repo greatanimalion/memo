@@ -6,6 +6,8 @@ import i18n from "@/i18n";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import { computeMediaSize, inferMediaRatio, inferMediaScale, mediaRatioOptions, mediaScaleOptions, readMediaDimensions } from "@/lib/media-size";
 import type { AiConfig } from "@/store/use-config-store";
+// 共享原子组件：OptionPill / SettingTitle 原为本文件局部函数，已下沉统一
+import { OptionPill, SettingTitle } from "@/components/settings-primitives";
 
 const qualityOptions = [
     { value: "auto", labelKey: "auto" },
@@ -174,6 +176,8 @@ export function imageSizeLabel(size: string) {
     return `${scale} · ${ratio}`;
 }
 
+// 旧实现（保留备查，已由 @/components/settings-primitives 的 OptionPill 替代）
+/*
 function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
     return (
         <button
@@ -187,6 +191,7 @@ function OptionPill({ selected, theme, onClick, children }: { selected: boolean;
         </button>
     );
 }
+*/
 
 function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange }: { prefix: string; value: number; disabled: boolean; theme: CanvasTheme; alignToStep: boolean; onChange: (value: number | null) => void }) {
     const commit = (input: HTMLInputElement) => {
@@ -246,6 +251,8 @@ function AspectIcon({ width, height, color }: { width: number; height: number; c
     );
 }
 
+// 旧实现（保留备查，已由 @/components/settings-primitives 的 SettingTitle 替代）
+/*
 function SettingTitle({ children, color }: { children: string; color: string }) {
     return (
         <div className="text-xs font-medium" style={{ color }}>
@@ -253,6 +260,7 @@ function SettingTitle({ children, color }: { children: string; color: string }) 
         </div>
     );
 }
+*/
 
 function alignDimension(value: number, enabled: boolean) {
     return enabled ? Math.ceil(value / DIMENSION_STEP) * DIMENSION_STEP : value;

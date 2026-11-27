@@ -14,6 +14,8 @@ import {
 } from '@ant-design/icons';
 import { FontFamily } from '@renderer/types/common';
 import { searchBook, SearchMatch } from '@renderer/services/book';
+// 统计逻辑统一由工具函数提供
+import { getTextStats } from '@renderer/utils/wordCount';
 
 interface RightPanelProps {
   isBookScreen: boolean;
@@ -75,14 +77,12 @@ const RightPanel: React.FC<RightPanelProps> = ({ isBookScreen }) => {
 
   const content = currentChapter?.content || '';
 
-  const charCount = content.length;
-  const chineseChars = (content.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length;
-  const englishWords = content
-    .replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean).length;
-  const paragraphCount = content.split(/\n\n+/).filter(p => p.trim()).length;
-  const sentenceCount = (content.match(/[.!?。！？]+/g) || []).length || (content.trim() ? 1 : 0);
+  const stats = getTextStats(content);
+  const charCount = stats.chars;
+  const chineseChars = stats.chineseChars;
+  const englishWords = stats.englishWords;
+  const paragraphCount = stats.paragraphs;
+  const sentenceCount = stats.sentences;
 
   if (isBookScreen) {
     return null;

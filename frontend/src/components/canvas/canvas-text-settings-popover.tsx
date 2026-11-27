@@ -1,3 +1,4 @@
+/* ===== 旧实现（保留备查，已由 settings-popover-shell 工厂替代） =====
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Settings2 } from "lucide-react";
@@ -103,3 +104,40 @@ function TextSettingsPortal({ buttonRect, panelRef, placement, theme, config, co
         document.body,
     );
 }
+===== 旧实现结束 ===== */
+
+// ===== 新实现：仅声明本弹层的摘要与面板，骨架统一由工厂生成 =====
+import { InputNumber } from "antd";
+import { createSettingsPopover } from "./settings-popover-shell";
+import { reasoningEffortLabel, TextSettingsPanel } from "@/components/text-settings-panel";
+import type { AiConfig, ReasoningEffort } from "@/store/use-config-store";
+
+type CanvasTextSettingsPopoverProps = {
+    config: AiConfig;
+    onConfigChange: (key: "reasoningEffort", value: ReasoningEffort) => void;
+    count?: number;
+    onCountChange?: (count: number) => void;
+    buttonClassName?: string;
+    placement?: "topLeft" | "top" | "topRight" | "bottomLeft" | "bottom" | "bottomRight";
+};
+
+export const CanvasTextSettingsPopover = createSettingsPopover<CanvasTextSettingsPopoverProps>({
+    defaultClassName: "!h-8 !max-w-[170px] !justify-start !rounded-full !px-2.5",
+    summary: ({ config, count, onCountChange }, t) => (
+        <>
+            {t("canvas.controls.reasoning")} · {reasoningEffortLabel(config.reasoningEffort)}
+            {onCountChange ? ` · ${t("canvas.controls.generations", { count })}` : ""}
+        </>
+    ),
+    panel: ({ config, onConfigChange, count, onCountChange }, theme, t) => (
+        <>
+            <TextSettingsPanel config={config} onConfigChange={onConfigChange} theme={theme} />
+            {onCountChange ? (
+                <div className="mt-4 space-y-2.5">
+                    <div className="text-sm font-medium" style={{ color: theme.node.muted }}>{t("settingsPanels.text.count")}</div>
+                    <InputNumber className="w-full" min={1} max={15} precision={0} value={count} onChange={(value) => onCountChange(value || 1)} />
+                </div>
+            ) : null}
+        </>
+    ),
+});

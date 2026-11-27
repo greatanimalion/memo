@@ -1,3 +1,4 @@
+/* ===== 旧实现（保留备查，已由 settings-popover-shell 工厂替代） =====
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Settings2 } from "lucide-react";
@@ -112,3 +113,27 @@ function AudioSettingsPortal({
         document.body,
     );
 }
+===== 旧实现结束 ===== */
+
+// ===== 新实现：仅声明本弹层的摘要与面板，骨架统一由工厂生成 =====
+import { createSettingsPopover } from "./settings-popover-shell";
+import { AudioSettingsPanel } from "@/components/audio-settings-panel";
+import { audioFormatLabel, audioSpeedLabel, audioVoiceLabel } from "@/lib/audio-generation";
+import type { AiConfig } from "@/store/use-config-store";
+
+export type CanvasAudioSettingKey = "audioVoice" | "audioFormat" | "audioSpeed" | "audioInstructions";
+
+type CanvasAudioSettingsPopoverProps = {
+    config: AiConfig;
+    onConfigChange: (key: CanvasAudioSettingKey, value: string) => void;
+    buttonClassName?: string;
+    placement?: "topLeft" | "top" | "topRight" | "bottomLeft" | "bottom" | "bottomRight";
+};
+
+export const CanvasAudioSettingsPopover = createSettingsPopover<CanvasAudioSettingsPopoverProps>({
+    defaultClassName: "h-8! max-w-42.5! justify-start! rounded-full! px-2.5!",
+    // 旧实现也误用了 image 的 class 名，这里保持一致，避免外部样式选择器失效
+    panelClassName: "canvas-image-settings-popover",
+    summary: ({ config }) => `${audioVoiceLabel(config.audioVoice)} · ${audioFormatLabel(config.audioFormat)} · ${audioSpeedLabel(config.audioSpeed)}`,
+    panel: ({ config, onConfigChange }, theme) => <AudioSettingsPanel config={config} onConfigChange={(key, value) => onConfigChange(key, value)} theme={theme} className="space-y-4" />,
+});

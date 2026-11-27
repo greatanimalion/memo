@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ImageSettingsTheme } from "@/components/image-settings-panel";
+// 共享原子组件：OptionPill / SettingGroup 原为本文件局部函数，已下沉统一
+import { OptionPill, SettingGroup } from "@/components/settings-primitives";
 import { audioFormatOptions, audioSpeedLabel, audioVoiceOptions, normalizeAudioFormatValue, normalizeAudioSpeedValue, normalizeAudioVoiceValue } from "@/lib/audio-generation";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import type { AiConfig } from "@/store/use-config-store";
@@ -82,6 +84,8 @@ export function AudioSettingsPanel({ config, onConfigChange, theme, showTitle = 
     );
 }
 
+// 旧实现（保留备查，已由 @/components/settings-primitives 替代）
+/*
 function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
     return (
         <button type="button" className="h-9 cursor-pointer rounded-full border px-2 text-sm transition hover:opacity-80" style={{ background: "transparent", borderColor: selected ? theme.node.text : theme.node.stroke, color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()} onClick={onClick}>
@@ -100,3 +104,4 @@ function SettingGroup({ title, color, children }: { title: string; color: string
         </div>
     );
 }
+*/

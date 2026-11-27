@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import i18n from "@/i18n";
 import { ImageSettingsTheme } from "@/components/image-settings-panel";
+// 共享原子组件：OptionPill 原为本文件局部函数，已下沉统一
+import { OptionPill } from "@/components/settings-primitives";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import type { AiConfig, ReasoningEffort } from "@/store/use-config-store";
 
@@ -42,6 +44,8 @@ export function reasoningEffortLabel(value: ReasoningEffort) {
     return reasoningEffortOptions.includes(value) ? i18n.t(`settingsPanels.common.${value}`) : value;
 }
 
+// 旧实现（保留备查，已由 @/components/settings-primitives 的 OptionPill 替代）
+/*
 function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
     return (
         <button
@@ -55,3 +59,4 @@ function OptionPill({ selected, theme, onClick, children }: { selected: boolean;
         </button>
     );
 }
+*/

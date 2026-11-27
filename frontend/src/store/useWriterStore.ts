@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
 import { FontFamily, Chapter, Volume, BookDetail } from '@renderer/types/common'
 import { generateUUID } from '@renderer/utils/helper'
 import {
@@ -13,20 +13,8 @@ import {
   updateVolume as apiUpdateVolume,
   deleteVolume as apiDeleteVolume,
 } from '@renderer/services/book'
-
-function countWords(text: string, mode: 'chinese' | 'english' | 'all' = 'chinese'): number {
-  if (mode === 'chinese') {
-    const chineseChars = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length
-    const englishWords = text
-      .replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, ' ')
-      .split(/\s+/)
-      .filter(Boolean).length
-    return chineseChars + englishWords
-  } else if (mode === 'english') {
-    return text.split(/\s+/).filter(Boolean).length
-  }
-  return text.length
-}
+// 字数统计统一由工具函数提供
+import { countWords } from '@renderer/utils/wordCount'
 
 function createChapterLocal(bookId: string, title: string, order: number, volumeId?: string): Chapter {
   const now = Date.now()

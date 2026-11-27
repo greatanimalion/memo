@@ -990,11 +990,12 @@ func (r *bookAgentRun) initConversation() {
 		Messages: json.RawMessage("[]"),
 		Status:   "running",
 	})
-	r.sse.Write("user_message", jsonPayload(convMessage{
+	r.sse.Write("user_message", jsonPayload(userMessageEvent{
 		Agent:     "user",
 		Role:      "user",
 		Content:   r.prompt,
 		Timestamp: time.Now().UnixMilli(),
+		RecordID:  r.recordID,
 	}))
 }
 

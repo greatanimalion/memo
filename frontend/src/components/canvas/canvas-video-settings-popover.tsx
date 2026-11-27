@@ -1,3 +1,4 @@
+/* ===== 旧实现（保留备查，已由 settings-popover-shell 工厂替代） =====
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Settings2 } from "lucide-react";
@@ -109,3 +110,24 @@ function VideoSettingsPortal({
         document.body,
     );
 }
+===== 旧实现结束 ===== */
+
+// ===== 新实现：仅声明本弹层的摘要与面板，骨架统一由工厂生成 =====
+import { createSettingsPopover } from "./settings-popover-shell";
+import { VideoSettingsPanel, videoModeLabel, videoResolutionLabel, videoSecondsLabel, videoSizeLabel } from "@/components/video-settings-panel";
+import type { AiConfig } from "@/store/use-config-store";
+
+type CanvasVideoSettingsPopoverProps = {
+    config: AiConfig;
+    onConfigChange: (key: keyof AiConfig, value: string) => void;
+    buttonClassName?: string;
+    placement?: "topLeft" | "top" | "topRight" | "bottomLeft" | "bottom" | "bottomRight";
+};
+
+export const CanvasVideoSettingsPopover = createSettingsPopover<CanvasVideoSettingsPopoverProps>({
+    defaultClassName: "!h-8 !max-w-[220px] !justify-start !rounded-full !px-2.5",
+    // 旧实现也误用了 image 的 class 名，这里保持一致，避免外部样式选择器失效
+    panelClassName: "canvas-image-settings-popover",
+    summary: ({ config }) => `${videoResolutionLabel(config.vquality)} · ${videoSizeLabel(config.size)} · ${videoSecondsLabel(config.videoSeconds)} · ${videoModeLabel(config.videoMode)}`,
+    panel: ({ config, onConfigChange }, theme) => <VideoSettingsPanel config={config} onConfigChange={(key, value) => onConfigChange(key, value)} theme={theme} className="space-y-4" />,
+});

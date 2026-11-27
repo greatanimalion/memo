@@ -1,6 +1,6 @@
 import { getApiUrl } from "@renderer/utils";
 import { getAuthHeaders } from "@renderer/utils/apiBase";
-import { dispatchSSE, parseSSEBuffer, parseSSEPayload } from "@renderer/utils/sse";
+import { dispatchSSE, consumeSSEStream, parseSSEPayload } from "@renderer/utils/sse";
 import type { Message } from "@type/session";
 
 /**
@@ -48,6 +48,7 @@ export async function streamChat(params: ChatStreamParams): Promise<string> {
 
   try {
     const url = getApiUrl(`/api/${params.agent ? "chat-agent" : "chat-stream"}`);
+    /* ===== 旧实现（保留备查，已由 consumeSSEStream 替代） =====
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -107,6 +108,48 @@ export async function streamChat(params: ChatStreamParams): Promise<string> {
     } finally {
       reader.releaseLock();
     }
+
+    return accumulatedContent;
+    ===== 旧实现结束 ===== */
+
+    // 新实现：消费循环收敛到 consumeSSEStream，页面/服务只关心事件分发
+    let accumulatedContent = "";
+    await consumeSSEStream({
+      url,
+      body: {
+        prompt: params.prompt,
+        model: params.model,
+        baseUrl: params.baseUrl,
+        apiKey: params.apiKey,
+        history: params.history,
+        requestId: params.requestId,
+      },
+      signal: controller.signal,
+      onEvent: (evt) => {
+        // 按后端事件分类分发：message=模型文本，tool_call/tool=工具步骤
+        dispatchSSE(evt, {
+          message: (data) => {
+            accumulatedContent += data;
+            params.onDelta?.(data);
+          },
+          tool_call: (data) => {
+            const payload = parseSSEPayload<{ name?: string }>(data);
+            if (payload?.name) params.onToolCall?.(payload.name);
+          },
+          tool: (data) => {
+            const payload = parseSSEPayload<{ name?: string }>(data);
+            if (payload?.name) params.onToolResult?.(payload.name);
+          },
+          error: (data) => {
+            throw new Error(data);
+          },
+          cancel: () => {
+            throw new DOMException("请求已取消", "AbortError");
+          },
+          // agent / user_message / done 由写书流程使用，聊天接口不会下发
+        });
+      },
+    });
 
     return accumulatedContent;
   } finally {

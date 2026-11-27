@@ -67,7 +67,6 @@ loop:
 			status = "cancelled"
 			break loop
 		case "done":
-			break loop
 		}
 	}
 	t.Status = status

@@ -184,13 +184,18 @@ async function pollChatTask(
     activePolls.delete(sessionId);
     clearActiveChatTask(sessionId);
 
+    // 任务里已经出现过 error 事件时，即使状态是 done 也按失败收尾，
+    // 否则最终文本为空会什么都不落库，界面上 AI 消息会直接消失
+    const finalStatus: ChatRunStatus =
+      status === "done" && errorText.trim() ? "error" : status;
+
     const content = getChatRun(sessionId)?.content || "";
     try {
-      await persistChatResult(sessionId, content, status, errorText);
+      await persistChatResult(sessionId, content, finalStatus, errorText);
     } catch (error) {
       console.error("保存 AI 回答失败:", error);
     }
-    finishChatRun(sessionId, status);
+    finishChatRun(sessionId, finalStatus);
   }
 }
 

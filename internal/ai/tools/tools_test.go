@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -129,6 +130,85 @@ func TestGetMemoryTool(t *testing.T) {
 	}
 	if none != "未找到匹配的记忆" {
 		t.Fatalf("no match = %q", none)
+	}
+}
+
+func TestReadChaptersValidation(t *testing.T) {
+	// 超过 5 章直接报错，且不会触达数据库
+	if _, err := runTool("read_chapters", `{"chapterIds":["1","2","3","4","5","6"]}`); err == nil {
+		t.Fatal("more than 5 chapters should fail")
+	}
+	if _, err := runTool("read_chapters", `{}`); err == nil {
+		t.Fatal("missing chapterIds/orders should fail")
+	}
+	if _, err := runTool("read_chapters", `{"chapterIds":["1"],"orders":[1]}`); err == nil {
+		t.Fatal("chapterIds and orders should not be provided together")
+	}
+	if _, err := runTool("read_chapters", `{"orders":[1]}`); err == nil {
+		t.Fatal("orders without bookId should fail")
+	}
+}
+
+func TestReadChaptersPreviewAndFullResult(t *testing.T) {
+	tool, ok := chatTools.Get("read_chapters")
+	if !ok {
+		t.Fatal("read_chapters not registered")
+	}
+	// 模型拿到完整结果
+	if !tool.KeepFullResult() {
+		t.Fatal("read_chapters should keep full result for the model")
+	}
+	// 前端预览：保留章节名称/字数/内容开头，隐藏内部 id
+	result := "共读取 2 个章节：" +
+		"\n\n# 第一章 开端（id: c1，第 1 章）\n\n正文一" +
+		"\n\n# 第二章 转折（id: c2，第 2 章）\n\n正文二"
+	preview := tool.Preview(result)
+	if strings.Contains(preview, "id:") || strings.Contains(preview, "c1") || strings.Contains(preview, "c2") {
+		t.Fatalf("preview still contains internal id: %q", preview)
+	}
+	for _, want := range []string{
+		"共读取 2 个章节",
+		"章节名称：第一章 开端",
+		"字数：3",
+		"内容：正文一",
+		"章节名称：第二章 转折",
+	} {
+		if !strings.Contains(preview, want) {
+			t.Fatalf("preview %q missing %q", preview, want)
+		}
+	}
+}
+
+func TestChapterPreviewsHideIDs(t *testing.T) {
+	// 单章读取
+	read, ok := chatTools.Get("read_chapter")
+	if !ok {
+		t.Fatal("read_chapter not registered")
+	}
+	got := read.Preview("# 第一章（id: c1）\n\n正文内容")
+	want := "章节名称：第一章\n字数：4\n内容：正文内容"
+	if got != want {
+		t.Fatalf("read_chapter preview = %q, want %q", got, want)
+	}
+
+	// 章节列表
+	list, ok := chatTools.Get("list_chapters")
+	if !ok {
+		t.Fatal("list_chapters not registered")
+	}
+	got = list.Preview("《书》共 1 章：\n- [1] 开端（id: c1，1200 字）")
+	want = "《书》共 1 章：\n- [1] 开端（1200 字）"
+	if got != want {
+		t.Fatalf("list_chapters preview = %q, want %q", got, want)
+	}
+
+	// 新建/更新
+	create, ok := chatTools.Get("create_chapter")
+	if !ok {
+		t.Fatal("create_chapter not registered")
+	}
+	if got = create.Preview("章节创建成功: 开端 (id: c1)"); got != "章节创建成功: 开端" {
+		t.Fatalf("create_chapter preview = %q", got)
 	}
 }
 

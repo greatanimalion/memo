@@ -23,6 +23,44 @@ func sseDelta(content string) string {
 	return "data: " + string(raw) + "\n\n"
 }
 
+// TestBookToolPreviews 验证写书工具下发给前端的结果已加工：可读、无内部 id。
+func TestBookToolPreviews(t *testing.T) {
+	bookInfo := `{
+  "title": "恐怖",
+  "description": "",
+  "tags": [],
+  "chapterCount": 3,
+  "volumeCount": 0,
+  "chapters": [
+    {"id": "80232b19b4a7faee962cf05f489ebf29", "title": "镜子", "wordCount": 1210, "order": 1},
+    {"id": "4aa11c7bab2bb11ed2bd29e1212906c8", "title": "对视", "wordCount": 1030, "order": 2}
+  ]
+}`
+	got := previewBookInfo(bookInfo)
+	if strings.Contains(got, "80232b19b4a7faee962cf05f489ebf29") || strings.Contains(got, `"chapters"`) {
+		t.Fatalf("book info preview still looks like raw JSON: %q", got)
+	}
+	for _, want := range []string{"《恐怖》", "共 3 章", "第 1 章 镜子（1210 字）", "第 2 章 对视（1030 字）"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("book info preview %q missing %q", got, want)
+		}
+	}
+
+	chapter := previewBookChapter("# 镜子\n\n他在镜子里看到了自己身后的影子。")
+	if !strings.Contains(chapter, "章节名称：镜子") || !strings.Contains(chapter, "字数：16") {
+		t.Fatalf("chapter preview = %q", chapter)
+	}
+	// 超过 50 字的正文只保留开头并加省略号
+	long := previewBookChapter("# 长章\n\n" + strings.Repeat("正", 80))
+	if strings.Contains(long, strings.Repeat("正", 80)) || !strings.HasSuffix(long, "…") {
+		t.Fatalf("long chapter preview should be truncated: %q", long)
+	}
+
+	if got = previewChapterOpResult("章节保存成功: 镜子 (id: abc123)"); got != "章节保存成功: 镜子" {
+		t.Fatalf("operation preview = %q", got)
+	}
+}
+
 func dsmlInvoke(name string, params map[string]any) string {
 	var sb strings.Builder
 	sb.WriteString("<")

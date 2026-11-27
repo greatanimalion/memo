@@ -2,6 +2,10 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"regexp"
+	"strings"
 
 	"memo/internal/ai/tools"
 )
@@ -44,21 +48,74 @@ func newBookToolRegistry(r *bookAgentRun) *tools.Registry {
 		tools.Must(tools.NewTool[getBookInfoArgs]("get_book_info", "获取书籍信息与已保存章节列表（不含正文）",
 			func(_ context.Context, args getBookInfoArgs) (string, error) {
 				return r.toolGetBookInfo(args)
-			})),
+			})).SetPreview(previewBookInfo),
 		tools.Must(tools.NewTool[getChapterArgs]("get_chapter", "读取指定章节的完整正文；省略 chapterId 时返回当前书籍最后一章",
 			func(_ context.Context, args getChapterArgs) (string, error) {
 				return r.toolGetChapter(args)
-			})),
+			})).SetPreview(previewBookChapter),
 		// 写章节的工具会读写 r.chapterID / lastDraft，必须串行执行。
 		tools.Must(tools.NewTool[saveChapterArgs]("save_chapter", "新建章节并保存正文",
 			func(_ context.Context, args saveChapterArgs) (string, error) {
 				return r.toolSaveChapter(args)
-			})).SetExclusive(true),
+			})).SetExclusive(true).SetPreview(previewChapterOpResult),
 		tools.Must(tools.NewTool[updateChapterArgs]("update_chapter", "更新已有章节的标题或正文",
 			func(_ context.Context, args updateChapterArgs) (string, error) {
 				return r.toolUpdateChapter(args)
-			})).SetExclusive(true),
+			})).SetExclusive(true).SetPreview(previewChapterOpResult),
 	)
+}
+
+// previewChapterOpIDRe 匹配保存/更新结果末尾的 " (id: xxx)"，前端预览时移除。
+var previewChapterOpIDRe = regexp.MustCompile(` \(id: [^)]+\)`)
+
+// previewBookInfo 把 get_book_info 的 JSON 结果加工成前端可读摘要：
+// 只保留书名、简介、标签与章节序号/标题/字数，隐藏内部 id。
+func previewBookInfo(result string) string {
+	var payload bookInfoPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		return result
+	}
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "《%s》", payload.Title)
+	if desc := strings.TrimSpace(payload.Description); desc != "" {
+		fmt.Fprintf(&sb, "\n简介：%s", desc)
+	}
+	if tags := strings.TrimSpace(string(payload.Tags)); tags != "" && tags != "[]" && tags != "null" {
+		fmt.Fprintf(&sb, "\n标签：%s", tags)
+	}
+	fmt.Fprintf(&sb, "\n共 %d 章", payload.ChapterCount)
+	for _, c := range payload.Chapters {
+		fmt.Fprintf(&sb, "\n第 %d 章 %s（%d 字）", c.Order, c.Title, c.WordCount)
+	}
+	return sb.String()
+}
+
+// previewBookChapter 把 get_chapter 的 "# 标题\n\n正文" 加工成
+// 章节名称/字数/内容开头，避免前端直接看到整章正文。
+func previewBookChapter(result string) string {
+	if !strings.HasPrefix(result, "# ") {
+		return result
+	}
+	rest := strings.TrimPrefix(result, "# ")
+	idx := strings.Index(rest, "\n\n")
+	if idx < 0 {
+		return result
+	}
+	title := strings.TrimSpace(rest[:idx])
+	body := strings.TrimSpace(rest[idx+2:])
+	if body == "" {
+		body = "（正文为空）"
+	}
+	oneLine := strings.Join(strings.Fields(body), " ")
+	if runes := []rune(oneLine); len(runes) > 50 {
+		oneLine = string(runes[:50]) + "…"
+	}
+	return fmt.Sprintf("章节名称：%s\n字数：%d\n内容：%s", title, jsLen(body), oneLine)
+}
+
+// previewChapterOpResult 去掉保存/更新成功结果里的内部 id。
+func previewChapterOpResult(result string) string {
+	return previewChapterOpIDRe.ReplaceAllString(result, "")
 }
 
 // ──────────────────── 旧实现（保留备查，不再使用） ────────────────────

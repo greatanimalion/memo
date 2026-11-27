@@ -392,7 +392,14 @@ func (r *bookAgentRun) run(ctx context.Context) {
 		if node == "tools" {
 			results := r.executeTools()
 			for _, res := range results {
-				r.sse.Write("tool", jsonPayload(toolResultEvent{Agent: r.currentAgent, Name: res.Name, Result: res.Content}))
+				// 前端展示使用工具声明的预览（如 get_book_info 只展示书名/章节名/字数），
+				// 模型仍拿到完整工具结果。
+				// r.sse.Write("tool", jsonPayload(toolResultEvent{Agent: r.currentAgent, Name: res.Name, Result: res.Content}))
+				preview := res.Content
+				if reg := r.toolsReg; reg != nil {
+					preview = reg.Preview(res.Name, res.Content)
+				}
+				r.sse.Write("tool", jsonPayload(toolResultEvent{Agent: r.currentAgent, Name: res.Name, Result: preview}))
 				r.conversation = append(r.conversation, convMessage{
 					Agent:     r.currentAgent,
 					Role:      "tool",

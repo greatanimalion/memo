@@ -729,10 +729,15 @@ export function BookAgentPanel({
                               icon={<CodeOutlined />}
                               status={tool.status}
                               title={`工具：${tool.name}`}
+                              // 结果已由后端加工为多行可读文本，用 pre-wrap 保留换行并隐藏内部 id
                               description={
-                                tool.result
-                                  ? clipToolResult(tool.result, 300)
-                                  : "执行中…"
+                                tool.result ? (
+                                  <div className="whitespace-pre-wrap text-xs">
+                                    {clipToolResult(tool.result, 1000)}
+                                  </div>
+                                ) : (
+                                  "执行中…"
+                                )
                               }
                             />
                           ))}

@@ -235,13 +235,13 @@ func TestRunAgentToolLoop(t *testing.T) {
 	}
 
 	first := decodeSent(t, bodies[0])
-	if len(first.Tools) != 11 {
-		t.Fatalf("first round sent %d tools, want 11", len(first.Tools))
+	if len(first.Tools) != 12 {
+		t.Fatalf("first round sent %d tools, want 12", len(first.Tools))
 	}
 	wantTools := []string{
 		"get_time", "write_diary", "get_memory",
 		"write_memory", "read_memory", "rename_memory", "star_memory",
-		"list_chapters", "read_chapter", "create_chapter", "update_chapter",
+		"list_chapters", "read_chapter", "read_chapters", "create_chapter", "update_chapter",
 	}
 	for i, name := range wantTools {
 		if first.Tools[i].Function.Name != name {

@@ -52,6 +52,10 @@ type Tool struct {
 	middlewares []Middleware
 	// exclusive 表示该工具的调用不能与其他调用重叠。
 	exclusive bool
+	// preview 可选：把工具结果转换为给前端展示的预览文本，模型仍拿到完整结果。
+	preview func(result string) string
+	// keepFullResult 为 true 时，回填给模型的结果不做长度截断。
+	keepFullResult bool
 }
 
 // Name 返回工具名。
@@ -94,6 +98,30 @@ func (t *Tool) SetExclusive(exclusive bool) *Tool {
 
 // Exclusive 报告工具是否为独占。
 func (t *Tool) Exclusive() bool { return t.exclusive }
+
+// SetPreview 设置工具结果的前端预览转换函数：
+// SSE 下发给前端的内容使用预览，回填给模型的内容保持完整。
+func (t *Tool) SetPreview(fn func(result string) string) *Tool {
+	t.preview = fn
+	return t
+}
+
+// Preview 返回给前端展示的预览文本；未设置预览函数时原样返回。
+func (t *Tool) Preview(result string) string {
+	if t.preview == nil {
+		return result
+	}
+	return t.preview(result)
+}
+
+// SetKeepFullResult 标记该工具结果回填给模型时不做长度截断。
+func (t *Tool) SetKeepFullResult(keep bool) *Tool {
+	t.keepFullResult = keep
+	return t
+}
+
+// KeepFullResult 报告该工具结果是否不做长度截断。
+func (t *Tool) KeepFullResult() bool { return t.keepFullResult }
 
 // Use 追加中间件，按添加顺序执行。
 func (t *Tool) Use(middlewares ...Middleware) *Tool {
@@ -204,6 +232,22 @@ func (r *Registry) Tools() []*Tool {
 	return out
 }
 
+// Preview 返回指定工具结果的前端预览文本；工具不存在或未设置预览时原样返回。
+func (r *Registry) Preview(name, result string) string {
+	if tool, ok := r.tools[name]; ok {
+		return tool.Preview(result)
+	}
+	return result
+}
+
+// KeepFullResult 报告指定工具结果是否不做长度截断。
+func (r *Registry) KeepFullResult(name string) bool {
+	if tool, ok := r.tools[name]; ok {
+		return tool.KeepFullResult()
+	}
+	return false
+}
+
 // Declarations 返回全部工具声明（保持注册顺序，保证请求体稳定）。
 func (r *Registry) Declarations() []llm.Tool {
 	out := make([]llm.Tool, 0, len(r.order))
@@ -277,6 +321,7 @@ var chatTools = New(
 	// 书籍章节管理：列出/读取/新建/修改章节，见 book.go。
 	Must(listChaptersTool()),
 	Must(readChapterTool()),
+	Must(readChaptersTool()),
 	Must(createChapterTool()),
 	Must(updateChapterTool()),
 )

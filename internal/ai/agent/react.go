@@ -30,6 +30,7 @@ const (
 - star_memory: 收藏或取消收藏记忆
 - list_chapters: 列出书籍的全部章节
 - read_chapter: 读取指定章节的正文
+- read_chapters: 一次性读取多个章节的正文（最多 5 章）
 - create_chapter: 在书籍中新建章节
 - update_chapter: 修改指定章节的标题或正文
 当用户请求相关操作时，请调用合适的工具。请用中文回复。`
@@ -254,8 +255,16 @@ func RunAgent(parent context.Context, req ChatRequest, sse Emitter) {
 					// （handleToolErrors 默认为 true）。
 					result = formatToolError(outcomes[i].Err)
 				}
-				result = clipText(result, maxToolResultChars)
-				sse.Write("tool", jsonPayload(toolResultEvent{Name: tc.Function.Name, Result: result}))
+				// 原实现对所有工具结果统一截断；read_chapters 这类需要完整
+				// 正文的工具通过 KeepFullResult 跳过截断，交由模型完整读取。
+				// result = clipText(result, maxToolResultChars)
+				if !tools.ChatTools().KeepFullResult(tc.Function.Name) {
+					result = clipText(result, maxToolResultChars)
+				}
+				// 下发给前端的只展示工具自定义的预览（如章节正文仅前 50 字），
+				// 回填给模型的仍是完整结果。
+				preview := tools.ChatTools().Preview(tc.Function.Name, result)
+				sse.Write("tool", jsonPayload(toolResultEvent{Name: tc.Function.Name, Result: preview}))
 				messages = append(messages, llm.Message{
 					Role:       "tool",
 					Content:    result,

@@ -316,6 +316,7 @@ var chatTools = New(
 	// update_memory 已由 write_memory / rename_memory / star_memory 取代。
 	Must(writeMemoryTool()),
 	Must(readMemoryTool()),
+	Must(findMemoryByTitleTool()),
 	Must(renameMemoryTool()),
 	Must(starMemoryTool()),
 	// 书籍章节管理：列出/读取/新建/修改章节，见 book.go。

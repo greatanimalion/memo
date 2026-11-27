@@ -1,4 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { message } from "antd";
 import { AIKey } from "@renderer/types/common";
 import type { Message } from "@type/session";
@@ -6,9 +12,17 @@ import ChatPanel from "@renderer/components/ChatPanel";
 import AISender from "@renderer/components/common/AISender";
 import { getLocalStore } from "@renderer/utils/localStore";
 import { useChat } from "@renderer/hooks/useChat";
-import { updateSession } from "@renderer/services/session";
-import { streamChat } from "@renderer/services/chatStream";
 import { usePendingResponse } from "@renderer/hooks/usePendingResponse";
+import { updateSession } from "@renderer/services/session";
+// 原同步 SSE 请求层，已由后台任务 + 轮询替代
+// import { streamChat } from "@renderer/services/chatStream";
+import {
+  hasRunningChatTask,
+  listActiveChatSessions,
+  restoreChatSession,
+  startChatRun,
+} from "@renderer/services/chatRunner";
+import { getChatRun, subscribeChatRun } from "@renderer/services/chatLive";
 import { findPairedTimestamp } from "@renderer/utils/messageUtils";
 import SessionList from "./components/SessionList";
 import MessageArea from "./components/MessageArea";
@@ -34,14 +48,10 @@ const ChatPage: React.FC = () => {
     handleSelectSession,
     handleDeleteSession,
     updateSessionTitle,
+    syncSessions,
   } = useChat();
 
   const [messageApi, contextHolder] = message.useMessage();
-  const [typingDate, setTypingDate] = useState("");
-  const [typingTarget, setTypingTarget] = useState("");
-  const [typeId, setTypeId] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
-  const [toolStatus, setToolStatus] = useState("");
   const [openAgent, setOpenAgent] = useState(true);
 
   const {
@@ -92,10 +102,6 @@ const ChatPage: React.FC = () => {
       }
       const sessionId = session.id;
 
-      setIsThinking(true);
-      setTypeId(sessionId);
-      setToolStatus("");
-
       let sessionToUpdate = session;
 
       if (!isResume) {
@@ -127,74 +133,44 @@ const ChatPage: React.FC = () => {
         sessionToUpdate =
           updatedSessions.find((c) => c.id === sessionId) ?? session;
         pushSessionToCurrentSession(sessionToUpdate);
+        // 立即持久化用户消息：切页返回时会话排序与内容才正确
+        updateSession(sessionToUpdate).catch((error) =>
+          console.error("保存用户消息失败:", error),
+        );
       }
 
+      let _prompt = userContent;
+      if (prompt) {
+        _prompt = `请基于以下文档内容回答问题：\n ${prompt}\n问题：${userContent}`;
+      }
+
+      // 本地暂存兜底：后台任务丢失（如后端重启）时仍可提示续写
+      startAutoSave(() => getChatRun(sessionId)?.content || "");
+
       try {
-        let _prompt = userContent;
-        if (prompt) {
-          _prompt = `请基于以下文档内容回答问题：\n ${prompt}\n问题：${userContent}`;
-        }
-
-        let accumulatedContent = "";
-        setTypingDate(Date.now().toString());
-        startAutoSave(() => accumulatedContent);
-
-        const content = await streamChat({
+        // 任务化：请求交给后端后台执行，后续增量由 chatRunner 轮询同步到
+        // chatLive；页面切走甚至整页刷新后都能凭 taskId 恢复现场
+        await startChatRun({
+          sessionId,
           agent: openAgent,
           prompt: _prompt,
           model: config.model,
           baseUrl: config.url,
           apiKey: api_key,
           history: sessionToUpdate.messages,
-          requestId: sessionId,
-          onDelta: (delta) => {
-            accumulatedContent += delta;
-            setTypingTarget(accumulatedContent);
-          },
-          onToolCall: (name) => setToolStatus(`正在调用工具：${name}…`),
-          onToolResult: (name) => setToolStatus(`工具 ${name} 已完成`),
         });
-
-        const aiMessage: Message = {
-          timestamp: Date.now(),
-          role: "system",
-          content,
-        };
-        sessionToUpdate = {
-          ...sessionToUpdate,
-          messages: [...sessionToUpdate.messages, aiMessage],
-          lastUpdated: Date.now(),
-        };
       } catch (error) {
         console.error("发送消息时出错:", error);
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          const detail =
-            error instanceof Error ? error.message.trim() : String(error || "").trim();
-          const errorMessage = detail
-            ? `AI 调用失败：${detail}`
-            : "抱歉，我在处理您的请求时遇到了问题，请稍后重试。";
-          sessionToUpdate = {
-            ...sessionToUpdate,
-            messages: [
-              ...sessionToUpdate.messages,
-              {
-                role: "system",
-                content: errorMessage,
-                timestamp: Date.now(),
-              },
-            ],
-          };
-          setTypingTarget(errorMessage);
-        }
-      } finally {
         stopAutoSave();
-        clearPendingResponse();
-        setTypeId("");
-        setToolStatus("");
-        pushSessionToCurrentSession(sessionToUpdate);
-        setTypingTarget("");
-        updateSession(sessionToUpdate);
-        setIsThinking(false);
+        const detail =
+          error instanceof Error
+            ? error.message.trim()
+            : String(error || "").trim();
+        messageApi.error(
+          detail ? `AI 调用失败：${detail}` : "AI 调用失败，请稍后重试",
+        );
+        // 返回 true 让输入框保留内容，方便重试
+        return true;
       }
     },
     [
@@ -207,14 +183,97 @@ const ChatPage: React.FC = () => {
       pushSessionToCurrentSession,
       startAutoSave,
       stopAutoSave,
-      clearPendingResponse,
     ],
   );
 
+  // 运行态不再镜像成组件 state，直接订阅全局运行注册表：
+  // 页面切走再返回、整页刷新后重放事件，展示都从同一份 run 数据来。
+  const subscribeRun = useCallback(
+    (onStoreChange: () => void) => {
+      if (!currentSessionId) return () => {};
+      return subscribeChatRun(currentSessionId, onStoreChange);
+    },
+    [currentSessionId],
+  );
+  const run = useSyncExternalStore(subscribeRun, () =>
+    getChatRun(currentSessionId),
+  );
+  const isThinking = run?.status === "running";
+
+  // 返回聊天页时，自动切换到仍有进行中回答的会话（仅首次，避免影响手动切会话）。
+  // 候选会话直接从内存注册表和本地任务标记同步得出，不再逐个会话发请求。
+  const autoRestoredRef = useRef(false);
+  useEffect(() => {
+    if (autoRestoredRef.current || !sessions.length) return;
+    autoRestoredRef.current = true;
+
+    const candidates = listActiveChatSessions().filter(
+      (id) => id !== currentSessionId && sessions.some((item) => item.id === id),
+    );
+    if (!candidates.length) return;
+
+    (async () => {
+      for (const id of candidates) {
+        if (await hasRunningChatTask(id)) {
+          handleSelectSession(id);
+          return;
+        }
+      }
+    })();
+  }, [sessions, currentSessionId, handleSelectSession]);
+
+  // 恢复与收尾：
+  //  - 内存有运行记录：正在运行则隐藏「是否继续」弹窗
+  //  - 内存为空：统一走 restoreChatSession（内存 → taskId 探测 → pending 兜底）
+  //  - 进入终态：停止本地暂存、清弹窗、补拉会话显示最终 AI 消息
+  useEffect(() => {
+    if (!currentSessionId) return;
+    let settled = false;
+
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      stopAutoSave();
+      clearPendingResponse();
+      syncSessions(currentSessionId).catch((error) =>
+        console.error("刷新会话失败:", error),
+      );
+    };
+
+    const current = getChatRun(currentSessionId);
+    if (current) {
+      if (current.status === "running") setShowResumeModal(false);
+      else settle();
+    } else {
+      restoreChatSession(currentSessionId)
+        .then((restored) => {
+          // 恢复失败（后端重启 / 任务已回收）：保留 ResumeModal 兜底
+          if (!restored) return;
+          if (restored.status === "running") setShowResumeModal(false);
+          else settle();
+        })
+        .catch((error) => console.error("恢复聊天任务失败:", error));
+    }
+
+    const unsubscribe = subscribeChatRun(currentSessionId, (next) => {
+      if (!next) return;
+      if (next.status === "running") {
+        setShowResumeModal(false);
+        return;
+      }
+      settle();
+    });
+    return unsubscribe;
+  }, [
+    currentSessionId,
+    syncSessions,
+    stopAutoSave,
+    clearPendingResponse,
+    setShowResumeModal,
+  ]);
+
   const handleResumeResponse = useCallback(() => {
     if (pendingResponse && currentSession) {
-      setTypingTarget(pendingResponse.content);
-      setTypingDate(pendingResponse.timestamp.toString());
       setShowResumeModal(false);
       const userMessage =
         currentSession.messages[currentSession.messages.length - 1];
@@ -297,12 +356,7 @@ const ChatPage: React.FC = () => {
       <div className="flex-1 flex flex-col">
         <MessageArea
           messages={currentSession?.messages || []}
-          currentSessionId={currentSessionId}
-          isThinking={isThinking}
-          typingTarget={typingTarget}
-          typingDate={typingDate}
-          typeId={typeId}
-          toolStatus={toolStatus}
+          run={run}
           onCopyMessage={handleCopyMessage}
           onDeleteMessage={deleteMessage}
         />

@@ -18,10 +18,23 @@ import {
   deleteBookAgent,
   getBookAgentsByBookId,
 } from "@renderer/services/bookAgent";
-import { dispatchSSE, consumeSSEStream, parseSSEPayload } from "@renderer/utils/sse";
+// 原 parseSSEBuffer 仅用于同步 SSE 消费，已改为后台任务轮询
+// import { dispatchSSE, parseSSEBuffer } from "@renderer/utils/sse";
+import { dispatchSSE, parseSSEPayload } from "@renderer/utils/sse";
 import type { SSEEvent } from "@renderer/utils/sse";
-import { getApiUrl } from "@renderer/utils";
-import { getAuthHeaders } from "@renderer/utils/apiBase";
+import {
+  cancelBookAgentTask,
+  clearActiveBookAgentTask,
+  fetchBookAgentTask,
+  getActiveBookAgentTask,
+  getSavedBookAgentTask,
+  saveActiveBookAgentTask,
+  startBookAgentTask,
+} from "@renderer/services/bookAgentTask";
+// 原实现：同步 SSE 消费（已由后台任务 + 轮询替代）
+// import { consumeSSEStream } from "@renderer/utils/sse";
+// import { getApiUrl } from "@renderer/utils";
+// import { getAuthHeaders } from "@renderer/utils/apiBase";
 import type { AIKey } from "@renderer/types/common";
 import type { BookAgent } from "@type/book";
 import { getLocalStore } from "@renderer/utils/localStore";
@@ -116,10 +129,15 @@ function clipToolResult(result: unknown, max = 1200): string {
 const TOOL_RECORD_RE = /^\[([^\]]+)\]\s*([\s\S]*)$/;
 
 /** 把后端保存的历史问答转换为聊天气泡：每条记录 = 一问多答。 */
-function buildHistory(records: BookAgent[]): ChatMessage[] {
+function buildHistory(
+  records: BookAgent[],
+  includeRunning = false,
+): ChatMessage[] {
   const out: ChatMessage[] = [];
   // 后端按 createdAt DESC 返回，转为正序
   for (const record of [...records].reverse()) {
+    // 进行中的记录由后台任务重放恢复；历史列表跳过它，避免同一轮重复展示
+    if (!includeRunning && record.status === "running") continue;
     out.push({
       key: `h-u-${record.id}`,
       role: "user",
@@ -187,7 +205,16 @@ export function BookAgentPanel({
   // 当前运行标识：同一次请求内的 Agent 输出串成一条思考链
   const activeRunKeyRef = useRef("");
   const seqRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  // 原实现：AbortController 直接中断 SSE；任务模式改由后台任务 + 轮询接管
+  // const abortRef = useRef<AbortController | null>(null);
+  // 当前进行中的后台任务 id（同时写入 localStorage，切页/刷新后据此恢复）
+  const taskIdRef = useRef<string | null>(null);
+  // 前端轮询令牌：递增表示旧轮询作废（组件卸载或已开始新任务）
+  const pollTokenRef = useRef(0);
+  // 组件是否仍在挂载：卸载时只停止轮询，不清除任务标记
+  const aliveRef = useRef(true);
+  // 历史消息加载完成的书 id，用于随后恢复进行中的任务
+  const [historyLoadedBookId, setHistoryLoadedBookId] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // 删除对话的二次确认弹窗（跟随主题 zIndexPopupBase，避免被顶部工具栏遮挡）
   const [modal, modalContextHolder] = Modal.useModal();
@@ -246,6 +273,19 @@ export function BookAgentPanel({
     [syncMessages],
   );
 
+  // 重新加载历史问答；includeRunning=true 时也展示仍在运行中的记录
+  // （仅在确认没有可恢复的后台任务时使用，避免与任务重放重复）
+  const loadHistory = useCallback(
+    async (bookId: string, includeRunning = false) => {
+      const list = await getBookAgentsByBookId(bookId);
+      knownRecordIdsRef.current = new Set((list || []).map((item) => item.id));
+      messagesRef.current = buildHistory(list || [], includeRunning);
+      activeKeyRef.current = null;
+      syncMessages();
+    },
+    [syncMessages],
+  );
+
   // 打开书籍时加载历史问答
   useEffect(() => {
     if (!book?.id) return;
@@ -258,6 +298,8 @@ export function BookAgentPanel({
         messagesRef.current = buildHistory(list || []);
         activeKeyRef.current = null;
         syncMessages();
+        // 历史就绪后，触发另一处 effect 恢复进行中的后台任务
+        setHistoryLoadedBookId(book.id);
       } catch (e) {
         console.error("加载 AI 写书历史失败:", e);
       }
@@ -267,13 +309,16 @@ export function BookAgentPanel({
     };
   }, [book?.id, syncMessages]);
 
-  // 组件卸载时中断仍在进行的请求
-  useEffect(
-    () => () => {
-      abortRef.current?.abort();
-    },
-    [],
-  );
+  // 组件卸载时只停止前端轮询，后台任务继续运行；
+  // 返回页面时凭 localStorage 中的 taskId 重放事件，恢复正在生成的回答。
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      pollTokenRef.current += 1;
+      // 原实现：abortRef.current?.abort();  ← 切页即中断 SSE
+    };
+  }, []);
 
   const finishActive = useCallback(
     (status: ChatStatus) => {
@@ -344,10 +389,29 @@ export function BookAgentPanel({
           // 用户消息已由前端本地插入气泡，服务端回显无需重复展示；
           // 但需记录 recordId，建立实时 runKey（请求 id）与后端记录的映射
           user_message: (data) => {
-            const payload = parseSSEPayload<{ recordId?: string }>(data);
+            const payload = parseSSEPayload<{
+              recordId?: string;
+              content?: string;
+            }>(data);
             const runKey = activeRunKeyRef.current;
             if (payload?.recordId && runKey) {
               runRecordMapRef.current.set(runKey, payload.recordId);
+            }
+            // 恢复进行中任务时，本地还没有该轮的用户气泡，用事件内容补一条
+            if (
+              payload?.content &&
+              runKey &&
+              !messagesRef.current.some(
+                (m) => m.runKey === runKey && m.role === "user",
+              )
+            ) {
+              pushMessage({
+                key: `u-${runKey}`,
+                role: "user",
+                content: payload.content,
+                status: "success",
+                runKey,
+              });
             }
           },
           agent: (data) => {
@@ -428,6 +492,129 @@ export function BookAgentPanel({
     [appendToMessage, ensureActive, finishActive, mutateMessage, refreshChapters, startAgentMessage],
   );
 
+  // 轮询后台任务：把新事件按 SSE 类型重放，running 期间持续拉取，
+  // 终态后完成收尾。切页卸载只停止轮询，任务仍在服务端继续运行。
+  const runTask = useCallback(
+    async (taskId: string, bookId: string, from = 0) => {
+      const token = pollTokenRef.current + 1;
+      pollTokenRef.current = token;
+      taskIdRef.current = taskId;
+      // 任务 id 即发送时的 requestId，作为本轮 runKey，重放时串成同一条思考链
+      activeRunKeyRef.current = taskId;
+      setRequestId(taskId);
+      setStreaming(true);
+      saveActiveBookAgentTask(bookId, taskId);
+
+      let seq = from;
+      let finalStatus: ChatStatus = "success";
+      try {
+        while (aliveRef.current && pollTokenRef.current === token) {
+          const snapshot = await fetchBookAgentTask(taskId, seq);
+          // 拉取期间可能已卸载或已切换到新任务
+          if (!aliveRef.current || pollTokenRef.current !== token) break;
+          if (snapshot.events?.length) {
+            handleEvents(
+              snapshot.events.map((item) => ({
+                event: item.type,
+                data: item.data,
+              })),
+            );
+          }
+          seq = snapshot.nextSeq;
+          // 仍在运行且暂无新事件：稍后再拉
+          if (snapshot.status === "running") {
+            await new Promise((resolve) => setTimeout(resolve, 600));
+            continue;
+          }
+          if (snapshot.status === "error") finalStatus = "error";
+          else if (snapshot.status === "cancelled") finalStatus = "abort";
+          break;
+        }
+      } catch (error: any) {
+        finalStatus = "error";
+        appendToMessage(
+          ensureActive(),
+          `\n\n[错误] ${error?.message || String(error)}`,
+        );
+      } finally {
+        // 组件已卸载：保留 localStorage 标记，返回页面后继续恢复
+        if (!aliveRef.current) return;
+        // 已被新的轮询接管：由新任务负责收尾
+        if (pollTokenRef.current !== token) return;
+        finishActive(finalStatus);
+        setStreaming(false);
+        setRequestId(null);
+        if (taskIdRef.current === taskId) taskIdRef.current = null;
+        activeKeyRef.current = null;
+        clearActiveBookAgentTask(bookId);
+        // 刷新章节列表，让 AI 新写的章节（isAi=1）立即可见
+        try {
+          await loadBookById(bookId);
+          const state = useWriterStore.getState();
+          const chapterId = state.currentChapter?.id;
+          if (
+            chapterId &&
+            state.book.chapters.some((chapter) => chapter.id === chapterId)
+          ) {
+            await state.setCurrentChapter(chapterId);
+          }
+        } catch (error) {
+          console.error("刷新章节列表失败:", error);
+        }
+      }
+    },
+    [appendToMessage, ensureActive, finishActive, handleEvents, loadBookById],
+  );
+
+  // 历史加载完成后检查是否有进行中的后台任务：
+  // 切页 / 刷新返回时凭 taskId 重放事件，恢复正在生成的回答。
+  useEffect(() => {
+    const bookId = historyLoadedBookId;
+    if (!bookId || taskIdRef.current) return;
+    let cancelled = false;
+    let polling = false;
+    (async () => {
+      let taskId = getSavedBookAgentTask(bookId);
+      if (!taskId) {
+        try {
+          taskId = await getActiveBookAgentTask(bookId);
+        } catch (error) {
+          console.error("查询进行中的写书任务失败:", error);
+          return;
+        }
+      }
+      if (cancelled || !taskId) return;
+      let running = false;
+      try {
+        // 先探测一次状态：已结束的任务内容已落库，无需重放
+        const snapshot = await fetchBookAgentTask(taskId, 0, 1);
+        if (cancelled) return;
+        running = snapshot.status === "running";
+      } catch {
+        // 任务不存在（如后端重启）：按已结束处理
+        running = false;
+      }
+      if (!running) {
+        // 任务已结束或已不存在：清除标记并重新加载历史，
+        // 把期间完成的记录（含残留 running 状态的旧记录）展示出来
+        clearActiveBookAgentTask(bookId);
+        try {
+          await loadHistory(bookId, true);
+        } catch (error) {
+          console.error("重新加载 AI 写书历史失败:", error);
+        }
+        return;
+      }
+      polling = true;
+      await runTask(taskId, bookId);
+    })();
+    return () => {
+      cancelled = true;
+      // 切换书籍时停止上一本书的恢复轮询
+      if (polling) pollTokenRef.current += 1;
+    };
+  }, [historyLoadedBookId, loadHistory, runTask]);
+
   const handleSend = useCallback(
     async (input?: string) => {
       const text = (input ?? prompt).trim();
@@ -464,11 +651,41 @@ export function BookAgentPanel({
         runKey: newRequestId,
       });
 
-      const abortController = new AbortController();
-      abortRef.current = abortController;
+      // 后台任务模式：先在服务端启动任务（任务 id 即 requestId），
+      // 再凭 taskId 轮询事件；切页 / 刷新不影响任务继续运行。
+      taskIdRef.current = newRequestId;
+      saveActiveBookAgentTask(bookId, newRequestId);
 
       try {
-        /* ===== 旧实现（保留备查，已由 consumeSSEStream 替代） =====
+        const started = await startBookAgentTask({
+          prompt: text,
+          bookId,
+          model: config.model,
+          baseUrl: config.url,
+          apiKey: chosen.key,
+          requestId: newRequestId,
+        });
+        const taskId = started?.taskId || newRequestId;
+        // runTask 内部完成轮询、终态收尾与章节列表刷新
+        await runTask(taskId, bookId);
+      } catch (error: any) {
+        console.error("AI 写书请求失败:", error);
+        appendToMessage(
+          ensureActive(),
+          `\n\n[错误] ${error?.message || String(error)}`,
+        );
+        finishActive("error");
+        setStreaming(false);
+        setRequestId(null);
+        taskIdRef.current = null;
+        activeKeyRef.current = null;
+        clearActiveBookAgentTask(bookId);
+      }
+
+      /* ===== 原实现（同步 SSE，已由后台任务 + 轮询替代，保留备查） =====
+      const abortController = new AbortController();
+      abortRef.current = abortController;
+      try {
         // 端口由后端动态分配，统一通过 getApiUrl 拼接
         const response = await fetch(getApiUrl("/api/book-agent"), {
           method: "POST",
@@ -498,23 +715,6 @@ export function BookAgentPanel({
           if (events.length > 0) handleEvents(events);
         }
         finishActive("success");
-        ===== 旧实现结束 ===== */
-
-        // 新实现：流消费统一交给 consumeSSEStream，逐条事件复用现有 handleEvents
-        await consumeSSEStream({
-          url: getApiUrl("/api/book-agent"),
-          body: {
-            prompt: text,
-            bookId,
-            model: config.model,
-            baseUrl: config.url,
-            apiKey: chosen.key,
-            requestId: newRequestId,
-          },
-          signal: abortController.signal,
-          onEvent: (evt) => handleEvents([evt]),
-        });
-        finishActive("success");
       } catch (error: any) {
         if (error?.name === "AbortError") {
           appendToMessage(ensureActive(), "\n\n[任务已取消]");
@@ -543,6 +743,7 @@ export function BookAgentPanel({
           await state.setCurrentChapter(chapterId);
         }
       }
+      ===== 原实现结束 ===== */
     },
     [
       prompt,
@@ -551,20 +752,23 @@ export function BookAgentPanel({
       appendToMessage,
       ensureActive,
       finishActive,
-      handleEvents,
-      loadBookById,
+      runTask,
     ],
   );
 
   const handleCancel = useCallback(() => {
-    if (requestId) {
-      fetch(getApiUrl(`/api/chat-cancel?requestId=${requestId}`), {
-        headers: getAuthHeaders(),
-      }).catch(
-        () => undefined,
-      );
+    // 取消后台任务：服务端会推送 cancel 事件，前端轮询随之收尾
+    const taskId = taskIdRef.current || requestId;
+    if (taskId) {
+      cancelBookAgentTask(taskId).catch(() => undefined);
     }
-    abortRef.current?.abort();
+    // 原实现：直接中止 SSE 连接
+    // if (requestId) {
+    //   fetch(getApiUrl(`/api/chat-cancel?requestId=${requestId}`), {
+    //     headers: getAuthHeaders(),
+    //   }).catch(() => undefined);
+    // }
+    // abortRef.current?.abort();
   }, [requestId]);
 
   /** 删除一段对话：用户提问 + 同一次运行的全部 Agent 步骤，含后端记录。 */

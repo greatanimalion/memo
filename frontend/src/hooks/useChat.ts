@@ -105,6 +105,22 @@ export const useChat = () => {
     setSessions(_sessions);
   }, []);
 
+  // 重新从后端拉取会话列表；preferredId 为当前会话时同步刷新其消息。
+  // 用于「回答在页面切走后完成」的场景：返回页面时补上最终 AI 消息。
+  const syncSessions = useCallback(
+    async (preferredId?: string) => {
+      const list = await getAllSession();
+      setSessions(list);
+      const targetId = preferredId || currentSessionId;
+      if (targetId && targetId === currentSessionId) {
+        const target = list.find((s) => s.id === targetId);
+        if (target) setCurrentSession(target);
+      }
+      return list;
+    },
+    [currentSessionId],
+  );
+
   // 选择会话
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
@@ -184,6 +200,7 @@ export const useChat = () => {
     handleNewSession,
     pushSessionToCurrentSession,
     updateSessionsList,
+    syncSessions,
     handleSelectSession,
     handleDeleteSession,
     updateSessionTitle,

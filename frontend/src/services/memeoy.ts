@@ -39,7 +39,14 @@ export const getMemoryChildById = withFallback(async (id: string): Promise<Memor
   return response.data.data;
 }, []);
 
-export const createMemory = withFallback(async (data: Memory): Promise<Memory> => {
+// 按标题模糊搜索记忆（后端 db.SearchMemoriesByTitle）
+export const searchMemorys = withFallback(async (keyword: string): Promise<Memory[]> => {
+  const response = await api.get("/api/memorys/search", { params: { keyword } });
+  return response.data.data;
+}, []);
+
+// 创建时 id 由后端统一生成，调用方无需传入
+export const createMemory = withFallback(async (data: Omit<Memory, "id">): Promise<Memory> => {
   const response = await api.post("/api/memorys", data);
   return response.data.data;
 }, {} as Memory);

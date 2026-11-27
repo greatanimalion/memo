@@ -1,11 +1,11 @@
-﻿import { useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { SortBy } from "@renderer/types/common";
 import {
   createMemory,
   getMemoryChildById,
+  searchMemorys,
   starredMemory,
 } from "@renderer/services/memeoy";
-import { generateUUID } from "@renderer/utils/helper";
 import { toggleFileStar } from "@renderer/utils";
 import useFileStore from "@renderer/store/useFileStore";
 
@@ -105,31 +105,30 @@ export const useMemory = () => {
         created: date,
         updated: date,
         visitedTime: date,
-        id: generateUUID(),
         size: 0,
       });
 
       if (!result.id) {
         return false;
       }
-      await refreshCurrentFolderItemsArr();
+      refreshCurrentFolderItemsArr();
       return true;
     },
     [currentFileIds],
   );
 
-  // 搜索文件
   const searchFiles = useCallback(
-    (value: string) => {
-      if (!value) {
-      } else {
-        const filtered = currentFolderItems.filter((item) =>
-          item.title.includes(value),
-        );
-        setCurrentFolderItemsArr(filtered);
+    async (value: string) => {
+      const keyword = value.trim();
+      if (!keyword) {
+        // 清空搜索时恢复当前目录列表
+        refreshCurrentFolderItemsArr();
+        return;
       }
+      const result = await searchMemorys(keyword);
+      setCurrentFolderItemsArr(result);
     },
-    [currentFolderItems, currentFileIds],
+    [refreshCurrentFolderItemsArr],
   );
 
   return {

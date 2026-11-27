@@ -20,6 +20,7 @@ import (
 
 func registerMemoryRoutes(api chi.Router) {
 	api.Get("/memorys", memoryGetAll)
+	api.Get("/memorys/search", memorySearch)
 	api.Get("/memorys/get_children/{id}", memoryGetChildren)
 	api.Get("/memorys_recent", memoryGetRecent)
 	api.Get("/memorys_starred", memoryGetStarred)
@@ -31,7 +32,6 @@ func registerMemoryRoutes(api chi.Router) {
 }
 
 type memoryCreateInput struct {
-	ID          string     `json:"id"`
 	Title       string     `json:"title"`
 	IsFolder    jsonx.Flag `json:"isFolder"`
 	FileURL     *string    `json:"fileUrl"`
@@ -52,6 +52,21 @@ type memoryUpdateInput struct {
 
 func memoryGetAll(w http.ResponseWriter, r *http.Request) {
 	list, err := db.ListMemories()
+	if err != nil {
+		response.Fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	response.Success(w, list, "")
+}
+
+// memorySearch 按标题模糊查询记忆（与 AI 工具共用 db.SearchMemoriesByTitle）。
+func memorySearch(w http.ResponseWriter, r *http.Request) {
+	keyword := strings.TrimSpace(r.URL.Query().Get("keyword"))
+	if keyword == "" {
+		response.Success(w, []db.Memory{}, "")
+		return
+	}
+	list, err := db.SearchMemoriesByTitle(keyword, 20)
 	if err != nil {
 		response.Fail(w, http.StatusInternalServerError, err.Error())
 		return
@@ -120,12 +135,13 @@ func memoryCreate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	id := in.ID
-	if id == "" {
-		id = db.NewID()
-	}
+	// 创建时 id 由后端（db.CreateMemory）统一生成，不再从请求中取
+	// id := in.ID
+	// if id == "" {
+	// 	id = db.NewID()
+	// }
 	m := db.Memory{
-		ID:          id,
+		// ID:          id,
 		Title:       in.Title,
 		IsFolder:    in.IsFolder,
 		FileURL:     in.FileURL,

@@ -78,19 +78,25 @@ func TestMemoryLifecycle(t *testing.T) {
 	srv := httptest.NewServer(NewRouter(testToken))
 	defer srv.Close()
 
+	// id 由后端在创建时生成，这里不再传 id
 	status, env := do(t, srv, http.MethodPost, "/api/memorys", map[string]any{
-		"id": "m1", "title": "Notes", "isFolder": 0, "parentId": "root",
+		"title": "Notes", "isFolder": 0, "parentId": "root",
 		"created": 1, "updated": 1, "visitedTime": time.Now().UnixMilli(), "size": 0,
 	})
 	if status != 201 {
 		t.Fatalf("create memory status = %d (%s)", status, env.Error)
 	}
 	var created struct {
+		ID      string `json:"id"`
 		FileURL string `json:"fileUrl"`
 	}
 	if err := json.Unmarshal(env.Data, &created); err != nil {
 		t.Fatalf("decode created: %v", err)
 	}
+	if created.ID == "" {
+		t.Fatalf("created memory id is empty")
+	}
+	memoryID := created.ID
 	if !strings.HasPrefix(created.FileURL, "/uploads/files/") {
 		t.Fatalf("fileUrl = %q", created.FileURL)
 	}
@@ -99,7 +105,7 @@ func TestMemoryLifecycle(t *testing.T) {
 		t.Fatalf("content file missing: %v", err)
 	}
 
-	status, env = do(t, srv, http.MethodPut, "/api/memorys/m1", map[string]any{
+	status, env = do(t, srv, http.MethodPut, "/api/memorys/"+memoryID, map[string]any{
 		"title": "Notes2", "fileUrl": created.FileURL, "parentId": "root", "content": "hello world",
 	})
 	if status != 200 {
@@ -114,18 +120,18 @@ func TestMemoryLifecycle(t *testing.T) {
 	}
 
 	status, env = do(t, srv, http.MethodGet, "/api/memorys/get_children/root", nil)
-	if status != 200 || !bytes.Contains(env.Data, []byte("m1")) {
+	if status != 200 || !bytes.Contains(env.Data, []byte(memoryID)) {
 		t.Fatalf("children status=%d data=%s", status, env.Data)
 	}
 
-	if status, env = do(t, srv, http.MethodPost, "/api/memory/star/m1", nil); status != 200 {
+	if status, env = do(t, srv, http.MethodPost, "/api/memory/star/"+memoryID, nil); status != 200 {
 		t.Fatalf("star status=%d (%s)", status, env.Error)
 	}
-	if status, env = do(t, srv, http.MethodGet, "/api/memorys_starred", nil); status != 200 || !bytes.Contains(env.Data, []byte("m1")) {
+	if status, env = do(t, srv, http.MethodGet, "/api/memorys_starred", nil); status != 200 || !bytes.Contains(env.Data, []byte(memoryID)) {
 		t.Fatalf("starred status=%d data=%s", status, env.Data)
 	}
 
-	if status, env = do(t, srv, http.MethodDelete, "/api/memorys/m1", nil); status != 200 {
+	if status, env = do(t, srv, http.MethodDelete, "/api/memorys/"+memoryID, nil); status != 200 {
 		t.Fatalf("delete status=%d (%s)", status, env.Error)
 	}
 	if _, err := os.Stat(filepath.Join(config.FilesDir(), filepath.FromSlash(rel))); !os.IsNotExist(err) {

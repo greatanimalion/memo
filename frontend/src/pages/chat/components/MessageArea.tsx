@@ -8,28 +8,20 @@ import { XMarkdown } from "@ant-design/x-markdown";
 import { Bubble, Think } from "@ant-design/x";
 import type { BubbleItemType } from "@ant-design/x";
 import type { Message } from "@type/session";
+import type { ChatLiveRun } from "@renderer/services/chatLive";
 import { formatTime } from "@renderer/utils/dateUtils";
 
 interface MessageAreaProps {
   messages: Message[];
-  currentSessionId: string;
-  isThinking: boolean;
-  typingTarget: string;
-  typingDate: string;
-  typeId: string;
-  toolStatus?: string;
+  /** 当前会话的运行态（由 chatLive 直接订阅而来，不再由页面镜像） */
+  run: ChatLiveRun | null;
   onCopyMessage: (content: string) => void;
   onDeleteMessage: (msg: Message) => void;
 }
 
 const MessageArea: React.FC<MessageAreaProps> = ({
   messages,
-  currentSessionId,
-  isThinking,
-  typingTarget,
-  typingDate,
-  typeId,
-  toolStatus,
+  run,
   onCopyMessage,
   onDeleteMessage,
 }) => {
@@ -92,17 +84,17 @@ const MessageArea: React.FC<MessageAreaProps> = ({
     });
 
     // 正在回复：思考过程 + 工具状态 + 已收到的正文
-    if (isThinking && currentSessionId === typeId) {
+    if (run && run.status === "running") {
       list.push({
         key: "__typing__",
         role: "ai",
         variant: "borderless",
-        content: typingTarget,
+        content: run.content,
         styles: { content: { backgroundColor: "transparent", padding: 0 } },
         contentRender: () => (
           <div className="text-sm">
             <Think title="思考过程" blink loading />
-            {toolStatus && (
+            {run.toolStatus && (
               <div
                 className="mb-2 mt-1 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
                 style={{
@@ -111,15 +103,15 @@ const MessageArea: React.FC<MessageAreaProps> = ({
                 }}
               >
                 <LoadingOutlined spin />
-                <span>{toolStatus}</span>
+                <span>{run.toolStatus}</span>
               </div>
             )}
-            {typingTarget && <XMarkdown content={typingTarget} />}
+            {run.content && <XMarkdown content={run.content} />}
             <p
               className="mt-2 text-xs"
               style={{ color: "var(--text-muted)" }}
             >
-              {formatTime(+typingDate)}
+              {formatTime(run.startedAt)}
             </p>
           </div>
         ),
@@ -127,17 +119,7 @@ const MessageArea: React.FC<MessageAreaProps> = ({
     }
 
     return list;
-  }, [
-    messages,
-    isThinking,
-    currentSessionId,
-    typeId,
-    typingTarget,
-    typingDate,
-    toolStatus,
-    onCopyMessage,
-    onDeleteMessage,
-  ]);
+  }, [messages, run, onCopyMessage, onDeleteMessage]);
 
   // 用户气泡在右侧、AI 气泡在左侧，沿用原配色
   const role = useMemo(

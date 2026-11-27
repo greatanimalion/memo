@@ -13,8 +13,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { AIKey, MyAgent } from "@renderer/types/common";
 import { getLocalStore, setLocalStore } from "@renderer/utils/localStore";
 import { Bot } from "lucide-react";
-import { cancelChat } from "@renderer/services/agent";
-import { abortChatStream } from "@renderer/services/chatStream";
+// 原同步流的取消方式，聊天任务化后统一改为取消后端后台任务
+// import { cancelChat } from "@renderer/services/agent";
+// import { abortChatStream } from "@renderer/services/chatStream";
+import { cancelChatRun } from "@renderer/services/chatRunner";
 const { Text } = Typography;
 
 const Switch = Sender.Switch;
@@ -284,9 +286,11 @@ const AISender: React.FC<{
           }}
           onCancel={() => {
             setLoading(false);
-            // 先中断前端读取（AbortController），再通知后端取消请求。
-            abortChatStream(requestId);
-            cancelChat(requestId);
+            // 任务化后：直接取消后端聊天任务，由前端轮询感知 cancelled 收尾
+            cancelChatRun(requestId);
+            // 原实现：先中断前端读取（AbortController），再通知后端取消请求。
+            // abortChatStream(requestId);
+            // cancelChat(requestId);
             message.error("已取消");
           }}
           slotConfig={slotConfig.zh_slotConfig}
